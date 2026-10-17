@@ -15,7 +15,9 @@ import {
   Download,
   X,
   Edit2,
+  Sparkles,
 } from "lucide-react";
+import ThematicQrGenerator from "@/components/qr/ThematicQrGenerator";
 
 interface CardItem {
   id: string;
@@ -30,6 +32,7 @@ interface CardItem {
 interface CardsClientProps {
   cards: CardItem[];
   tenantName: string;
+  tenantPlan?: "BASIC" | "PRO" | "ENTERPRISE";
   baseUrl: string;
   maxCards: number;
 }
@@ -37,6 +40,7 @@ interface CardsClientProps {
 export default function CardsClient({
   cards: initialCards,
   tenantName,
+  tenantPlan = "BASIC",
   baseUrl,
   maxCards,
 }: CardsClientProps) {
@@ -137,6 +141,14 @@ export default function CardsClient({
               {activeCardsCount} of {maxCards} Cards
             </span>
           </div>
+
+          <Link
+            href="/dashboard/qr-studio"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold transition-all shadow-2xs"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>QR Studio</span>
+          </Link>
 
           <Link
             href="/claim"
@@ -321,59 +333,49 @@ export default function CardsClient({
 
       {/* QR Code Generator Modal */}
       {selectedQrCard && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-xl text-center relative">
-            <button
-              onClick={() => setSelectedQrCard(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-4xl w-full border border-slate-200 shadow-2xl relative my-8 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Smart QR Code Studio — {selectedQrCard.shortCode}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {selectedQrCard.label || selectedQrCard.shortCode} • {tenantName}
+                  </p>
+                </div>
+              </div>
 
-            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3">
-              <QrCode className="w-6 h-6" />
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard/qr-studio"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Full Screen Studio</span>
+                </Link>
+
+                <button
+                  onClick={() => setSelectedQrCard(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 mb-0.5">
-              Review Card QR Code
-            </h3>
-            <p className="text-xs text-slate-500 mb-1 font-semibold text-teal-700">
-              {tenantName}
-            </p>
-            <p className="text-xs text-slate-500 mb-4">
-              {selectedQrCard.label || selectedQrCard.shortCode}
-            </p>
-
-            {/* QR Code Container */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block mb-4">
-              {/* High Quality SVG QR Code using QR Server API */}
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-                  `${baseUrl}/tap/${selectedQrCard.urlSlug}`
-                )}&color=0d9488&bgcolor=ffffff&margin=8`}
-                alt="Card QR Code"
-                className="w-48 h-48 rounded-lg mx-auto shadow-2xs"
-              />
-            </div>
-
-            <p className="text-[11px] font-mono text-slate-400 truncate mb-4">
-              {baseUrl}/tap/{selectedQrCard.urlSlug}
-            </p>
-
-            <div className="flex gap-2">
-              <a
-                href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(
-                  `${baseUrl}/tap/${selectedQrCard.urlSlug}`
-                )}&color=0d9488&bgcolor=ffffff&margin=10`}
-                download={`${selectedQrCard.shortCode}-qrcode.png`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Print QR</span>
-              </a>
-            </div>
+            <ThematicQrGenerator
+              initialUrl={`${baseUrl}/tap/${selectedQrCard.urlSlug}`}
+              cardShortCode={selectedQrCard.shortCode}
+              cardLabel={selectedQrCard.label || selectedQrCard.shortCode}
+              tenantName={tenantName}
+              tenantPlan={tenantPlan}
+              compact={true}
+            />
           </div>
         </div>
       )}

@@ -14,9 +14,12 @@
   2. **Social Media Hub:** High-converting Instagram, Facebook, and YouTube follow channels.
   3. **Food Delivery & Dining Hub:** Direct Swiggy/Zomato ordering, takeaway discount offers, and one-tap telephone calls.
   4. **Custom URL Redirection:** Digital menu/catalog display or instant 307 forward.
+- **Smart QR Code Studio:**
+  - **Method 1: Thematic SVG Generator (Basic & Pro):** Live vector styling with `qr-code-styling`—custom centerpiece icons (Dentist tooth, Salon scissors, Café utensils/coffee, Gym dumbbell, Boutique shopping bag), fluid extra-rounded dot geometry, and brand gradients with high-res PNG & vector SVG downloads.
+  - **Method 2: AI-Blended QR Artwork (Pro & Enterprise):** ControlNet-powered artistic invisible QR codes woven into hyper-realistic cyberpunk coffee cups, luxury gold posters, and botanical floral art that scan seamlessly on table tents and menus.
 - **Multi-Tenant Architecture:**
   - **Super Admin Portal (`/admin`):** Fleet inventory, hardware batch printing (`TAP-805`), business classifications, tenant onboarding, and user management.
-  - **Tenant Dashboard (`/dashboard`):** Real-time tap analytics, smartphone simulator customizer, card assignment, and private feedback inbox.
+  - **Tenant Dashboard (`/dashboard`):** Real-time tap analytics, QR Code Studio (`/dashboard/qr-studio`), smartphone simulator customizer, card assignment, and private feedback inbox.
   - **Self-Serve Card Claiming (`/claim`):** Venues bind pre-printed cards to tables/counters in seconds.
 
 ---

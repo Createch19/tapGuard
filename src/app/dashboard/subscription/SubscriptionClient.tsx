@@ -289,10 +289,14 @@ export default function SubscriptionClient({
               </div>
               <div>
                 <strong className="text-xs font-bold text-slate-900 block">
-                  {activeConfig.qrCodeTier} QR Generator
+                  {activeConfig.plan === "BASIC"
+                    ? "Method 1: Thematic SVG Vector QR Generator"
+                    : "Method 1 (Thematic SVG) + Method 2 (AI-Blended QR Artwork)"}
                 </strong>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  High-resolution SVG and PNG printable QR codes paired with every NFC card.
+                  {activeConfig.plan === "BASIC"
+                    ? "Full access to industry vector templates (Dentist, Salon, Café, Gym) with custom SVG icons, dots, and colors."
+                    : "Full access to Thematic SVG generator PLUS AI-Blended QR Artwork Studio powered by ControlNet."}
                 </p>
               </div>
             </div>

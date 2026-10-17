@@ -41,6 +41,7 @@ export default async function CardsPage() {
     <CardsClient
       cards={formattedCards}
       tenantName={tenant.name}
+      tenantPlan={tenant.plan as "BASIC" | "PRO" | "ENTERPRISE"}
       baseUrl={baseUrl}
       maxCards={tenant.maxCards}
     />

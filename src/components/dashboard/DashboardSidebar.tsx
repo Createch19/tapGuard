@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Store,
+  QrCode,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -54,6 +55,11 @@ export default function DashboardSidebar({
       name: "Cards & NFC",
       href: "/dashboard/cards",
       icon: CreditCard,
+    },
+    {
+      name: "QR Studio",
+      href: "/dashboard/qr-studio",
+      icon: QrCode,
     },
     {
       name: "Private Feedback",
