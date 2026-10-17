@@ -78,9 +78,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Portal | URL | Email | Password | Role |
 |---|---|---|---|---|
 | **Super Admin** | `/admin` | `admin@tapgate.io` | `Admin@123456` | Platform Super Admin |
-| **Demo Venue (Pro)** | `/dashboard` | `owner@artisanbakery.com` | `Owner@123456` | Bakery Owner |
-| **Demo Venue (Basic)** | `/dashboard` | `owner@genzsports.com` | `Owner@123456` | Sports Owner |
-| **Public Tap Demo** | `/rate/artisan-counter` | *Public* | *N/A* | Customer |
+
+> **Note:** Demo/test accounts have been removed. Use the Super Admin portal (`/admin`) to register tenants, generate card batches, and configure plans.
 
 ---
 
