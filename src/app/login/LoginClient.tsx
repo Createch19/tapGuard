@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -16,12 +16,6 @@ export default function LoginClient() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const handleQuickFill = (fillEmail: string, fillPass: string) => {
-    setEmail(fillEmail);
-    setPassword(fillPass);
-    setErrorMessage("");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,21 +78,6 @@ export default function LoginClient() {
             <p className="text-xs sm:text-sm text-slate-500">
               Sign in to manage your NFC cards, smart gate, and reviews
             </p>
-          </div>
-
-          {/* Quick Super Admin Fill */}
-          <div className="mb-6 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-center mb-2">
-              ⚡ Quick Fill
-            </p>
-            <button
-              type="button"
-              onClick={() => handleQuickFill("admin@tapgate.io", "Admin@123456")}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold transition-all shadow-2xs"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-slate-700" />
-              <span>Super Admin (admin@tapgate.io)</span>
-            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

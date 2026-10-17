@@ -73,13 +73,17 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🔑 Default Credentials
+## 🔑 System Administration
 
 | Portal | URL | Email | Password | Role |
 |---|---|---|---|---|
-| **Super Admin** | `/admin` | `admin@tapgate.io` | `Admin@123456` | Platform Super Admin |
+| **Super Admin** | `/login` (or `/admin`) | `admin@tapgate.io` | `Admin@123456` | Platform Super Admin |
 
-> **Note:** Demo/test accounts have been removed. Use the Super Admin portal (`/admin`) to register tenants, generate card batches, and configure plans.
+The Super Admin account is used to maintain the system:
+- Register and onboard new business tenants
+- Assign business categories and subscription plans
+- Generate and manage NFC card batches
+- View platform-wide metrics and audit logs
 
 ---
 
