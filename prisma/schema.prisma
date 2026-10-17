@@ -1,0 +1,388 @@
+// TapGate — Full Database Schema
+// Prisma 7 with PostgreSQL (Supabase)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum TenantPlan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum BillingCycle {
+  LIFETIME
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum CardStatus {
+  UNASSIGNED
+  ACTIVE
+  DEACTIVATED
+  LOST
+}
+
+enum GateTemplate {
+  GOOGLE_REVIEW
+  SOCIAL_HUB
+  DELIVERY_DINING
+  CUSTOM_REDIRECT
+}
+
+enum TapOutcome {
+  REDIRECTED
+  FEEDBACK_CAPTURED
+  DIRECT_REDIRECT
+  BOUNCED
+}
+
+enum DeviceOS {
+  IOS
+  ANDROID
+  DESKTOP
+  UNKNOWN
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
+  EXPIRED
+}
+
+enum AuditAction {
+  TENANT_CREATED
+  TENANT_UPDATED
+  TENANT_SUSPENDED
+  TENANT_DELETED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_UPDATED
+  SUBSCRIPTION_CANCELLED
+  PLAN_CONFIG_UPDATED
+  CARD_BATCH_GENERATED
+  CARD_REASSIGNED
+  USER_ROLE_CHANGED
+  ADMIN_LOGIN
+}
+
+// ─── Tenants ─────────────────────────────────────────────
+
+model Tenant {
+  id                   String       @id @default(uuid()) @db.Uuid
+  name                 String
+  slug                 String       @unique
+  googleReviewUrl      String?      @map("google_review_url")
+  smartGateEnabled     Boolean      @default(true) @map("smart_gate_enabled")
+  greetingTitle        String       @default("How was your experience?") @map("greeting_title")
+  greetingSubtitle     String?      @map("greeting_subtitle")
+  gateTemplate         GateTemplate @default(GOOGLE_REVIEW) @map("gate_template")
+  instagramUrl         String?      @map("instagram_url")
+  facebookUrl          String?      @map("facebook_url")
+  youtubeUrl           String?      @map("youtube_url")
+  swiggyUrl            String?      @map("swiggy_url")
+  zomatoUrl            String?      @map("zomato_url")
+  deliveryOfferText    String?      @map("delivery_offer_text")
+  deliveryPhone        String?      @map("delivery_phone")
+  customRedirectUrl    String?      @map("custom_redirect_url")
+  customRedirectTitle  String?      @default("View Online Menu") @map("custom_redirect_title")
+  customRedirectDirect Boolean      @default(false) @map("custom_redirect_direct")
+  plan                 TenantPlan   @default(BASIC)
+  businessType         String?      @default("Restaurant & Café") @map("business_type")
+  isActive             Boolean      @default(true) @map("is_active")
+  maxCards             Int          @default(5) @map("max_cards")
+  webhookUrl           String?      @map("webhook_url")
+  alertEmail           String?      @map("alert_email")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  branding        TenantBranding?
+  subscription    Subscription?
+  users           User[]
+  cards           Card[]
+  tapEvents       TapEvent[]
+  privateFeedback PrivateFeedback[]
+
+  @@map("tenants")
+}
+
+// ─── Tenant Branding (Dynamic Theming) ───────────────────
+
+model TenantBranding {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @unique @map("tenant_id") @db.Uuid
+  logoUrl        String?  @map("logo_url")
+  primaryColor   String   @default("#0D9488") @map("primary_color")
+  secondaryColor String   @default("#F0FDFA") @map("secondary_color")
+  accentColor    String   @default("#14B8A6") @map("accent_color")
+  fontFamily     String?  @map("font_family")
+  customCss      Json?    @map("custom_css")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_branding")
+}
+
+// ─── Users ───────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String?   @map("tenant_id") @db.Uuid
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  password      String?
+  image         String?
+  role          UserRole  @default(OWNER)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts         Account[]
+  sessions         Session[]
+  tenant           Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  resolvedFeedback PrivateFeedback[] @relation("ResolvedBy")
+
+  @@map("users")
+}
+
+// ─── NextAuth Required Tables ────────────────────────────
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Plan Configuration (Admin-Editable) ─────────────────
+
+model PlanConfig {
+  id               String       @id @default(uuid()) @db.Uuid
+  plan             TenantPlan   @unique
+  displayName      String       @map("display_name")
+  description      String?
+  price            Decimal      @db.Decimal(10, 2)
+  currency         String       @default("INR") @db.VarChar(3)
+  billingCycle     BillingCycle @map("billing_cycle")
+  maxCards           Int          @map("max_cards")
+  smartGate          Boolean      @default(true) @map("smart_gate")
+  multiGateTemplates Boolean      @default(false) @map("multi_gate_templates")
+  customBranding     Boolean      @default(false) @map("custom_branding")
+  webhookAlerts    Boolean      @default(false) @map("webhook_alerts")
+  qrCodeTier       String       @default("basic") @map("qr_code_tier")
+  analyticsRetDays Int          @default(30) @map("analytics_ret_days")
+  prioritySupport  Boolean      @default(false) @map("priority_support")
+  isActive         Boolean      @default(true) @map("is_active")
+  sortOrder        Int          @default(0) @map("sort_order")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@map("plan_configs")
+}
+
+// ─── Subscriptions ───────────────────────────────────────
+
+model Subscription {
+  id                 String             @id @default(uuid()) @db.Uuid
+  tenantId           String             @unique @map("tenant_id") @db.Uuid
+  status             SubscriptionStatus @default(ACTIVE)
+  plan               TenantPlan         @default(BASIC)
+  billingCycle       BillingCycle       @default(LIFETIME) @map("billing_cycle")
+  pricePaid          Decimal            @default(0) @map("price_paid") @db.Decimal(10, 2)
+  currency           String             @default("INR") @db.VarChar(3)
+  trialStartDate     DateTime?          @map("trial_start_date")
+  trialEndDate       DateTime?          @map("trial_end_date")
+  currentPeriodStart DateTime?          @map("current_period_start")
+  currentPeriodEnd   DateTime?          @map("current_period_end")
+  cancelledAt        DateTime?          @map("cancelled_at")
+  cancelReason       String?            @map("cancel_reason")
+  externalPaymentId  String?            @map("external_payment_id")
+  notes              String?            @db.Text
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([plan])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+// ─── Audit Log ───────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  actorId    String      @map("actor_id") @db.Uuid
+  actorEmail String      @map("actor_email")
+  action     AuditAction
+  targetType String      @map("target_type")
+  targetId   String?     @map("target_id") @db.Uuid
+  metadata   Json?
+  ipAddress  String?     @map("ip_address")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─── Card Batches ────────────────────────────────────────
+
+model CardBatch {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  quantity  Int
+  prefix    String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cards Card[]
+
+  @@map("card_batches")
+}
+
+// ─── Cards / Hardware ────────────────────────────────────
+
+model Card {
+  id            String     @id @default(uuid()) @db.Uuid
+  shortCode     String     @unique @map("short_code")
+  urlSlug       String     @unique @map("url_slug")
+  tenantId      String?    @map("tenant_id") @db.Uuid
+  batchId       String?    @map("batch_id") @db.Uuid
+  status        CardStatus @default(UNASSIGNED)
+  label         String?
+  activatedAt   DateTime?  @map("activated_at")
+  deactivatedAt DateTime?  @map("deactivated_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  tenant          Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  batch           CardBatch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  tapEvents       TapEvent[]
+  privateFeedback PrivateFeedback[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([urlSlug])
+  @@map("cards")
+}
+
+// ─── Tap Events (Analytics) ─────────────────────────────
+
+model TapEvent {
+  id        String     @id @default(uuid()) @db.Uuid
+  cardId    String     @map("card_id") @db.Uuid
+  tenantId  String?    @map("tenant_id") @db.Uuid
+  deviceOs  DeviceOS   @default(UNKNOWN) @map("device_os")
+  userAgent String?    @map("user_agent")
+  ipHash    String?    @map("ip_hash")
+  rating    Int?       @db.SmallInt
+  outcome   TapOutcome @default(BOUNCED)
+  referrer  String?
+  country   String?    @db.VarChar(2)
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  card     Card             @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  tenant   Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  feedback PrivateFeedback?
+
+  @@index([tenantId, createdAt])
+  @@index([cardId, createdAt])
+  @@index([outcome])
+  @@map("tap_events")
+}
+
+// ─── Private Feedback ────────────────────────────────────
+
+model PrivateFeedback {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  cardId       String    @map("card_id") @db.Uuid
+  tapEventId   String    @unique @map("tap_event_id") @db.Uuid
+  rating       Int       @db.SmallInt
+  feedbackText String?   @map("feedback_text") @db.Text
+  phoneNumber  String?   @map("phone_number")
+  customerName String?   @map("customer_name")
+  isResolved   Boolean   @default(false) @map("is_resolved")
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedById String?   @map("resolved_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  card       Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  tapEvent   TapEvent @relation(fields: [tapEventId], references: [id], onDelete: Cascade)
+  resolvedBy User?    @relation("ResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([isResolved])
+  @@map("private_feedback")
+}
+
+// ─── Business Types Directory ────────────────────────────
+
+model BusinessType {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  slug      String   @unique
+  icon      String?  @default("Store")
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("business_types")
+}

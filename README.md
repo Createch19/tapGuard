@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# tapGuard (TrustTap)
 
-## Getting Started
+> Smart NFC & QR Customer Review Gate & Engagement SaaS Platform for Physical Businesses.
 
-First, run the development server:
+---
+
+## 🌟 Overview
+
+**tapGuard** empowers venues (restaurants, salons, retail stores, hotels, fitness centers, clinics, and sports clubs) with programmable, multi-template review gates connected to physical NFC cards and table stands.
+
+- **Compliant "Venting" Strategy:** Protects Google Review scores by filtering 4–5★ positive feedback to Google, while providing an empathetic private "Venting Box" for 1–3★ complaints that alerts managers instantly.
+- **4 Dynamic Gate Templates:**
+  1. **Google Review Smart Gate:** 5★ rating with compliant private venting & Google review button.
+  2. **Social Media Hub:** High-converting Instagram, Facebook, and YouTube follow channels.
+  3. **Food Delivery & Dining Hub:** Direct Swiggy/Zomato ordering, takeaway discount offers, and one-tap telephone calls.
+  4. **Custom URL Redirection:** Digital menu/catalog display or instant 307 forward.
+- **Multi-Tenant Architecture:**
+  - **Super Admin Portal (`/admin`):** Fleet inventory, hardware batch printing (`TAP-805`), business classifications, tenant onboarding, and user management.
+  - **Tenant Dashboard (`/dashboard`):** Real-time tap analytics, smartphone simulator customizer, card assignment, and private feedback inbox.
+  - **Self-Serve Card Claiming (`/claim`):** Venues bind pre-printed cards to tables/counters in seconds.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js 16 (App Router & Turbopack)
+- **Language:** TypeScript 5
+- **Database & ORM:** PostgreSQL + Prisma ORM 7 (`@prisma/adapter-pg`)
+- **Authentication:** NextAuth.js (Auth.js v5) with bcrypt salted hashing
+- **Styling:** Tailwind CSS + Radix UI + Lucide Icons
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone & Install Dependencies
+
+```bash
+git clone https://github.com/Createch19/tapGuard.git
+cd tapGuard
+npm install
+```
+
+### 2. Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/tapguard?sslmode=disable"
+NEXTAUTH_SECRET="your-32-character-secret"
+NEXTAUTH_URL="http://localhost:3000"
+AUTH_TRUST_HOST="true"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+### 3. Initialize Database & Seed Demo Data
+
+```bash
+# Push schema to database
+npx prisma db push
+
+# Seed initial business categories, plan tiers, and demo accounts
+npm run seed
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔑 Default Credentials
 
-## Learn More
+| Portal | URL | Email | Password | Role |
+|---|---|---|---|---|
+| **Super Admin** | `/admin` | `admin@tapgate.io` | `Admin@123456` | Platform Super Admin |
+| **Demo Venue (Pro)** | `/dashboard` | `owner@artisanbakery.com` | `Owner@123456` | Bakery Owner |
+| **Demo Venue (Basic)** | `/dashboard` | `owner@genzsports.com` | `Owner@123456` | Sports Owner |
+| **Public Tap Demo** | `/rate/artisan-counter` | *Public* | *N/A* | Customer |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ☁️ Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Deploy to Vercel (Recommended 100% Free)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Create a free serverless PostgreSQL database on [Neon.tech](https://neon.tech) or [Supabase.com](https://supabase.com).
+2. Push your schema using `DATABASE_URL="..." npx prisma db push` and `DATABASE_URL="..." npm run seed`.
+3. Import this repository into [Vercel](https://vercel.com).
+4. Add the environment variables:
+   - `DATABASE_URL`
+   - `NEXTAUTH_SECRET`
+   - `AUTH_TRUST_HOST=true`
+5. Deploy!
