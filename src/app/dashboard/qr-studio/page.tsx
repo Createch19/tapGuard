@@ -6,7 +6,7 @@ import QrStudioClient from "./QrStudioClient";
 export const dynamic = "force-dynamic";
 
 export default async function QrStudioPage() {
-  const { tenantId } = await requireTenantUser();
+  const { user, tenantId } = await requireTenantUser();
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -16,6 +16,7 @@ export default async function QrStudioPage() {
         orderBy: { createdAt: "desc" },
       },
       branding: true,
+      subscription: true,
     },
   });
 
@@ -37,10 +38,23 @@ export default async function QrStudioPage() {
   // Fallback direct gate URL if no cards claimed yet
   const defaultUrl = cards[0]?.fullUrl || `${baseUrl}/rate/${tenant.slug}`;
 
+  const rawPlan = String(
+    tenant.subscription?.plan || tenant.plan || "BASIC"
+  ).toUpperCase();
+
+  const effectivePlan: "BASIC" | "PRO" | "ENTERPRISE" =
+    user.role === "SUPER_ADMIN"
+      ? "ENTERPRISE"
+      : rawPlan === "PRO"
+      ? "PRO"
+      : rawPlan === "ENTERPRISE"
+      ? "ENTERPRISE"
+      : "BASIC";
+
   return (
     <QrStudioClient
       tenantName={tenant.name}
-      tenantPlan={tenant.plan as "BASIC" | "PRO" | "ENTERPRISE"}
+      tenantPlan={effectivePlan}
       businessType={tenant.businessType}
       cards={cards}
       defaultUrl={defaultUrl}

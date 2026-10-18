@@ -9,42 +9,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let tenantId = user.tenantId;
-    if (user.role === "SUPER_ADMIN" && !tenantId) {
-      const firstTenant = await prisma.tenant.findFirst({
-        where: { isActive: true },
-        select: { id: true },
-      });
-      tenantId = firstTenant?.id || null;
-    }
-
-    if (!tenantId) {
-      return NextResponse.json({ error: "No tenant account linked" }, { status: 400 });
-    }
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { id: true, name: true, plan: true },
-    });
-
-    if (!tenant) {
-      return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
-    }
-
-    // Plan Enforcement: Method 2 (AI-Blended QR Codes) is restricted to PRO and ENTERPRISE
-    if (tenant.plan === "BASIC") {
-      return NextResponse.json(
-        {
-          error: "UPGRADE_REQUIRED",
-          message:
-            "AI-Blended QR Codes are an exclusive feature for Pro and Enterprise plans. Please upgrade to unlock.",
-        },
-        { status: 403 }
-      );
-    }
-
     const body = await req.json();
-    const { prompt, url, style = "Cyberpunk", strength = 1.15 } = body;
+    const { prompt, url, style = "Cyberpunk", strength = 1.15, tenantId: requestedTenantId } = body;
+
+    const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+    // Super Admin has universal access to all AI features
+    if (!isSuperAdmin) {
+      const targetTenantId = requestedTenantId || user.tenantId;
+      if (!targetTenantId) {
+        return NextResponse.json({ error: "No tenant account linked" }, { status: 400 });
+      }
+
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: targetTenantId },
+        include: { subscription: true },
+      });
+
+      if (!tenant) {
+        return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+      }
+
+      const effectivePlan = String(
+        tenant.subscription?.plan || tenant.plan || "BASIC"
+      ).toUpperCase();
+
+      const isProOrEnterprise =
+        effectivePlan === "PRO" || effectivePlan === "ENTERPRISE";
+
+      if (!isProOrEnterprise) {
+        return NextResponse.json(
+          {
+            error: "UPGRADE_REQUIRED",
+            message:
+              "AI-Blended QR Codes are an exclusive feature for Pro and Enterprise plans. Please upgrade to unlock.",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     if (!url) {
       return NextResponse.json({ error: "Target URL is required" }, { status: 400 });

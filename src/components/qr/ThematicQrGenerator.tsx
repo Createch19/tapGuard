@@ -66,7 +66,11 @@ export default function ThematicQrGenerator({
   const qrRef = useRef<HTMLDivElement>(null);
 
   // Method 2 (AI Blended) State
-  const isAiUnlocked = tenantPlan === "PRO" || tenantPlan === "ENTERPRISE";
+  const normalizedPlan = String(tenantPlan || "BASIC").toUpperCase();
+  const isAiUnlocked =
+    normalizedPlan === "PRO" ||
+    normalizedPlan === "ENTERPRISE" ||
+    normalizedPlan === "SUPER_ADMIN";
   const [aiPrompt, setAiPrompt] = useState(
     "A neon cyberpunk coffee cup with glowing espresso steam, dark futuristic café table, 8k cinematic lighting"
   );

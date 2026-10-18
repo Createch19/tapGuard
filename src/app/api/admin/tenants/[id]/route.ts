@@ -39,6 +39,25 @@ export async function PATCH(
       },
     });
 
+    // If plan changed, keep subscription record in sync
+    if (plan) {
+      await prisma.subscription.upsert({
+        where: { tenantId: id },
+        update: {
+          plan,
+          status: "ACTIVE",
+        },
+        create: {
+          tenantId: id,
+          plan,
+          status: "ACTIVE",
+          billingCycle: plan === "BASIC" ? "LIFETIME" : "MONTHLY",
+          pricePaid: plan === "BASIC" ? 999 : plan === "PRO" ? 499 : 0,
+          currency: "INR",
+        },
+      });
+    }
+
     // Record in Audit Log
     await prisma.auditLog.create({
       data: {

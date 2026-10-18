@@ -6,7 +6,7 @@ import CardsClient from "./CardsClient";
 export const dynamic = "force-dynamic";
 
 export default async function CardsPage() {
-  const { tenantId } = await requireTenantUser();
+  const { user, tenantId } = await requireTenantUser();
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -17,6 +17,7 @@ export default async function CardsPage() {
         },
         orderBy: { createdAt: "desc" },
       },
+      subscription: true,
     },
   });
 
@@ -37,11 +38,24 @@ export default async function CardsPage() {
     tapCount: c.tapEvents.length,
   }));
 
+  const rawPlan = String(
+    tenant.subscription?.plan || tenant.plan || "BASIC"
+  ).toUpperCase();
+
+  const effectivePlan: "BASIC" | "PRO" | "ENTERPRISE" =
+    user.role === "SUPER_ADMIN"
+      ? "ENTERPRISE"
+      : rawPlan === "PRO"
+      ? "PRO"
+      : rawPlan === "ENTERPRISE"
+      ? "ENTERPRISE"
+      : "BASIC";
+
   return (
     <CardsClient
       cards={formattedCards}
       tenantName={tenant.name}
-      tenantPlan={tenant.plan as "BASIC" | "PRO" | "ENTERPRISE"}
+      tenantPlan={effectivePlan}
       baseUrl={baseUrl}
       maxCards={tenant.maxCards}
     />
