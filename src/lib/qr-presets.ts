@@ -204,38 +204,38 @@ export const INDUSTRY_PRESETS: QrPreset[] = [
   },
 ];
 
-// Curated AI Artwork Showcase (for preview, locked showcase, and quick testing)
+// Curated AI Artwork Showcase (Authentic ControlNet QR Monster AI-blended samples)
 export const AI_ARTWORK_SHOWCASE = [
   {
-    title: "Cyberpunk Coffee Cup",
-    prompt: "A neon cyberpunk coffee cup with glowing espresso steam, dark futuristic café table, 8k cinematic lighting",
-    style: "Cyberpunk Neon",
-    tag: "Cafés & Bars",
+    title: "Minimalist Modern Architecture",
+    prompt: "Modern brutalist marble and glass architecture with cascading courtyard water reflections, 8k architectural digest photography",
+    style: "Minimalist Studio",
+    tag: "Clinics & Luxury Venues",
     sampleImage:
-      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80",
+      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/architecture.png",
   },
   {
-    title: "Floral Botanical Watercolor",
-    prompt: "Delicate botanical floral arrangement with eucalyptus and peonies, soft pastel watercolor texture on cotton paper",
+    title: "Botanical Bonsai Forest",
+    prompt: "An ancient giant redwood tree with glowing spiritual moss in an enchanted mountain forest, hyperrealistic studio ghibli watercolor",
     style: "Watercolor Art",
-    tag: "Spas & Boutiques",
+    tag: "Cafés, Spas & Bakeries",
     sampleImage:
-      "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=600&q=80",
+      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/tree.png",
   },
   {
-    title: "Royal Golden Barbershop",
-    prompt: "Vintage luxury barbershop poster with gold filigree, ornate frame, vintage razor, and ambient leather lighting",
+    title: "Cyberpunk Neon Monster",
+    prompt: "Futuristic cyberpunk neon creature glowing in an alleyway with holographic billboards, octane 3d render, dramatic neon lighting",
+    style: "Cyberpunk Neon",
+    tag: "Bars, Clubs & Venues",
+    sampleImage:
+      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/monster.png",
+  },
+  {
+    title: "Gothic Gold & Obsidian",
+    prompt: "Intricate baroque gold filigree and carved obsidian relief artwork, vintage luxury craftsmanship, volumetric golden rim light",
     style: "Luxury Gold",
-    tag: "Salons & Grooming",
+    tag: "Salons, Grooming & Jewelry",
     sampleImage:
-      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    title: "High-Energy Fitness Flare",
-    prompt: "Dynamic fitness studio with neon green glow, athletic dumbbells, dramatic rim light, octane render",
-    style: "Athletic Neon",
-    tag: "Gyms & Studios",
-    sampleImage:
-      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80",
+      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/skulls.png",
   },
 ];

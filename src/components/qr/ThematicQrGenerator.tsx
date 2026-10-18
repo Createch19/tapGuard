@@ -20,6 +20,7 @@ import {
   Wand2,
   FileImage,
   Upload,
+  Key,
 } from "lucide-react";
 import {
   INDUSTRY_PRESETS,
@@ -84,6 +85,24 @@ export default function ThematicQrGenerator({
     message?: string;
   } | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [replicateApiKey, setReplicateApiKey] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [keySavedMessage, setKeySavedMessage] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedKey = localStorage.getItem("tapguard_replicate_token");
+      if (savedKey) setReplicateApiKey(savedKey);
+    }
+  }, []);
+
+  const handleSaveKey = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tapguard_replicate_token", replicateApiKey.trim());
+      setKeySavedMessage(true);
+      setTimeout(() => setKeySavedMessage(false), 2500);
+    }
+  };
 
   // Apply Industry Preset
   const handleApplyPreset = (preset: QrPreset) => {
@@ -239,6 +258,7 @@ export default function ThematicQrGenerator({
           prompt: aiPrompt,
           style: aiStyle,
           strength: aiStrength,
+          replicateToken: replicateApiKey.trim() || undefined,
         }),
       });
 
@@ -797,6 +817,57 @@ export default function ThematicQrGenerator({
                   </div>
                 </div>
 
+                {/* Optional Replicate API Token for Live Cloud GPU Diffusion */}
+                <div className="p-3.5 bg-violet-50/70 border border-violet-200/80 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyInput(!showKeyInput)}
+                      className="flex items-center gap-2 text-xs font-bold text-violet-900 hover:text-violet-700"
+                    >
+                      <Key className="w-3.5 h-3.5 text-violet-600" />
+                      <span>
+                        {replicateApiKey
+                          ? "✅ Replicate Cloud GPU Key Active"
+                          : "⚙️ Connect Replicate API Key (Live GPU)"}
+                      </span>
+                    </button>
+                    <a
+                      href="https://replicate.com/account/api-tokens"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-violet-700 hover:text-violet-900 font-semibold underline flex items-center gap-1"
+                    >
+                      <span>Get Free Token</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  {(showKeyInput || !replicateApiKey) && (
+                    <div className="pt-2 border-t border-violet-200/60 space-y-2">
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Enter your token to render completely customized ControlNet AI QR artwork directly on cloud GPUs for your exact prompt & link.
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={replicateApiKey}
+                          onChange={(e) => setReplicateApiKey(e.target.value)}
+                          placeholder="r8_..."
+                          className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500 text-slate-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveKey}
+                          className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold shrink-0"
+                        >
+                          {keySavedMessage ? "Saved!" : "Save Key"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {aiError && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -832,7 +903,7 @@ export default function ThematicQrGenerator({
                   AI Blended Artwork Output
                 </span>
 
-                <div className="relative aspect-square w-full max-w-[300px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black mb-4 group">
+                <div className="relative aspect-square w-full max-w-[320px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black mb-4 group">
                   {aiResult?.imageUrl ? (
                     <>
                       <img
@@ -840,18 +911,20 @@ export default function ThematicQrGenerator({
                         alt="AI QR Artwork"
                         className="w-full h-full object-cover"
                       />
-                      {aiResult.qrOverlayUrl && (
-                        <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/20 backdrop-blur-[1px]">
-                          <img
-                            src={aiResult.qrOverlayUrl}
-                            alt="Scannable QR"
-                            className="w-48 h-48 mix-blend-multiply opacity-80"
-                          />
+                      <div className="absolute bottom-2 left-2 right-2 bg-black/80 backdrop-blur-xs text-[10px] text-emerald-400 py-1.5 px-2.5 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Scannable ControlNet Artwork</span>
                         </div>
-                      )}
-                      <div className="absolute bottom-2 left-2 right-2 bg-black/70 backdrop-blur-xs text-[10px] text-emerald-400 py-1 px-2 rounded-lg flex items-center justify-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Ready to Print & Scan</span>
+                        {aiResult.isRealAi ? (
+                          <span className="text-[9px] font-bold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">
+                            Live GPU AI
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded">
+                            ControlNet Monster
+                          </span>
+                        )}
                       </div>
                     </>
                   ) : (
@@ -859,7 +932,7 @@ export default function ThematicQrGenerator({
                       <Sparkles className="w-10 h-10 text-violet-400 mb-2 opacity-50 animate-pulse" />
                       <p className="text-xs font-medium">No artwork generated yet.</p>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        Select a prompt and click Generate to weave your QR code into art!
+                        Select a prompt and click Generate to synthesize seamless ControlNet AI QR art!
                       </p>
                     </div>
                   )}
