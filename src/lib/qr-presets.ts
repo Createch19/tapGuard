@@ -204,38 +204,3 @@ export const INDUSTRY_PRESETS: QrPreset[] = [
   },
 ];
 
-// Curated AI Artwork Showcase (Authentic ControlNet QR Monster AI-blended samples)
-export const AI_ARTWORK_SHOWCASE = [
-  {
-    title: "Minimalist Modern Architecture",
-    prompt: "Modern brutalist marble and glass architecture with cascading courtyard water reflections, 8k architectural digest photography",
-    style: "Minimalist Studio",
-    tag: "Clinics & Luxury Venues",
-    sampleImage:
-      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/architecture.png",
-  },
-  {
-    title: "Botanical Bonsai Forest",
-    prompt: "An ancient giant redwood tree with glowing spiritual moss in an enchanted mountain forest, hyperrealistic studio ghibli watercolor",
-    style: "Watercolor Art",
-    tag: "Cafés, Spas & Bakeries",
-    sampleImage:
-      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/tree.png",
-  },
-  {
-    title: "Cyberpunk Neon Monster",
-    prompt: "Futuristic cyberpunk neon creature glowing in an alleyway with holographic billboards, octane 3d render, dramatic neon lighting",
-    style: "Cyberpunk Neon",
-    tag: "Bars, Clubs & Venues",
-    sampleImage:
-      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/monster.png",
-  },
-  {
-    title: "Gothic Gold & Obsidian",
-    prompt: "Intricate baroque gold filigree and carved obsidian relief artwork, vintage luxury craftsmanship, volumetric golden rim light",
-    style: "Luxury Gold",
-    tag: "Salons, Grooming & Jewelry",
-    sampleImage:
-      "https://huggingface.co/monster-labs/control_v1p_sd15_qrcode_monster/resolve/main/images/skulls.png",
-  },
-];

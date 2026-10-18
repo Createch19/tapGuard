@@ -289,14 +289,10 @@ export default function SubscriptionClient({
               </div>
               <div>
                 <strong className="text-xs font-bold text-slate-900 block">
-                  {activeConfig.plan === "BASIC"
-                    ? "Method 1: Thematic SVG Vector QR Generator"
-                    : "Method 1 (Thematic SVG) + Method 2 (AI-Blended QR Artwork)"}
+                  Thematic Vector QR Generator (SVG & PNG)
                 </strong>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {activeConfig.plan === "BASIC"
-                    ? "Full access to industry vector templates (Dentist, Salon, Café, Gym) with custom SVG icons, dots, and colors."
-                    : "Full access to Thematic SVG generator PLUS AI-Blended QR Artwork Studio powered by ControlNet."}
+                  Full access to industry vector templates (Dentist, Salon, Café, Gym, Boutique) with custom SVG centerpieces, custom brand gradients, and high-resolution print downloads.
                 </p>
               </div>
             </div>

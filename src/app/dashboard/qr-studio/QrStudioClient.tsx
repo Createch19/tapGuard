@@ -65,20 +65,9 @@ export default function QrStudioClient({
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Design industry-themed vector QR codes and scannable AI-blended artwork for your counter stands and table tents.
+            Design industry-themed vector QR codes with custom brand colors, geometry, and center logos for your counter stands and table tents.
           </p>
         </div>
-
-        {tenantPlan === "BASIC" && (
-          <Link
-            href="/dashboard/subscription"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-            <span>Unlock AI QR Art (Upgrade to Pro)</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        )}
       </div>
 
       {/* Target Card Selector Bar */}
@@ -158,11 +147,11 @@ export default function QrStudioClient({
 
         <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
           <h4 className="text-xs font-bold text-slate-900 mb-1 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Upsell Opportunity</span>
+            <CheckCircle2 className="w-4 h-4 text-teal-600" />
+            <span>High-Contrast Scannability</span>
           </h4>
           <p className="text-xs text-slate-500 leading-relaxed">
-            AI-Blended QR codes create an unforgettable aesthetic for restaurants, salons, and boutique hotels looking for luxury branding.
+            Custom styled fluid dots and high-contrast error correction ensure flawless smartphone scanning even in dim restaurant lighting.
           </p>
         </div>
       </div>
