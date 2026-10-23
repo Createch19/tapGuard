@@ -804,3 +804,5 @@ export default function KeywordsClient({ tenant, initialConfig }: KeywordsClient
     </div>
   );
 }
+
+export { KeywordsClient };
