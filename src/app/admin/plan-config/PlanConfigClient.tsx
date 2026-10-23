@@ -16,6 +16,7 @@ interface PlanConfigItem {
   multiGateTemplates?: boolean;
   customBranding: boolean;
   webhookAlerts: boolean;
+  keywordSuggestions?: boolean;
   qrCodeTier: string;
   analyticsRetDays: number;
   prioritySupport: boolean;
@@ -282,6 +283,28 @@ export default function PlanConfigClient({
                         handleFieldChange(
                           config.id,
                           "webhookAlerts",
+                          e.target.checked
+                        )
+                      }
+                      className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500"
+                    />
+                  </label>
+
+                  {/* Smart Keyword Reviews (Tanglish & Regional) */}
+                  <label className="flex items-center justify-between p-2 bg-slate-50 hover:bg-slate-100/80 rounded-xl cursor-pointer text-xs">
+                    <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                      <span>Smart Keyword SEO Reviews</span>
+                      <span className="text-[10px] bg-teal-100 text-teal-800 px-1.5 py-0.2 rounded font-semibold">
+                        Pro
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(config.keywordSuggestions)}
+                      onChange={(e) =>
+                        handleFieldChange(
+                          config.id,
+                          "keywordSuggestions",
                           e.target.checked
                         )
                       }

@@ -35,6 +35,7 @@ export default async function SubscriptionPage() {
     multiGateTemplates: pc.multiGateTemplates,
     customBranding: pc.customBranding,
     webhookAlerts: pc.webhookAlerts,
+    keywordSuggestions: pc.keywordSuggestions,
     qrCodeTier: pc.qrCodeTier,
     analyticsRetDays: pc.analyticsRetDays,
     prioritySupport: pc.prioritySupport,

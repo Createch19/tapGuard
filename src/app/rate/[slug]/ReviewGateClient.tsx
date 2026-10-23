@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { Star, CheckCircle, HeartHandshake, Send, ArrowRight } from "lucide-react";
+import {
+  Star,
+  CheckCircle,
+  HeartHandshake,
+  Send,
+  ArrowRight,
+  Copy,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 
 interface ReviewGateProps {
   cardId: string;
@@ -27,6 +36,12 @@ interface ReviewGateProps {
   accentColor: string;
   logoUrl?: string | null;
   tapEventId?: string | null;
+  keywordConfig?: {
+    isEnabled: boolean;
+    primaryLanguage: string;
+    enabledLanguages: string[];
+    sentenceBundle: Record<string, string[]>;
+  } | null;
 }
 
 const STAR_LABELS = [
@@ -58,10 +73,17 @@ export default function ReviewGateClient({
   primaryColor,
   logoUrl,
   tapEventId,
+  keywordConfig,
 }: ReviewGateProps) {
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [step, setStep] = useState<"rating" | "positive" | "feedback" | "submitted">("rating");
+
+  // Keyword Review Generator State
+  const initialLang = keywordConfig?.primaryLanguage || "EN";
+  const [selectedLang, setSelectedLang] = useState<string>(initialLang);
+  const [sentenceIdx, setSentenceIdx] = useState<number>(0);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
 
   // Private feedback form state
   const [customerName, setCustomerName] = useState("");
@@ -95,14 +117,43 @@ export default function ReviewGateClient({
     if (star >= 4) {
       setStep("positive");
       trackOutcome("REDIRECTED", star);
-      // Seamless auto-redirect to Google after brief celebration
-      if (googleReviewUrl) {
+      // Auto-redirect only if keyword review suggestion is disabled
+      if (!keywordConfig?.isEnabled && googleReviewUrl) {
         setTimeout(() => {
           window.location.href = googleReviewUrl;
         }, 1200);
       }
     } else {
       setStep("feedback");
+    }
+  };
+
+  // Keyword Sentence Helpers
+  const currentLangBundle = keywordConfig?.sentenceBundle?.[selectedLang] ||
+    keywordConfig?.sentenceBundle?.["EN"] || [];
+  const currentSentence =
+    currentLangBundle.length > 0
+      ? currentLangBundle[sentenceIdx % currentLangBundle.length]
+      : "";
+
+  const handleShuffleSentence = () => {
+    setSentenceIdx((prev) => prev + 1);
+    setIsCopied(false);
+  };
+
+  const handleCopyAndOpenGoogle = () => {
+    if (currentSentence) {
+      navigator.clipboard.writeText(currentSentence);
+      setIsCopied(true);
+      trackOutcome("REVIEW_COPIED" as any, selectedRating);
+      setTimeout(() => {
+        if (googleReviewUrl) {
+          window.location.href = googleReviewUrl;
+        }
+      }, 700);
+    } else if (googleReviewUrl) {
+      trackOutcome("REDIRECTED", selectedRating);
+      window.location.href = googleReviewUrl;
     }
   };
 
@@ -217,14 +268,21 @@ export default function ReviewGateClient({
                   <p className="text-xs text-slate-400 mt-4">
                     Tap a star above to rate your experience
                   </p>
+
+                  {keywordConfig?.isEnabled && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 text-xs text-teal-700 bg-teal-50/80 py-2 px-3 rounded-xl font-medium animate-in fade-in">
+                      <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                      <span>Rate 4–5★ to get a 1-click ready review for Google!</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* STEP 2: POSITIVE 4-5 STARS (REDIRECT TO GOOGLE) */}
+              {/* STEP 2: POSITIVE 4-5 STARS (REDIRECT TO GOOGLE WITH KEYWORD REVIEW) */}
               {step === "positive" && (
                 <div className="py-2 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="w-16 h-16 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-4 border border-teal-200">
-                    <CheckCircle className="w-8 h-8" />
+                  <div className="w-14 h-14 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3 border border-teal-200">
+                    <CheckCircle className="w-7 h-7" />
                   </div>
 
                   <div className="flex justify-center gap-1 mb-2">
@@ -233,29 +291,133 @@ export default function ReviewGateClient({
                     ))}
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">
-                    Thank You So Much!
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">
+                    Thank You for {selectedRating} Stars!
                   </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                    Your 5-star experience means the world to our team! Taking you to
-                    Google Reviews to share your rating with others...
-                  </p>
 
-                  <a
-                    href={googleReviewUrl || "https://google.com"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-3 px-5 py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-2xl shadow-sm transition-all text-sm group"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <span>Write Review on Google</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </a>
+                  {keywordConfig?.isEnabled && currentSentence ? (
+                    <>
+                      <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                        Help others find us on Google! We prepared a quick review for you:
+                      </p>
+
+                      {/* Language Selection Tabs */}
+                      {keywordConfig.enabledLanguages.length > 1 && (
+                        <div className="flex items-center justify-center gap-1 mb-3 overflow-x-auto p-1 bg-slate-100 rounded-xl">
+                          {keywordConfig.enabledLanguages.map((langCode) => {
+                            const isSelected = selectedLang === langCode;
+                            const label =
+                              langCode === "TANGLISH"
+                                ? "🌴 Tanglish"
+                                : langCode === "TA"
+                                ? "🇮🇳 தமிழ்"
+                                : langCode === "HI"
+                                ? "🇮🇳 हिन्दी"
+                                : langCode === "TE"
+                                ? "🇮🇳 తెలుగు"
+                                : langCode === "KN"
+                                ? "🇮🇳 ಕನ್ನಡ"
+                                : "🌐 English";
+                            return (
+                              <button
+                                key={langCode}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedLang(langCode);
+                                  setIsCopied(false);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                                  isSelected
+                                    ? "bg-white text-slate-900 shadow-xs"
+                                    : "text-slate-500 hover:text-slate-800"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Suggested Review Card */}
+                      <div className="relative bg-slate-50 border border-slate-200/90 rounded-2xl p-4 mb-3 text-left">
+                        <span className="text-xl text-teal-600 font-serif leading-none block mb-1">
+                          “
+                        </span>
+                        <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
+                          {currentSentence}
+                        </p>
+                        <span className="text-xl text-teal-600 font-serif leading-none block text-right mt-1">
+                          ”
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyAndOpenGoogle}
+                          className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 text-white font-semibold rounded-2xl shadow-sm transition-all text-sm group cursor-pointer active:scale-98"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {isCopied ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-white" />
+                              <span>Copied! Opening Google...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4" />
+                              <span>Copy Review & Open Google</span>
+                              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleShuffleSentence}
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-xs transition-colors cursor-pointer"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Try Another (Non-Repeating)</span>
+                        </button>
+                      </div>
+
+                      <a
+                        href={googleReviewUrl || "https://google.com"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackOutcome("REDIRECTED", selectedRating)}
+                        className="block mt-3 text-xs text-slate-400 hover:text-slate-600 underline"
+                      >
+                        Skip & write my own review on Google
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                        Your 5-star experience means the world to our team! Taking you to
+                        Google Reviews to share your rating with others...
+                      </p>
+
+                      <a
+                        href={googleReviewUrl || "https://google.com"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-3 px-5 py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-2xl shadow-sm transition-all text-sm group"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        <span>Write Review on Google</span>
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                      </a>
+                    </>
+                  )}
 
                   <button
                     type="button"
                     onClick={() => setStep("rating")}
-                    className="mt-4 text-xs text-slate-400 hover:text-slate-600 underline"
+                    className="mt-3 text-xs text-slate-400 hover:text-slate-600 underline cursor-pointer"
                   >
                     Change my rating
                   </button>

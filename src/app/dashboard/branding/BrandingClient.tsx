@@ -288,11 +288,14 @@ export default function BrandingClient({
                   )}
                 </div>
                 <strong className="text-xs font-bold text-slate-900 block">
-                  Google Review Smart Gate
+                  Google Review Smart Gate & Keywords
                 </strong>
                 <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Compliant Venting Strategy. 4-5★ forwards to Google; 1-3★ provides a private manager venting box with compliant Google review option.
+                  Smart Rating Shield + Keyword SEO Review Suggestions (English, Tanglish & Regional). 4-5★ provides 1-click copyable reviews with your target keywords.
                 </p>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-700 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-md mt-2">
+                  <Sparkles className="w-2.5 h-2.5 text-teal-600" /> SEO Keywords Active
+                </span>
               </button>
 
               {/* Template 2: Social Media Hub */}

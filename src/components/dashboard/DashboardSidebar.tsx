@@ -17,6 +17,7 @@ import {
   X,
   Store,
   QrCode,
+  Tag,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -71,6 +72,11 @@ export default function DashboardSidebar({
       name: "Branding & Gate",
       href: "/dashboard/branding",
       icon: Palette,
+    },
+    {
+      name: "Keywords",
+      href: "/dashboard/keywords",
+      icon: Tag,
     },
     {
       name: "Settings",

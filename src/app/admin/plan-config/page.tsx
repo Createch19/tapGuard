@@ -24,6 +24,7 @@ export default async function PlanConfigPage() {
     multiGateTemplates: c.multiGateTemplates,
     customBranding: c.customBranding,
     webhookAlerts: c.webhookAlerts,
+    keywordSuggestions: c.keywordSuggestions,
     qrCodeTier: c.qrCodeTier,
     analyticsRetDays: c.analyticsRetDays,
     prioritySupport: c.prioritySupport,

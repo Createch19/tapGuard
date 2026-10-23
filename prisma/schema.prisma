@@ -51,6 +51,7 @@ enum TapOutcome {
   FEEDBACK_CAPTURED
   DIRECT_REDIRECT
   BOUNCED
+  REVIEW_COPIED
 }
 
 enum DeviceOS {
@@ -82,6 +83,13 @@ enum AuditAction {
   CARD_REASSIGNED
   USER_ROLE_CHANGED
   ADMIN_LOGIN
+}
+
+enum KeywordTone {
+  CASUAL
+  ENTHUSIASTIC
+  DETAILED
+  SHORT
 }
 
 // ─── Tenants ─────────────────────────────────────────────
@@ -120,6 +128,7 @@ model Tenant {
   cards           Card[]
   tapEvents       TapEvent[]
   privateFeedback PrivateFeedback[]
+  reviewKeywords  TenantReviewKeyword?
 
   @@map("tenants")
 }
@@ -222,6 +231,7 @@ model PlanConfig {
   multiGateTemplates Boolean      @default(false) @map("multi_gate_templates")
   customBranding     Boolean      @default(false) @map("custom_branding")
   webhookAlerts    Boolean      @default(false) @map("webhook_alerts")
+  keywordSuggestions Boolean      @default(false) @map("keyword_suggestions")
   qrCodeTier       String       @default("basic") @map("qr_code_tier")
   analyticsRetDays Int          @default(30) @map("analytics_ret_days")
   prioritySupport  Boolean      @default(false) @map("priority_support")
@@ -386,3 +396,24 @@ model BusinessType {
 
   @@map("business_types")
 }
+
+// ─── Tenant Review Keywords (SEO Engine) ─────────────────
+
+model TenantReviewKeyword {
+  id               String      @id @default(uuid()) @db.Uuid
+  tenantId         String      @unique @map("tenant_id") @db.Uuid
+  isEnabled        Boolean     @default(true) @map("is_enabled")
+  primaryLanguage  String      @default("EN") @map("primary_language")
+  enabledLanguages String[]    @default(["EN", "TANGLISH", "TA"]) @map("enabled_languages")
+  keywords         String[]    @default([])
+  customSentences  String[]    @default([])
+  tone             KeywordTone @default(CASUAL)
+  lastServedIndex  Int         @default(0) @map("last_served_index")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_review_keywords")
+}
+

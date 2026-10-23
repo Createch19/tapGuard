@@ -12,6 +12,7 @@ import {
   Calendar,
   Layers,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
 interface PlanConfigItem {
@@ -27,6 +28,7 @@ interface PlanConfigItem {
   multiGateTemplates?: boolean;
   customBranding: boolean;
   webhookAlerts: boolean;
+  keywordSuggestions?: boolean;
   qrCodeTier: string;
   analyticsRetDays: number;
   prioritySupport: boolean;
@@ -74,6 +76,7 @@ export default function SubscriptionClient({
       multiGateTemplates: tenant.plan !== "BASIC",
       customBranding: tenant.plan !== "BASIC",
       webhookAlerts: tenant.plan !== "BASIC",
+      keywordSuggestions: tenant.plan !== "BASIC",
       qrCodeTier: tenant.plan === "ENTERPRISE" ? "White-label" : tenant.plan === "PRO" ? "Branded" : "Basic",
       analyticsRetDays: tenant.plan === "ENTERPRISE" ? 3650 : tenant.plan === "PRO" ? 365 : 30,
       prioritySupport: tenant.plan === "ENTERPRISE",
@@ -247,6 +250,22 @@ export default function SubscriptionClient({
                   {activeConfig.multiGateTemplates
                     ? "Full access to 4 dynamic gate templates: Google Review Smart Gate, Social Media Hub (Instagram & Facebook), Swiggy & Zomato Delivery Hub, and Direct Online Menu Redirection."
                     : "Standard Google Review Smart Gate. (Upgrade to Pro for Social Hub, Swiggy/Zomato & Online Menu)."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 border border-teal-200/60 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <strong className="text-xs font-bold text-slate-900 block">
+                  Smart Keyword SEO Reviews (English, Tanglish & Regional)
+                </strong>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {activeConfig.keywordSuggestions
+                    ? "Full access to smart keyword review generation. Generates authentic, non-repeating reviews with 1-click copy for 4-5★ ratings."
+                    : "Standard rating without review templates. (Upgrade to Pro for Smart Keyword SEO Reviews in English, Tanglish & native languages)."}
                 </p>
               </div>
             </div>
