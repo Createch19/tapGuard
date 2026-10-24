@@ -18,6 +18,7 @@ import {
   Store,
   QrCode,
   Tag,
+  MapPin,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -51,6 +52,11 @@ export default function DashboardSidebar({
       href: "/dashboard",
       icon: LayoutDashboard,
       exact: true,
+    },
+    {
+      name: "Google Hub",
+      href: "/dashboard/google",
+      icon: MapPin,
     },
     {
       name: "Cards & NFC",

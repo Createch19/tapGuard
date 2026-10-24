@@ -13,6 +13,7 @@ import {
   Layers,
   ArrowRight,
   Sparkles,
+  MapPin,
 } from "lucide-react";
 
 interface PlanConfigItem {
@@ -29,6 +30,7 @@ interface PlanConfigItem {
   customBranding: boolean;
   webhookAlerts: boolean;
   keywordSuggestions?: boolean;
+  googleHub?: boolean;
   qrCodeTier: string;
   analyticsRetDays: number;
   prioritySupport: boolean;
@@ -266,6 +268,22 @@ export default function SubscriptionClient({
                   {activeConfig.keywordSuggestions
                     ? "Full access to smart keyword review generation. Generates authentic, non-repeating reviews with 1-click copy for 4-5★ ratings."
                     : "Standard rating without review templates. (Upgrade to Pro for Smart Keyword SEO Reviews in English, Tanglish & native languages)."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 border border-teal-200/60 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div>
+                <strong className="text-xs font-bold text-slate-900 block">
+                  Google Hub & Gemini AI Command Center
+                </strong>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {activeConfig.googleHub
+                    ? "Full access to Google Business Profile management, Gemini AI review replies, Maps Q&A grounding, live menu sync, and search analytics."
+                    : "Standard Google Review redirect only. (Upgrade to Pro for full Google Business Profile management & Gemini AI auto-replies)."}
                 </p>
               </div>
             </div>

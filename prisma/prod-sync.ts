@@ -12,14 +12,14 @@ async function syncProductionDefaults() {
 
   try {
     console.log("🔄 Syncing plan configuration defaults...");
-    // Ensure PRO and ENTERPRISE have keywordSuggestions enabled
+    // Ensure PRO and ENTERPRISE have keywordSuggestions and googleHub enabled
     await prisma.planConfig.updateMany({
       where: { plan: "PRO" },
-      data: { keywordSuggestions: true },
+      data: { keywordSuggestions: true, googleHub: true },
     });
     await prisma.planConfig.updateMany({
       where: { plan: "ENTERPRISE" },
-      data: { keywordSuggestions: true },
+      data: { keywordSuggestions: true, googleHub: true },
     });
     console.log("✅ Plan configurations synced successfully.");
   } catch (error) {

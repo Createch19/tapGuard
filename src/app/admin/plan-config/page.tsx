@@ -25,6 +25,7 @@ export default async function PlanConfigPage() {
     customBranding: c.customBranding,
     webhookAlerts: c.webhookAlerts,
     keywordSuggestions: c.keywordSuggestions,
+    googleHub: c.googleHub,
     qrCodeTier: c.qrCodeTier,
     analyticsRetDays: c.analyticsRetDays,
     prioritySupport: c.prioritySupport,

@@ -36,6 +36,7 @@ export default async function SubscriptionPage() {
     customBranding: pc.customBranding,
     webhookAlerts: pc.webhookAlerts,
     keywordSuggestions: pc.keywordSuggestions,
+    googleHub: pc.googleHub,
     qrCodeTier: pc.qrCodeTier,
     analyticsRetDays: pc.analyticsRetDays,
     prioritySupport: pc.prioritySupport,

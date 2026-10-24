@@ -9,6 +9,12 @@ export default async function SettingsPage() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
+    include: {
+      googleConnection: {
+        include: { locations: true },
+      },
+      geminiConfig: true,
+    },
   });
 
   if (!tenant) return null;
@@ -22,6 +28,11 @@ export default async function SettingsPage() {
         smartGateEnabled: tenant.smartGateEnabled,
         alertEmail: tenant.alertEmail,
         webhookUrl: tenant.webhookUrl,
+        googleBusinessEmail: tenant.googleBusinessEmail || tenant.googleConnection?.connectedEmail || null,
+        googleAccountId: tenant.googleConnection?.googleAccountId || null,
+        googleLocationId: tenant.googleLocationId || tenant.googleConnection?.locations[0]?.googleLocationId || null,
+        geminiApiKey: tenant.geminiConfig?.customApiKey || null,
+        isGoogleConnected: Boolean(tenant.googleConnection),
       }}
     />
   );

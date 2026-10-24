@@ -119,16 +119,20 @@ model Tenant {
   maxCards             Int          @default(5) @map("max_cards")
   webhookUrl           String?      @map("webhook_url")
   alertEmail           String?      @map("alert_email")
+  googleBusinessEmail  String?      @map("google_business_email")
+  googleLocationId     String?      @map("google_location_id")
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
-  branding        TenantBranding?
-  subscription    Subscription?
-  users           User[]
-  cards           Card[]
-  tapEvents       TapEvent[]
-  privateFeedback PrivateFeedback[]
-  reviewKeywords  TenantReviewKeyword?
+  branding         TenantBranding?
+  subscription     Subscription?
+  users            User[]
+  cards            Card[]
+  tapEvents        TapEvent[]
+  privateFeedback  PrivateFeedback[]
+  reviewKeywords   TenantReviewKeyword?
+  googleConnection GoogleProfileConnection?
+  geminiConfig     TenantGeminiConfig?
 
   @@map("tenants")
 }
@@ -232,6 +236,7 @@ model PlanConfig {
   customBranding     Boolean      @default(false) @map("custom_branding")
   webhookAlerts    Boolean      @default(false) @map("webhook_alerts")
   keywordSuggestions Boolean      @default(false) @map("keyword_suggestions")
+  googleHub        Boolean      @default(false) @map("google_hub")
   qrCodeTier       String       @default("basic") @map("qr_code_tier")
   analyticsRetDays Int          @default(30) @map("analytics_ret_days")
   prioritySupport  Boolean      @default(false) @map("priority_support")
@@ -416,4 +421,233 @@ model TenantReviewKeyword {
 
   @@map("tenant_review_keywords")
 }
+
+// ─── Google Account & Profile Connection ─────────────────
+
+model GoogleProfileConnection {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @unique @map("tenant_id") @db.Uuid
+  googleAccountId  String           @map("google_account_id")
+  accountName      String?          @map("account_name")
+  accessToken      String           @map("access_token") @db.Text
+  refreshToken     String           @map("refresh_token") @db.Text
+  tokenExpiresAt   DateTime         @map("token_expires_at")
+  scope            String
+  connectedEmail   String           @map("connected_email")
+  isVerified       Boolean          @default(false) @map("is_verified")
+  lastSyncedAt     DateTime?        @map("last_synced_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  locations        GoogleLocation[]
+
+  @@map("google_profile_connections")
+}
+
+// ─── Tenant Gemini AI Configuration ──────────────────────
+
+model TenantGeminiConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @unique @map("tenant_id") @db.Uuid
+  customApiKey      String?  @map("custom_api_key")
+  model             String   @default("gemini-1.5-flash")
+  brandTone         String   @default("WARM") @map("brand_tone")
+  customPersona     String?  @map("custom_persona") @db.Text
+  knowledgeBase     String?  @map("knowledge_base") @db.Text
+  escalationPhone   String?  @map("escalation_phone")
+  escalationEmail   String?  @map("escalation_email")
+  autoPilot5Star    Boolean  @default(false) @map("auto_pilot_5_star")
+  minConfidence     Int      @default(85) @map("min_confidence")
+  autoMatchLanguage Boolean  @default(true) @map("auto_match_language")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_gemini_configs")
+}
+
+// ─── Google Locations (Multi-Location Support) ────────────
+
+model GoogleLocation {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  connectionId       String                   @map("connection_id") @db.Uuid
+  tenantId           String                   @map("tenant_id") @db.Uuid
+  googleLocationId   String                   @unique @map("google_location_id")
+  placeId            String?                  @map("place_id")
+  title              String
+  storeCode          String?                  @map("store_code")
+  primaryPhone       String?                  @map("primary_phone")
+  websiteUri         String?                  @map("website_uri")
+  addressJson        Json                     @map("address_json")
+  coordinatesLat     Float?                   @map("coordinates_lat")
+  coordinatesLng     Float?                   @map("coordinates_lng")
+  regularHoursJson   Json?                    @map("regular_hours_json")
+  specialHoursJson   Json?                    @map("special_hours_json")
+  primaryCategory    String?                  @map("primary_category")
+  attributesJson     Json?                    @map("attributes_json")
+  autoReplyReviews   Boolean                  @default(false) @map("auto_reply_reviews")
+  autoAnswerQA       Boolean                  @default(false) @map("auto_answer_qa")
+  isPrimaryBranch    Boolean                  @default(true) @map("is_primary_branch")
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+
+  connection         GoogleProfileConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  reviews            GoogleReview[]
+  questions          GoogleQuestion[]
+  posts              GooglePost[]
+  menuSections       GoogleMenuSection[]
+  mediaItems         GoogleMediaItem[]
+  performanceDaily   GooglePerformanceDaily[]
+
+  @@map("google_locations")
+}
+
+// ─── Google Reviews & Replies ─────────────────────────────
+
+model GoogleReview {
+  id                 String         @id @default(uuid()) @db.Uuid
+  locationId         String         @map("location_id") @db.Uuid
+  googleReviewId     String         @unique @map("google_review_id")
+  reviewerName       String         @map("reviewer_name")
+  reviewerPhotoUrl   String?        @map("reviewer_photo_url")
+  isAnonymous        Boolean        @default(false) @map("is_anonymous")
+  rating             Int
+  comment            String?        @db.Text
+  replyComment       String?        @map("reply_comment") @db.Text
+  replyUpdatedAt     DateTime?      @map("reply_updated_at")
+  geminiDraftReply   String?        @map("gemini_draft_reply") @db.Text
+  reviewCreatedAt    DateTime       @map("review_created_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  location           GoogleLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, rating])
+  @@map("google_reviews")
+}
+
+// ─── Google Maps Q&A ─────────────────────────────────────
+
+model GoogleQuestion {
+  id                String         @id @default(uuid()) @db.Uuid
+  locationId        String         @map("location_id") @db.Uuid
+  googleQuestionId  String         @unique @map("google_question_id")
+  authorName        String         @map("author_name")
+  authorPhotoUrl    String?        @map("author_photo_url")
+  questionText      String         @map("question_text") @db.Text
+  upvoteCount       Int            @default(0) @map("upvote_count")
+  officialAnswer    String?        @map("official_answer") @db.Text
+  officialAnswerId  String?        @map("official_answer_id")
+  geminiDraftAnswer String?        @map("gemini_draft_answer") @db.Text
+  isAnswered        Boolean        @default(false) @map("is_answered")
+  questionCreatedAt DateTime       @map("question_created_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  location          GoogleLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, isAnswered])
+  @@map("google_questions")
+}
+
+// ─── Structured Menu Sections & Items ────────────────────
+
+model GoogleMenuSection {
+  id         String           @id @default(uuid()) @db.Uuid
+  locationId String           @map("location_id") @db.Uuid
+  title      String
+  sortOrder  Int              @default(0) @map("sort_order")
+  items      GoogleMenuItem[]
+
+  location   GoogleLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@map("google_menu_sections")
+}
+
+model GoogleMenuItem {
+  id          String            @id @default(uuid()) @db.Uuid
+  sectionId   String            @map("section_id") @db.Uuid
+  name        String
+  description String?           @db.Text
+  price       Decimal           @db.Decimal(10, 2)
+  currency    String            @default("INR") @db.VarChar(3)
+  imageUrl    String?           @map("image_url")
+  isAvailable Boolean           @default(true) @map("is_available")
+  dietaryTags String[]          @default([]) @map("dietary_tags")
+  sortOrder   Int               @default(0) @map("sort_order")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  section     GoogleMenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@map("google_menu_items")
+}
+
+// ─── Google Posts & Offers ────────────────────────────────
+
+model GooglePost {
+  id              String         @id @default(uuid()) @db.Uuid
+  locationId      String         @map("location_id") @db.Uuid
+  googlePostId    String?        @unique @map("google_post_id")
+  topicType       String         @default("STANDARD") @map("topic_type")
+  summary         String         @db.Text
+  callToAction    String?        @map("call_to_action")
+  actionUrl       String?        @map("action_url")
+  mediaUrl        String?        @map("media_url")
+  couponCode      String?        @map("coupon_code")
+  termsConditions String?        @map("terms_conditions") @db.Text
+  startDate       DateTime?      @map("start_date")
+  endDate         DateTime?      @map("end_date")
+  status          String         @default("DRAFT")
+  publishedAt     DateTime?      @map("published_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  location        GoogleLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@map("google_posts")
+}
+
+// ─── Media & Photo Management ────────────────────────────
+
+model GoogleMediaItem {
+  id                String         @id @default(uuid()) @db.Uuid
+  locationId        String         @map("location_id") @db.Uuid
+  googleMediaId     String?        @unique @map("google_media_id")
+  mediaFormat       String         @default("PHOTO") @map("media_format")
+  category          String         @default("ADDITIONAL")
+  sourceUrl         String         @map("source_url")
+  thumbnailUrl      String?        @map("thumbnail_url")
+  isCustomerUser    Boolean        @default(false) @map("is_customer_user")
+  flaggedForRemoval Boolean        @default(false) @map("flagged_for_removal")
+  flagReason        String?        @map("flag_reason")
+  createdAt         DateTime       @default(now()) @map("created_at")
+
+  location          GoogleLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@map("google_media_items")
+}
+
+// ─── Daily Local Search Performance Metrics ──────────────
+
+model GooglePerformanceDaily {
+  id                 String         @id @default(uuid()) @db.Uuid
+  locationId         String         @map("location_id") @db.Uuid
+  date               DateTime       @db.Date
+  searchImpressions  Int            @default(0) @map("search_impressions")
+  mapsImpressions    Int            @default(0) @map("maps_impressions")
+  callClicks         Int            @default(0) @map("call_clicks")
+  websiteClicks      Int            @default(0) @map("website_clicks")
+  directionsRequests Int            @default(0) @map("directions_requests")
+  bookingsClicks     Int            @default(0) @map("bookings_clicks")
+  topQueriesJson     Json?          @map("top_queries_json")
+
+  location           GoogleLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, date])
+  @@map("google_performance_daily")
+}
+
 
