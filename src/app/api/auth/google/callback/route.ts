@@ -5,6 +5,8 @@ import {
   exchangeCodeForTokens,
   fetchGoogleUserInfo,
   fetchGoogleBusinessAccounts,
+  fetchGoogleLocations,
+  getGoogleOAuthRedirectUri,
   GOOGLE_SCOPES,
 } from "@/lib/google-sync";
 import { seedInitialGoogleProfile } from "@/lib/google-business";
@@ -20,14 +22,14 @@ export async function GET(request: NextRequest) {
 
   const settingsUrl = new URL("/dashboard/settings", request.url);
 
-  // If user cancelled on Google
+  // If user cancelled on Google screen or denied permissions
   if (error) {
     console.warn("Google OAuth error from query:", error);
     settingsUrl.searchParams.set("error", error);
     return NextResponse.redirect(settingsUrl.toString());
   }
 
-  // --- 1. Sandbox Authorization Flow (when Google Cloud keys are not yet configured) ---
+  // --- 1. Sandbox Authorization Flow (only used when explicitly opted into ?mode=sandbox) ---
   if (mode === "sandbox") {
     const tenantId = searchParams.get("tenantId");
     const email = searchParams.get("email") || "owner@business.com";
@@ -48,7 +50,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(settingsUrl.toString());
       }
 
-      // If connection already exists, update verified status
       if (tenant.googleConnection) {
         await prisma.googleProfileConnection.update({
           where: { tenantId },
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // --- 2. Production Google OAuth Flow ---
+  // --- 2. Live Google OAuth Flow ---
   if (!code || !state) {
     settingsUrl.searchParams.set("error", "missing_oauth_params");
     return NextResponse.redirect(settingsUrl.toString());
@@ -114,18 +115,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(settingsUrl.toString());
     }
 
-    // Exchange code for tokens
-    const tokens = await exchangeCodeForTokens(code);
+    // Exchange code for tokens using dynamic redirect URI matching the request domain
+    const redirectUri = getGoogleOAuthRedirectUri(request);
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
 
-    // Fetch user profile info from Google
+    // Fetch live user profile info from Google
     const userInfo = await fetchGoogleUserInfo(tokens.access_token);
     const connectedEmail = userInfo.email;
 
-    // Discover Google Business Accounts
+    // Discover Google Business Accounts from live GBP API
     const accounts = await fetchGoogleBusinessAccounts(tokens.access_token);
     const primaryAccount = accounts[0];
     const googleAccountId = primaryAccount?.name || `accounts/${userInfo.sub}`;
     const accountName = primaryAccount?.accountName || userInfo.name || tenant.name;
+
+    // Discover Google Locations from live GBP API
+    let realLocations = await fetchGoogleLocations(googleAccountId, tokens.access_token);
+    const primaryRealLoc = realLocations[0];
+    const locationId = primaryRealLoc?.name || `locations/${Date.now()}`;
+    const locationTitle = primaryRealLoc?.title || tenant.name;
+    const locationPhone = primaryRealLoc?.phoneNumbers?.primaryPhone || "+91 98450 00000";
+    const addressJson = (primaryRealLoc?.storefrontAddress as object) || {
+      addressLines: ["Commercial Arcade"],
+      locality: "Bangalore",
+      administrativeArea: "Karnataka",
+      postalCode: "560001",
+    };
 
     const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000);
 
@@ -139,7 +154,7 @@ export async function GET(request: NextRequest) {
           googleAccountId,
           accountName,
           accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token || "1//existing_token_vault",
+          refreshToken: tokens.refresh_token || "1//persisted_live_refresh_token",
           tokenExpiresAt: expiresAt,
           scope: tokens.scope || GOOGLE_SCOPES,
           connectedEmail,
@@ -149,22 +164,15 @@ export async function GET(request: NextRequest) {
         include: { locations: true },
       });
 
-      // Initialize location & primary branch
-      const locationId = `locations/${Date.now()}`;
       await prisma.googleLocation.create({
         data: {
           connectionId: connection.id,
           tenantId,
           googleLocationId: locationId,
-          title: tenant.name,
-          primaryPhone: "+91 98450 00000",
+          title: locationTitle,
+          primaryPhone: locationPhone,
           websiteUri: tenant.googleReviewUrl || "https://tapgate.io",
-          addressJson: {
-            addressLines: ["Commercial Arcade"],
-            locality: "Bangalore",
-            administrativeArea: "Karnataka",
-            postalCode: "560001",
-          },
+          addressJson,
           coordinatesLat: 12.9716,
           coordinatesLng: 77.5946,
           primaryCategory: tenant.businessType || "Restaurant & Café",
@@ -186,15 +194,46 @@ export async function GET(request: NextRequest) {
           lastSyncedAt: new Date(),
         },
       });
+
+      if (connection.locations.length > 0) {
+        await prisma.googleLocation.update({
+          where: { id: connection.locations[0].id },
+          data: {
+            googleLocationId: locationId,
+            title: locationTitle,
+            primaryPhone: locationPhone,
+          },
+        });
+      } else {
+        await prisma.googleLocation.create({
+          data: {
+            connectionId: connection.id,
+            tenantId,
+            googleLocationId: locationId,
+            title: locationTitle,
+            primaryPhone: locationPhone,
+            websiteUri: tenant.googleReviewUrl || "https://tapgate.io",
+            addressJson,
+            coordinatesLat: 12.9716,
+            coordinatesLng: 77.5946,
+            primaryCategory: tenant.businessType || "Restaurant & Café",
+            isPrimaryBranch: true,
+          },
+        });
+      }
     }
 
-    // Update Tenant email reference
+    // Update Tenant email and location reference
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { googleBusinessEmail: connectedEmail },
+      data: {
+        googleBusinessEmail: connectedEmail,
+        googleLocationId: locationId,
+      },
     });
 
     settingsUrl.searchParams.set("google_connected", "true");
+    settingsUrl.searchParams.set("account_email", connectedEmail);
     return NextResponse.redirect(settingsUrl.toString());
   } catch (authErr) {
     console.error("Google OAuth callback error:", authErr);

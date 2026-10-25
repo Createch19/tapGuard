@@ -1,5 +1,6 @@
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
+import { getGoogleOAuthCredentials, getGoogleOAuthRedirectUri } from "@/lib/google-sync";
 import SettingsClient from "./SettingsClient";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export default async function SettingsPage() {
 
   if (!tenant) return null;
 
+  const { clientId } = await getGoogleOAuthCredentials();
+  const hasGoogleCredentials = Boolean(clientId && clientId.trim());
+  const suggestedRedirectUri = getGoogleOAuthRedirectUri();
+
   return (
     <SettingsClient
       tenant={{
@@ -36,7 +41,8 @@ export default async function SettingsPage() {
         isVerified: tenant.googleConnection?.isVerified || false,
         geminiApiKey: tenant.geminiConfig?.customApiKey || null,
         isGoogleConnected: Boolean(tenant.googleConnection?.isVerified || tenant.googleConnection?.connectedEmail),
-        hasGoogleCredentials: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID.trim()),
+        hasGoogleCredentials,
+        suggestedRedirectUri,
       }}
     />
   );

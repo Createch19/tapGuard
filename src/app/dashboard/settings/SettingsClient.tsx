@@ -23,6 +23,8 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Check,
 } from "lucide-react";
 
 interface SettingsClientProps {
@@ -42,6 +44,7 @@ interface SettingsClientProps {
     geminiApiKey?: string | null;
     isGoogleConnected: boolean;
     hasGoogleCredentials?: boolean;
+    suggestedRedirectUri?: string;
   };
 }
 
@@ -83,13 +86,24 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [copiedRedirectUri, setCopiedRedirectUri] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("google_connected") === "true") {
       setIsGoogleConnected(true);
       setSaveSuccess(true);
-      setStatusMessage("Google Business Profile successfully authorized and connected!");
+      const email = searchParams.get("account_email");
+      if (email) {
+        setGoogleBusinessEmail(email);
+      }
+      setStatusMessage(
+        email
+          ? `Google Account (${email}) successfully verified and connected!`
+          : "Google Business Profile successfully authorized and connected!"
+      );
       setTimeout(() => setSaveSuccess(false), 5000);
+    } else if (searchParams.get("error") === "google_credentials_missing") {
+      setStatusMessage("Google Cloud OAuth credentials not configured on server.");
     } else if (searchParams.get("error")) {
       const err = searchParams.get("error");
       alert(`Google Connection Notice: ${err}`);
@@ -408,21 +422,51 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                   </div>
                 </div>
 
-                {/* Mode Indicator notice */}
-                {!tenant.hasGoogleCredentials ? (
-                  <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed">
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-amber-950">Development Sandbox Mode Active</p>
-                      <p className="text-amber-800 text-[11px] mt-0.5">
-                        <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_ID</code> is currently empty in <code className="bg-amber-100 font-mono px-1 rounded">.env</code>. Clicking below simulates Google's permission handshake instantly for testing. Once you add your Google Cloud OAuth keys to <code className="bg-amber-100 font-mono px-1 rounded">.env</code>, this button will redirect to the real Google login and consent screen (<code className="bg-amber-100 font-mono px-1 rounded">accounts.google.com</code>).
-                      </p>
+                {/* Live Google Cloud Setup Warning if keys missing */}
+                {(!tenant.hasGoogleCredentials || searchParams.get("error") === "google_credentials_missing") ? (
+                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200/90 space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-amber-950">
+                          Google Cloud OAuth Credentials Required for Live Accounts
+                        </p>
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                          To connect real Google accounts and request permission on <code className="bg-amber-100 font-mono px-1 rounded">accounts.google.com</code>, add <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_ID</code> and <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_SECRET</code> to your production environment variables (e.g. Netlify / Vercel Environment Variables).
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-amber-200/60">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
+                        <span className="text-[11px] font-bold text-amber-900">
+                          Authorized Redirect URI for Google Cloud Console:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const uri =
+                              tenant.suggestedRedirectUri ||
+                              `${typeof window !== "undefined" ? window.location.origin : ""}/api/auth/google/callback`;
+                            navigator.clipboard.writeText(uri);
+                            setCopiedRedirectUri(true);
+                            setTimeout(() => setCopiedRedirectUri(false), 2500);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-200/70 hover:bg-amber-200 text-amber-950 rounded-lg text-[11px] font-bold transition-colors cursor-pointer self-start sm:self-auto"
+                        >
+                          {copiedRedirectUri ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedRedirectUri ? "Copied to Clipboard!" : "Copy URI"}</span>
+                        </button>
+                      </div>
+                      <div className="px-3 py-2 bg-white rounded-xl border border-amber-200/80 font-mono text-[11px] text-slate-700 select-all overflow-x-auto">
+                        {tenant.suggestedRedirectUri || (typeof window !== "undefined" ? `${window.location.origin}/api/auth/google/callback` : "/api/auth/google/callback")}
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 p-2.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-800">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="font-semibold">Live Google Cloud OAuth mode active. Clicking below redirects to Google accounts consent screen.</span>
+                  <div className="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="font-semibold">Live Google Cloud OAuth active. Clicking below redirects to Google accounts consent screen to grant permissions.</span>
                   </div>
                 )}
 
@@ -438,11 +482,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
-                    <span>
-                      {tenant.hasGoogleCredentials
-                        ? "Connect with Google (Real OAuth Screen)"
-                        : "Connect with Google (Sandbox Simulation)"}
-                    </span>
+                    <span>Connect Official Google Account</span>
                   </a>
 
                   <button
@@ -454,7 +494,18 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                     <span>{showManualFields ? "Hide manual entry" : "Enter IDs manually"}</span>
                   </button>
                 </div>
+
+                {/* Explicit Sandbox Simulation Link for local testing */}
+                <div className="pt-0.5">
+                  <a
+                    href="/api/auth/google/connect?sandbox=true"
+                    className="text-[11px] text-slate-400 hover:text-slate-600 underline font-medium"
+                  >
+                    Developing locally without Google Cloud keys? Test with Sandbox Simulation
+                  </a>
+                </div>
               </div>
+
 
               {/* Manual Entry Fallback */}
               {showManualFields && (

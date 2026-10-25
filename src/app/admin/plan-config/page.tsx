@@ -1,5 +1,6 @@
 import { requireSuperAdmin } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
+import { getGoogleOAuthCredentials, getGoogleOAuthRedirectUri } from "@/lib/google-sync";
 import PlanConfigClient from "./PlanConfigClient";
 
 export const dynamic = "force-dynamic";
@@ -32,5 +33,18 @@ export default async function PlanConfigPage() {
     isActive: c.isActive,
   }));
 
-  return <PlanConfigClient configs={formatted} />;
+  const { clientId, clientSecret } = await getGoogleOAuthCredentials();
+  const redirectUri = getGoogleOAuthRedirectUri();
+
+  return (
+    <PlanConfigClient
+      configs={formatted}
+      platformGoogleOAuth={{
+        clientId: clientId || "",
+        clientSecret: clientSecret || "",
+        hasCredentials: Boolean(clientId && clientSecret),
+        redirectUri,
+      }}
+    />
+  );
 }

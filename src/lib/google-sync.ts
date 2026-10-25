@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import type { NextRequest } from "next/server";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -13,7 +14,57 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/business.manage",
 ].join(" ");
 
-export function getAppBaseUrl(): string {
+/**
+ * Retrieves Google OAuth credentials from process.env or database SystemSetting
+ */
+export async function getGoogleOAuthCredentials(): Promise<{
+  clientId: string | null;
+  clientSecret: string | null;
+}> {
+  const envClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const envClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+
+  if (envClientId && envClientSecret) {
+    return { clientId: envClientId, clientSecret: envClientSecret };
+  }
+
+  try {
+    const settings = await prisma.systemSetting.findMany({
+      where: {
+        key: { in: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"] },
+      },
+    });
+
+    const dbClientId = settings.find((s) => s.key === "GOOGLE_CLIENT_ID")?.value?.trim();
+    const dbClientSecret = settings.find((s) => s.key === "GOOGLE_CLIENT_SECRET")?.value?.trim();
+
+    return {
+      clientId: envClientId || dbClientId || null,
+      clientSecret: envClientSecret || dbClientSecret || null,
+    };
+  } catch {
+    return {
+      clientId: envClientId || null,
+      clientSecret: envClientSecret || null,
+    };
+  }
+}
+
+/**
+ * Returns dynamic base URL based on incoming request headers or env fallback
+ */
+export function getAppBaseUrl(req?: Request | NextRequest | null): string {
+  if (req) {
+    const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
+    if (forwardedHost) {
+      return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, "");
+    }
+    if ("nextUrl" in req && (req as NextRequest).nextUrl?.origin) {
+      return (req as NextRequest).nextUrl.origin.replace(/\/$/, "");
+    }
+  }
+
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
@@ -21,8 +72,11 @@ export function getAppBaseUrl(): string {
   ).replace(/\/$/, "");
 }
 
-export function getGoogleOAuthRedirectUri(): string {
-  return `${getAppBaseUrl()}/api/auth/google/callback`;
+/**
+ * Returns exact OAuth callback URI for Google Cloud configuration
+ */
+export function getGoogleOAuthRedirectUri(req?: Request | NextRequest | null): string {
+  return `${getAppBaseUrl(req)}/api/auth/google/callback`;
 }
 
 /**
@@ -66,11 +120,16 @@ export function verifyOAuthState(stateStr: string): { tenantId: string } | null 
 }
 
 /**
- * Builds the official Google OAuth authorization consent URL
+ * Builds the official Google OAuth authorization consent URL.
+ * Forces consent prompt & account selection so the business owner explicitly chooses their account and grants permissions.
  */
-export function buildGoogleAuthUrl(tenantId: string): string {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = getGoogleOAuthRedirectUri();
+export function buildGoogleAuthUrl(
+  tenantId: string,
+  customRedirectUri?: string,
+  customClientId?: string
+): string {
+  const clientId = customClientId || process.env.GOOGLE_CLIENT_ID;
+  const redirectUri = customRedirectUri || getGoogleOAuthRedirectUri();
   const state = generateOAuthState(tenantId);
 
   const params = new URLSearchParams({
@@ -79,7 +138,7 @@ export function buildGoogleAuthUrl(tenantId: string): string {
     response_type: "code",
     scope: GOOGLE_SCOPES,
     access_type: "offline",
-    prompt: "consent",
+    prompt: "consent select_account", // ALWAYS force Google account picker & permissions consent screen
     include_granted_scopes: "true",
     state,
   });
@@ -90,7 +149,10 @@ export function buildGoogleAuthUrl(tenantId: string): string {
 /**
  * Exchanges authorization code for access and refresh tokens
  */
-export async function exchangeCodeForTokens(code: string): Promise<{
+export async function exchangeCodeForTokens(
+  code: string,
+  customRedirectUri?: string
+): Promise<{
   access_token: string;
   refresh_token: string;
   expires_in: number;
@@ -98,9 +160,8 @@ export async function exchangeCodeForTokens(code: string): Promise<{
   token_type: string;
   id_token?: string;
 }> {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = getGoogleOAuthRedirectUri();
+  const { clientId, clientSecret } = await getGoogleOAuthCredentials();
+  const redirectUri = customRedirectUri || getGoogleOAuthRedirectUri();
 
   if (!clientId || !clientSecret) {
     throw new Error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing");
@@ -144,11 +205,9 @@ export async function refreshGoogleAccessToken(connectionId: string): Promise<st
     return connection.accessToken;
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const { clientId, clientSecret } = await getGoogleOAuthCredentials();
 
   if (!clientId || !clientSecret || connection.refreshToken.startsWith("1//simulated")) {
-    // If running in simulated sandbox mode, extend token
     const newExpiresAt = new Date(Date.now() + 3600000 * 24);
     await prisma.googleProfileConnection.update({
       where: { id: connectionId },
@@ -187,7 +246,7 @@ export async function refreshGoogleAccessToken(connectionId: string): Promise<st
 }
 
 /**
- * Fetch verified Google User Profile (email, name, picture)
+ * Fetch verified Google User Profile (email, name, picture, sub)
  */
 export async function fetchGoogleUserInfo(accessToken: string): Promise<{
   email: string;
@@ -228,6 +287,45 @@ export async function fetchGoogleBusinessAccounts(accessToken: string): Promise<
     return data.accounts || [];
   } catch (err) {
     console.warn("Failed to fetch Google accounts:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch Google Business Locations for an account
+ */
+export async function fetchGoogleLocations(
+  accountName: string,
+  accessToken: string
+): Promise<Array<{
+  name: string; // "locations/12345"
+  title?: string;
+  storefrontAddress?: {
+    addressLines?: string[];
+    locality?: string;
+    administrativeArea?: string;
+    postalCode?: string;
+  };
+  websiteUri?: string;
+  phoneNumbers?: { primaryPhone?: string };
+  categories?: { primaryCategory?: { displayName?: string } };
+  latlng?: { latitude?: number; longitude?: number };
+}>> {
+  try {
+    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri,phoneNumbers,categories,latlng`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      console.warn("Could not fetch locations from Google Business Information API:", await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    return data.locations || [];
+  } catch (err) {
+    console.warn("Error fetching Google locations:", err);
     return [];
   }
 }

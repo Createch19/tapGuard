@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save, CheckCircle } from "lucide-react";
+import { Save, CheckCircle, Copy, Check, Key, AlertCircle } from "lucide-react";
 
 interface PlanConfigItem {
   id: string;
@@ -24,16 +24,35 @@ interface PlanConfigItem {
   isActive: boolean;
 }
 
+interface PlatformGoogleOAuth {
+  clientId: string;
+  clientSecret: string;
+  hasCredentials: boolean;
+  redirectUri: string;
+}
+
 interface PlanConfigClientProps {
   configs: PlanConfigItem[];
+  platformGoogleOAuth?: PlatformGoogleOAuth;
 }
 
 export default function PlanConfigClient({
   configs: initialConfigs,
+  platformGoogleOAuth,
 }: PlanConfigClientProps) {
   const [configs, setConfigs] = useState<PlanConfigItem[]>(initialConfigs);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
+
+  const [googleClientId, setGoogleClientId] = useState(
+    platformGoogleOAuth?.clientId || ""
+  );
+  const [googleClientSecret, setGoogleClientSecret] = useState(
+    platformGoogleOAuth?.clientSecret || ""
+  );
+  const [isSavingOauth, setIsSavingOauth] = useState(false);
+  const [oauthSaved, setOauthSaved] = useState(false);
+  const [copiedUri, setCopiedUri] = useState(false);
 
   const handleFieldChange = (
     id: string,
@@ -70,6 +89,33 @@ export default function PlanConfigClient({
     }
   };
 
+  const handleSaveOAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingOauth(true);
+    setOauthSaved(false);
+
+    try {
+      const res = await fetch("/api/admin/platform-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          googleClientId,
+          googleClientSecret,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save OAuth credentials");
+
+      setOauthSaved(true);
+      setTimeout(() => setOauthSaved(false), 4000);
+    } catch (err) {
+      alert((err as Error).message || "Error saving credentials");
+    } finally {
+      setIsSavingOauth(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -87,6 +133,117 @@ export default function PlanConfigClient({
             Super Admin master pricing editor: Adjust pricing in INR, card quotas, and feature flags directly in the database
           </p>
         </div>
+      </div>
+
+      {/* Platform Google Cloud OAuth Settings Card */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                Platform Google Cloud OAuth & Business API Setup
+              </h2>
+              <p className="text-xs text-slate-500">
+                Configure your official Google Cloud credentials so business tenants can connect their live Google accounts
+              </p>
+            </div>
+          </div>
+
+          <div>
+            {googleClientId ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Live OAuth Ready
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Credentials Needed
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Authorized Redirect URI */}
+        <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+            <span className="text-xs font-bold text-slate-700">
+              Authorized OAuth Redirect URI (Paste into Google Cloud Console):
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const uri =
+                  platformGoogleOAuth?.redirectUri ||
+                  `${typeof window !== "undefined" ? window.location.origin : ""}/api/auth/google/callback`;
+                navigator.clipboard.writeText(uri);
+                setCopiedUri(true);
+                setTimeout(() => setCopiedUri(false), 2500);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              {copiedUri ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedUri ? "Copied!" : "Copy Redirect URI"}</span>
+            </button>
+          </div>
+          <div className="px-3 py-2 bg-white rounded-xl border border-slate-200 font-mono text-xs text-slate-700 select-all overflow-x-auto">
+            {platformGoogleOAuth?.redirectUri || (typeof window !== "undefined" ? `${window.location.origin}/api/auth/google/callback` : "/api/auth/google/callback")}
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveOAuth} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Google Client ID
+            </label>
+            <input
+              type="text"
+              value={googleClientId}
+              onChange={(e) => setGoogleClientId(e.target.value)}
+              placeholder="e.g. 10293847291-xxxx.apps.googleusercontent.com"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Google Client Secret
+            </label>
+            <input
+              type="password"
+              value={googleClientSecret}
+              onChange={(e) => setGoogleClientSecret(e.target.value)}
+              placeholder="e.g. GOCSPX-xxxxxxxxxxxxxxxx"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <span className="text-xs text-slate-400">
+              Saved securely to the database. Works immediately for all business tenants without redeployment.
+            </span>
+            <button
+              type="submit"
+              disabled={isSavingOauth}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+            >
+              {oauthSaved ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-white" />
+                  <span>Credentials Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingOauth ? "Saving..." : "Save Platform Credentials"}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Plan Cards Grid */}

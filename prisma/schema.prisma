@@ -650,4 +650,13 @@ model GooglePerformanceDaily {
   @@map("google_performance_daily")
 }
 
+// ─── Platform System Settings ────────────────────────────
 
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
