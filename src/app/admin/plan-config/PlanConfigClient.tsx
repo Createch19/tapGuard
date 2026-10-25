@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Save, CheckCircle, Copy, Check, Key, AlertCircle } from "lucide-react";
 
 interface PlanConfigItem {
@@ -53,6 +53,24 @@ export default function PlanConfigClient({
   const [isSavingOauth, setIsSavingOauth] = useState(false);
   const [oauthSaved, setOauthSaved] = useState(false);
   const [copiedUri, setCopiedUri] = useState(false);
+
+  const [liveRedirectUri, setLiveRedirectUri] = useState<string>(
+    platformGoogleOAuth?.redirectUri || "/api/auth/google/callback"
+  );
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      const origin = window.location.origin;
+      if (
+        !platformGoogleOAuth?.redirectUri ||
+        (platformGoogleOAuth.redirectUri.includes("localhost") && !origin.includes("localhost"))
+      ) {
+        setLiveRedirectUri(`${origin}/api/auth/google/callback`);
+      } else {
+        setLiveRedirectUri(platformGoogleOAuth.redirectUri);
+      }
+    }
+  }, [platformGoogleOAuth?.redirectUri]);
 
   const handleFieldChange = (
     id: string,
@@ -176,10 +194,7 @@ export default function PlanConfigClient({
             <button
               type="button"
               onClick={() => {
-                const uri =
-                  platformGoogleOAuth?.redirectUri ||
-                  `${typeof window !== "undefined" ? window.location.origin : ""}/api/auth/google/callback`;
-                navigator.clipboard.writeText(uri);
+                navigator.clipboard.writeText(liveRedirectUri);
                 setCopiedUri(true);
                 setTimeout(() => setCopiedUri(false), 2500);
               }}
@@ -190,7 +205,7 @@ export default function PlanConfigClient({
             </button>
           </div>
           <div className="px-3 py-2 bg-white rounded-xl border border-slate-200 font-mono text-xs text-slate-700 select-all overflow-x-auto">
-            {platformGoogleOAuth?.redirectUri || (typeof window !== "undefined" ? `${window.location.origin}/api/auth/google/callback` : "/api/auth/google/callback")}
+            {liveRedirectUri}
           </div>
         </div>
 

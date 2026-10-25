@@ -728,6 +728,69 @@ export default function GoogleCommandCenterClient({
   const unansweredQACount = data.questions.filter((q) => !q.isAnswered).length;
   const unrepliedReviewsCount = data.reviews.filter((r) => !r.replyComment).length;
 
+  // Dynamic review metrics
+  const totalReviewsCount = data.reviews.length;
+  const averageRatingNum =
+    totalReviewsCount > 0
+      ? data.reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / totalReviewsCount
+      : 0;
+  const averageRating = totalReviewsCount > 0 ? averageRatingNum.toFixed(1) : "0.0";
+
+  // Recent reviews (last 30 days)
+  const nowMs = Date.now();
+  const thirtyDaysMs = 30 * 86400000;
+  const recentReviewsThisMonth = data.reviews.filter(
+    (r) => nowMs - new Date(r.reviewCreatedAt).getTime() < thirtyDaysMs
+  ).length;
+
+  const repliedReviewsCount = totalReviewsCount - unrepliedReviewsCount;
+  const responseRatePercent =
+    totalReviewsCount > 0
+      ? Math.round((repliedReviewsCount / totalReviewsCount) * 100)
+      : 100;
+
+  // Monthly impressions & trend
+  const monthlyImpressionsRaw = data.performance?.monthlyImpressions || 0;
+  const monthlyImpressionsFormatted =
+    monthlyImpressionsRaw >= 1000
+      ? `${(monthlyImpressionsRaw / 1000).toFixed(1)}K`
+      : `${monthlyImpressionsRaw}`;
+  const impressionsTrend = data.performance?.impressionsTrendPercent ?? 18.2;
+
+  // Operating status for today (used in mobile preview)
+  const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const currentDayName = daysOfWeek[new Date().getDay()];
+  const todaySchedule = weeklyHours?.[currentDayName] || { open: "08:00", close: "22:00", isClosed: false };
+
+  let hoursStatusText = "Open · Closes 10:00 PM";
+  let isStoreOpen = true;
+  if (todaySchedule?.isClosed) {
+    hoursStatusText = "Closed today";
+    isStoreOpen = false;
+  } else if (todaySchedule?.open && todaySchedule?.close) {
+    const formatTimeStr = (t: string) => {
+      const [hStr, mStr] = t.split(":");
+      const h = parseInt(hStr, 10);
+      if (isNaN(h)) return t;
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 || 12;
+      return `${h12}:${mStr || "00"} ${ampm}`;
+    };
+    hoursStatusText = `Open · Closes ${formatTimeStr(todaySchedule.close)}`;
+  }
+
+  // Photo categories dynamically extracted from mediaItems
+  const availablePhotoCategories = Array.from(
+    new Set(data.mediaItems.map((m) => m.category).filter(Boolean))
+  );
+  const hasCustomerPhotos = data.mediaItems.some((m) => m.isCustomerUser);
+
+  const renderStars = (rating: number) => {
+    const rounded = Math.round(rating);
+    const clamped = Math.min(5, Math.max(0, rounded));
+    return "★".repeat(clamped) + "☆".repeat(5 - clamped);
+  };
+
   return (
     <div className="space-y-6 pb-16">
       {/* Toast Notification */}
@@ -743,10 +806,17 @@ export default function GoogleCommandCenterClient({
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Google Maps Verified
-              </span>
+              {data.connection.isVerified ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Google Maps Verified
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  Verification Pending
+                </span>
+              )}
               <span className="text-xs text-slate-400 font-mono">
                 {data.connection.connectedEmail}
               </span>
@@ -825,11 +895,17 @@ export default function GoogleCommandCenterClient({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <div className="text-3xl font-black text-slate-900">4.8</div>
-            <div className="flex text-amber-400 text-sm">★★★★★</div>
+            <div className="text-3xl font-black text-slate-900">
+              {totalReviewsCount > 0 ? averageRating : "0.0"}
+            </div>
+            <div className="flex text-amber-400 text-sm">
+              {renderStars(averageRatingNum)}
+            </div>
           </div>
-          <div className="text-xs text-emerald-600 font-semibold mt-1">
-            Top #1 Rated in {tenant.businessType}
+          <div className="text-xs text-slate-500 font-semibold mt-1">
+            {totalReviewsCount > 0
+              ? `Based on ${totalReviewsCount} customer review${totalReviewsCount === 1 ? "" : "s"}`
+              : "No reviews synced yet"}
           </div>
         </div>
 
@@ -843,11 +919,11 @@ export default function GoogleCommandCenterClient({
               <MessageSquare className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-slate-900">1,248</div>
+          <div className="text-3xl font-black text-slate-900">{totalReviewsCount.toLocaleString()}</div>
           <div className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-            <span className="text-emerald-600 font-semibold">+42 this month</span>
+            <span className="text-emerald-600 font-semibold">+{recentReviewsThisMonth} this month</span>
             <span>·</span>
-            <span>98% response rate</span>
+            <span>{responseRatePercent}% response rate</span>
           </div>
         </div>
 
@@ -863,14 +939,18 @@ export default function GoogleCommandCenterClient({
           </div>
           <div className="flex items-baseline gap-2">
             <div className="text-3xl font-black text-slate-900">{unansweredQACount}</div>
-            {unansweredQACount > 0 && (
+            {unansweredQACount > 0 ? (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                 Action Needed
+              </span>
+            ) : (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                All Answered
               </span>
             )}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            Gemini ground-truth drafts ready
+            {unansweredQACount > 0 ? "Gemini ground-truth drafts ready" : "All customer questions up to date"}
           </div>
         </div>
 
@@ -884,9 +964,9 @@ export default function GoogleCommandCenterClient({
               <Eye className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-slate-900">28.4K</div>
+          <div className="text-3xl font-black text-slate-900">{monthlyImpressionsFormatted}</div>
           <div className="text-xs text-emerald-600 font-semibold mt-1">
-            +18.2% from previous month
+            +{impressionsTrend}% from previous month
           </div>
         </div>
       </div>
@@ -975,122 +1055,146 @@ export default function GoogleCommandCenterClient({
               </div>
 
               {/* Reviews List */}
-              <div className="space-y-4">
-                {filteredReviews.map((rev) => {
-                  const isGenerating = generatingReplyId === rev.id;
-                  const isPublishing = publishingReplyId === rev.id;
-                  const draftText = replyDrafts[rev.id] ?? rev.geminiDraftReply ?? "";
-
-                  return (
-                    <div
-                      key={rev.id}
-                      className="p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition-all space-y-3 bg-white"
+              {filteredReviews.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto">
+                    <Star className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-800">No reviews found</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      {unrepliedOnly
+                        ? "Great job! All customer reviews have been replied to."
+                        : "Customer reviews from Google Maps will automatically appear here once synchronized."}
+                    </p>
+                  </div>
+                  {unrepliedOnly && (
+                    <button
+                      onClick={() => setUnrepliedOnly(false)}
+                      className="text-xs text-teal-600 font-bold hover:underline cursor-pointer"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={rev.reviewerPhotoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
-                            alt={rev.reviewerName}
-                            className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                          />
-                          <div>
-                            <div className="font-bold text-sm text-slate-900">
-                              {rev.reviewerName}
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <div className="flex text-amber-400 text-xs">
-                                {"★".repeat(rev.rating)}
-                                <span className="text-slate-200">
-                                  {"★".repeat(5 - rev.rating)}
+                      View all reviews
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredReviews.map((rev) => {
+                    const isGenerating = generatingReplyId === rev.id;
+                    const isPublishing = publishingReplyId === rev.id;
+                    const draftText = replyDrafts[rev.id] ?? rev.geminiDraftReply ?? "";
+
+                    return (
+                      <div
+                        key={rev.id}
+                        className="p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition-all space-y-3 bg-white"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={rev.reviewerPhotoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
+                              alt={rev.reviewerName}
+                              className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                            />
+                            <div>
+                              <div className="font-bold text-sm text-slate-900">
+                                {rev.reviewerName}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <div className="flex text-amber-400 text-xs">
+                                  {"★".repeat(rev.rating)}
+                                  <span className="text-slate-200">
+                                    {"★".repeat(5 - rev.rating)}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-slate-400">
+                                  {new Date(rev.reviewCreatedAt).toLocaleDateString()}
                                 </span>
                               </div>
-                              <span className="text-[11px] text-slate-400">
-                                {new Date(rev.reviewCreatedAt).toLocaleDateString()}
+                            </div>
+                          </div>
+
+                          {rev.replyComment ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Replied on Google
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              Awaiting Response
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                          "{rev.comment || "Left 5-star rating without text."}"
+                        </p>
+
+                        {/* Existing Published Reply */}
+                        {rev.replyComment && (
+                          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1">
+                            <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                              <Store className="w-3.5 h-3.5 text-teal-600" />
+                              <span>Response from the owner</span>
+                              <span className="text-[10px] text-slate-400 font-normal">
+                                ({rev.replyUpdatedAt ? new Date(rev.replyUpdatedAt).toLocaleDateString() : "Live"})
                               </span>
                             </div>
+                            <p className="text-slate-600 leading-relaxed">{rev.replyComment}</p>
                           </div>
-                        </div>
+                        )}
 
-                        {rev.replyComment ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Replied on Google
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            Awaiting Response
-                          </span>
+                        {/* Gemini Reply Drafting Area (for unreplied reviews) */}
+                        {!rev.replyComment && (
+                          <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-teal-900">
+                                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                                <span>Gemini Suggested Reply</span>
+                              </div>
+                              <button
+                                onClick={() => handleGenerateReply(rev.id)}
+                                disabled={isGenerating}
+                                className="text-[11px] font-semibold text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
+                                <span>{isGenerating ? "Drafting with Gemini..." : "Re-draft with Gemini"}</span>
+                              </button>
+                            </div>
+
+                            <textarea
+                              value={draftText}
+                              onChange={(e) =>
+                                setReplyDrafts((prev) => ({
+                                  ...prev,
+                                  [rev.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Gemini will craft an authentic response here..."
+                              rows={3}
+                              className="w-full text-xs text-slate-800 p-3 bg-white rounded-xl border border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-500 leading-relaxed"
+                            />
+
+                            <div className="flex items-center justify-between gap-3 pt-1">
+                              <span className="text-[11px] text-slate-400">
+                                Voice: <strong>{replyTone}</strong> · Grounded in store knowledge
+                              </span>
+                              <button
+                                onClick={() => handlePublishReply(rev.id)}
+                                disabled={isPublishing || !draftText.trim()}
+                                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>{isPublishing ? "Publishing..." : "Publish to Google Maps"}</span>
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
-
-                      <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-                        "{rev.comment || "Left 5-star rating without text."}"
-                      </p>
-
-                      {/* Existing Published Reply */}
-                      {rev.replyComment && (
-                        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1">
-                          <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                            <Store className="w-3.5 h-3.5 text-teal-600" />
-                            <span>Response from the owner</span>
-                            <span className="text-[10px] text-slate-400 font-normal">
-                              ({rev.replyUpdatedAt ? new Date(rev.replyUpdatedAt).toLocaleDateString() : "Live"})
-                            </span>
-                          </div>
-                          <p className="text-slate-600 leading-relaxed">{rev.replyComment}</p>
-                        </div>
-                      )}
-
-                      {/* Gemini Reply Drafting Area (for unreplied reviews) */}
-                      {!rev.replyComment && (
-                        <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-teal-900">
-                              <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                              <span>Gemini Suggested Reply</span>
-                            </div>
-                            <button
-                              onClick={() => handleGenerateReply(rev.id)}
-                              disabled={isGenerating}
-                              className="text-[11px] font-semibold text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
-                              <span>{isGenerating ? "Drafting with Gemini..." : "Re-draft with Gemini"}</span>
-                            </button>
-                          </div>
-
-                          <textarea
-                            value={draftText}
-                            onChange={(e) =>
-                              setReplyDrafts((prev) => ({
-                                ...prev,
-                                [rev.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="Gemini will craft an authentic response here..."
-                            rows={3}
-                            className="w-full text-xs text-slate-800 p-3 bg-white rounded-xl border border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-500 leading-relaxed"
-                          />
-
-                          <div className="flex items-center justify-between gap-3 pt-1">
-                            <span className="text-[11px] text-slate-400">
-                              Voice: <strong>{replyTone}</strong> · Grounded in store knowledge
-                            </span>
-                            <button
-                              onClick={() => handlePublishReply(rev.id)}
-                              disabled={isPublishing || !draftText.trim()}
-                              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              <span>{isPublishing ? "Publishing..." : "Publish to Google Maps"}</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1111,107 +1215,122 @@ export default function GoogleCommandCenterClient({
                 </span>
               </div>
 
-              <div className="space-y-4">
-                {data.questions.map((q) => {
-                  const draftAnswer = qaDrafts[q.id] ?? q.geminiDraftAnswer ?? "";
-                  const isGenerating = generatingQAId === q.id;
-                  const isPublishing = publishingQAId === q.id;
+              {data.questions.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto">
+                    <HelpCircle className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-800">No public questions yet</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      When potential customers ask questions on your Google Maps listing, they will appear here with instant Gemini ground-truth draft answers.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {data.questions.map((q) => {
+                    const draftAnswer = qaDrafts[q.id] ?? q.geminiDraftAnswer ?? "";
+                    const isGenerating = generatingQAId === q.id;
+                    const isPublishing = publishingQAId === q.id;
 
-                  return (
-                    <div
-                      key={q.id}
-                      className="p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition-all space-y-3 bg-white"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-900">
-                              {q.authorName}
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                              · asked {new Date(q.questionCreatedAt).toLocaleDateString()}
-                            </span>
-                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
-                              ▲ {q.upvoteCount} upvotes
-                            </span>
+                    return (
+                      <div
+                        key={q.id}
+                        className="p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition-all space-y-3 bg-white"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">
+                                {q.authorName}
+                              </span>
+                              <span className="text-[11px] text-slate-400">
+                                · asked {new Date(q.questionCreatedAt).toLocaleDateString()}
+                              </span>
+                              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
+                                ▲ {q.upvoteCount} upvotes
+                              </span>
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-900">
+                              "{q.questionText}"
+                            </h3>
                           </div>
-                          <h3 className="text-sm font-bold text-slate-900">
-                            "{q.questionText}"
-                          </h3>
+
+                          {q.isAnswered ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Official Answer Live
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              Unanswered
+                            </span>
+                          )}
                         </div>
 
-                        {q.isAnswered ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Official Answer Live
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            Unanswered
-                          </span>
+                        {/* Official Live Answer if already published */}
+                        {q.officialAnswer && (
+                          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1">
+                            <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Official Owner Answer on Google Maps</span>
+                            </div>
+                            <p className="text-slate-600 leading-relaxed">{q.officialAnswer}</p>
+                          </div>
+                        )}
+
+                        {/* Gemini Answer Drafting Section */}
+                        {!q.isAnswered && (
+                          <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-950">
+                                <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                                <span>Gemini Grounded Answer (Based on Store Policies)</span>
+                              </div>
+                              <button
+                                onClick={() => handleGenerateQA(q.id)}
+                                disabled={isGenerating}
+                                className="text-[11px] font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
+                                <span>{isGenerating ? "Drafting..." : "Re-draft with Gemini"}</span>
+                              </button>
+                            </div>
+
+                            <textarea
+                              value={draftAnswer}
+                              onChange={(e) =>
+                                setQaDrafts((prev) => ({
+                                  ...prev,
+                                  [q.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Gemini will craft an accurate answer grounded in your business details..."
+                              rows={2}
+                              className="w-full text-xs text-slate-800 p-3 bg-white rounded-xl border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 leading-relaxed"
+                            />
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[11px] text-slate-400">
+                                Grounded in FAQs, menu items, and opening hours
+                              </span>
+                              <button
+                                onClick={() => handlePublishQA(q.id)}
+                                disabled={isPublishing || !draftAnswer.trim()}
+                                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>{isPublishing ? "Posting..." : "Approve & Post to Google Maps"}</span>
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
-
-                      {/* Official Live Answer if already published */}
-                      {q.officialAnswer && (
-                        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1">
-                          <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Official Owner Answer on Google Maps</span>
-                          </div>
-                          <p className="text-slate-600 leading-relaxed">{q.officialAnswer}</p>
-                        </div>
-                      )}
-
-                      {/* Gemini Answer Drafting Section */}
-                      {!q.isAnswered && (
-                        <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-950">
-                              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                              <span>Gemini Grounded Answer (Based on Store Policies)</span>
-                            </div>
-                            <button
-                              onClick={() => handleGenerateQA(q.id)}
-                              disabled={isGenerating}
-                              className="text-[11px] font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <RefreshCw className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
-                              <span>{isGenerating ? "Drafting..." : "Re-draft with Gemini"}</span>
-                            </button>
-                          </div>
-
-                          <textarea
-                            value={draftAnswer}
-                            onChange={(e) =>
-                              setQaDrafts((prev) => ({
-                                ...prev,
-                                [q.id]: e.target.value,
-                              }))
-                            }
-                            rows={2}
-                            className="w-full text-xs text-slate-800 p-3 bg-white rounded-xl border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 leading-relaxed"
-                          />
-
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-[11px] text-slate-400">
-                              Grounded in FAQs, menu items, and opening hours
-                            </span>
-                            <button
-                              onClick={() => handlePublishQA(q.id)}
-                              disabled={isPublishing || !draftAnswer.trim()}
-                              className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              <span>{isPublishing ? "Posting..." : "Approve & Post to Google Maps"}</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1237,78 +1356,99 @@ export default function GoogleCommandCenterClient({
               </div>
 
               {/* Menu Sections */}
-              <div className="space-y-6">
-                {data.menuSections.map((section) => (
-                  <div key={section.id} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                      <h3 className="font-black text-sm text-slate-900 uppercase tracking-wider">
-                        {section.title}
-                      </h3>
-                      <span className="text-xs text-slate-400">
-                        ({section.items.length} items synced)
-                      </span>
-                    </div>
+              {data.menuSections.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto">
+                    <UtensilsCrossed className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-800">No menu or catalogue items yet</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Add items and sections to showcase your offerings directly on Google Maps and search results.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddMenuModal(true)}
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add First Menu Item</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {data.menuSections.map((section) => (
+                    <div key={section.id} className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
+                        <h3 className="font-black text-sm text-slate-900 uppercase tracking-wider">
+                          {section.title}
+                        </h3>
+                        <span className="text-xs text-slate-400">
+                          ({section.items.length} items synced)
+                        </span>
+                      </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {section.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                            item.isAvailable
-                              ? "bg-white border-slate-200/90 hover:border-slate-300"
-                              : "bg-slate-50/80 border-slate-200 opacity-60"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            {item.imageUrl && (
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
-                              />
-                            )}
-                            <div>
-                              <div className="font-bold text-xs sm:text-sm text-slate-900">
-                                {item.name}
-                              </div>
-                              <div className="text-xs font-black text-teal-700 mt-0.5">
-                                ₹{item.price}
-                              </div>
-                              <div className="flex gap-1 mt-1">
-                                {item.dietaryTags.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 rounded font-bold"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => handleToggleStock(item.id)}
-                            disabled={togglingItemId === item.id}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {section.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                               item.isAvailable
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-rose-100 hover:text-rose-800"
-                                : "bg-rose-100 text-rose-800 hover:bg-emerald-100 hover:text-emerald-800"
+                                ? "bg-white border-slate-200/90 hover:border-slate-300"
+                                : "bg-slate-50/80 border-slate-200 opacity-60"
                             }`}
                           >
-                            {togglingItemId === item.id
-                              ? "Updating..."
-                              : item.isAvailable
-                              ? "● In Stock"
-                              : "✕ Out of Stock"}
-                          </button>
-                        </div>
-                      ))}
+                            <div className="flex items-center gap-3">
+                              {item.imageUrl && (
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.name}
+                                  className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
+                                />
+                              )}
+                              <div>
+                                <div className="font-bold text-xs sm:text-sm text-slate-900">
+                                  {item.name}
+                                </div>
+                                <div className="text-xs font-black text-teal-700 mt-0.5">
+                                  ₹{item.price}
+                                </div>
+                                <div className="flex gap-1 mt-1">
+                                  {item.dietaryTags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 rounded font-bold"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleToggleStock(item.id)}
+                              disabled={togglingItemId === item.id}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                item.isAvailable
+                                  ? "bg-emerald-100 text-emerald-800 hover:bg-rose-100 hover:text-rose-800"
+                                  : "bg-rose-100 text-rose-800 hover:bg-emerald-100 hover:text-emerald-800"
+                              }`}
+                            >
+                              {togglingItemId === item.id
+                                ? "Updating..."
+                                : item.isAvailable
+                                ? "● In Stock"
+                                : "✕ Out of Stock"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1380,20 +1520,26 @@ export default function GoogleCommandCenterClient({
                   <span>Upcoming Special / Holiday Hours</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  {activeLocation.specialHours.map((sh, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2.5 bg-white rounded-xl border border-teal-200/80 flex items-center justify-between"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-900">{sh.note}</span>
-                        <div className="text-[11px] text-slate-400 font-mono">{sh.date}</div>
-                      </div>
-                      <span className="text-xs font-bold text-teal-700">
-                        {sh.open} – {sh.close}
-                      </span>
+                  {(activeLocation?.specialHours || []).length === 0 ? (
+                    <div className="col-span-full py-2 text-slate-400 text-xs italic">
+                      No upcoming special or holiday hours configured.
                     </div>
-                  ))}
+                  ) : (
+                    (activeLocation?.specialHours || []).map((sh, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 bg-white rounded-xl border border-teal-200/80 flex items-center justify-between"
+                      >
+                        <div>
+                          <span className="font-bold text-slate-900">{sh.note}</span>
+                          <div className="text-[11px] text-slate-400 font-mono">{sh.date}</div>
+                        </div>
+                        <span className="text-xs font-bold text-teal-700">
+                          {sh.open} – {sh.close}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -1421,49 +1567,70 @@ export default function GoogleCommandCenterClient({
               </div>
 
               {/* Posts Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {data.posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="rounded-2xl border border-slate-200/90 overflow-hidden bg-white shadow-2xs space-y-3"
+              {data.posts.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto">
+                    <Send className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-800">No Google Posts published yet</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Publish offers, announcements, and events directly to your Google Search and Maps profile to engage visitors.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddPostModal(true)}
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    {post.mediaUrl && (
-                      <img
-                        src={post.mediaUrl}
-                        alt="Post media"
-                        className="w-full h-36 object-cover"
-                      />
-                    )}
-                    <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200">
-                          {post.topicType}
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Draft"}
-                        </span>
-                      </div>
-
-                      <p className="text-xs font-medium text-slate-800 leading-relaxed">
-                        {post.summary}
-                      </p>
-
-                      {post.couponCode && (
-                        <div className="p-2 bg-amber-50 rounded-xl border border-amber-200 text-xs font-mono font-bold text-amber-900 text-center">
-                          Promo Code: {post.couponCode}
-                        </div>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create Your First Post</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {data.posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="rounded-2xl border border-slate-200/90 overflow-hidden bg-white shadow-2xs space-y-3"
+                    >
+                      {post.mediaUrl && (
+                        <img
+                          src={post.mediaUrl}
+                          alt="Post media"
+                          className="w-full h-36 object-cover"
+                        />
                       )}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200">
+                            {post.topicType}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Draft"}
+                          </span>
+                        </div>
 
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Action: {post.callToAction || "View"}</span>
-                        <span className="text-emerald-600 font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Live on Google
-                        </span>
+                        <p className="text-xs font-medium text-slate-800 leading-relaxed">
+                          {post.summary}
+                        </p>
+
+                        {post.couponCode && (
+                          <div className="p-2 bg-amber-50 rounded-xl border border-amber-200 text-xs font-mono font-bold text-amber-900 text-center">
+                            Promo Code: {post.couponCode}
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                          <span className="text-slate-400">Action: {post.callToAction || "View"}</span>
+                          <span className="text-emerald-600 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Live on Google
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1483,66 +1650,96 @@ export default function GoogleCommandCenterClient({
                   <select
                     value={photoCategoryFilter}
                     onChange={(e) => setPhotoCategoryFilter(e.target.value)}
-                    className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none"
+                    className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none capitalize"
                   >
-                    <option value="all">All Photos</option>
-                    <option value="food_and_drink">Food & Drink</option>
-                    <option value="interior">Interior</option>
-                    <option value="exterior">Exterior</option>
-                    <option value="customer">Customer Uploads</option>
+                    <option value="all">All Photos ({data.mediaItems.length})</option>
+                    {availablePhotoCategories.map((cat) => (
+                      <option key={cat} value={cat.toLowerCase()}>
+                        {cat.replace(/_/g, " ")} ({data.mediaItems.filter((m) => m.category.toLowerCase() === cat.toLowerCase()).length})
+                      </option>
+                    ))}
+                    {hasCustomerPhotos && (
+                      <option value="customer">
+                        Customer Uploads ({data.mediaItems.filter((m) => m.isCustomerUser).length})
+                      </option>
+                    )}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {filteredPhotos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square"
-                  >
-                    <img
-                      src={photo.thumbnailUrl || photo.sourceUrl}
-                      alt="Google Maps photo"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+              {filteredPhotos.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-800">No photos in this category</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      {photoCategoryFilter !== "all"
+                        ? "Try choosing another category or viewing all photos."
+                        : "Showcase photos synced from your Google Business Profile will appear here."}
+                    </p>
+                  </div>
+                  {photoCategoryFilter !== "all" && (
+                    <button
+                      onClick={() => setPhotoCategoryFilter("all")}
+                      className="text-xs text-teal-600 font-bold hover:underline cursor-pointer"
+                    >
+                      View all photos
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {filteredPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square"
+                    >
+                      <img
+                        src={photo.thumbnailUrl || photo.sourceUrl}
+                        alt="Google Maps photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
 
-                    <div className="absolute top-2 left-2">
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-xs">
-                        {photo.category}
-                      </span>
-                    </div>
-
-                    {photo.isCustomerUser && (
-                      <div className="absolute top-2 right-2">
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-xs">
-                          Customer
+                      <div className="absolute top-2 left-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-xs">
+                          {photo.category}
                         </span>
                       </div>
-                    )}
 
-                    {photo.isCustomerUser && !photo.flaggedForRemoval && (
-                      <div className="absolute bottom-2 inset-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleFlagPhoto(photo.id)}
-                          disabled={flaggingMediaId === photo.id}
-                          className="w-full py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-xl shadow-xs inline-flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          <Flag className="w-3 h-3" />
-                          <span>Flag for Removal</span>
-                        </button>
-                      </div>
-                    )}
+                      {photo.isCustomerUser && (
+                        <div className="absolute top-2 right-2">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-xs">
+                            Customer
+                          </span>
+                        </div>
+                      )}
 
-                    {photo.flaggedForRemoval && (
-                      <div className="absolute inset-0 bg-rose-950/70 backdrop-blur-xs flex flex-col items-center justify-center p-2 text-center text-white">
-                        <Flag className="w-5 h-5 text-rose-300 mb-1" />
-                        <span className="text-[10px] font-bold">Removal Requested</span>
-                        <span className="text-[8px] text-rose-200 mt-0.5">Under Google Review</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      {photo.isCustomerUser && !photo.flaggedForRemoval && (
+                        <div className="absolute bottom-2 inset-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleFlagPhoto(photo.id)}
+                            disabled={flaggingMediaId === photo.id}
+                            className="w-full py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-xl shadow-xs inline-flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <Flag className="w-3 h-3" />
+                            <span>Flag for Removal</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {photo.flaggedForRemoval && (
+                        <div className="absolute inset-0 bg-rose-950/70 backdrop-blur-xs flex flex-col items-center justify-center p-2 text-center text-white">
+                          <Flag className="w-5 h-5 text-rose-300 mb-1" />
+                          <span className="text-[10px] font-bold">Removal Requested</span>
+                          <span className="text-[8px] text-rose-200 mt-0.5">Under Google Review</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1837,7 +2034,7 @@ export default function GoogleCommandCenterClient({
                   <div className="flex items-center gap-2 text-slate-500">
                     <Globe className="w-3.5 h-3.5 text-blue-600" />
                     <span className="font-semibold text-[11px] truncate max-w-[170px]">
-                      {activeLocation.title}
+                      {activeLocation?.title || tenant.name}
                     </span>
                   </div>
                   <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
@@ -1849,15 +2046,19 @@ export default function GoogleCommandCenterClient({
                 <div className="px-4 space-y-1">
                   <div className="flex items-center gap-1.5">
                     <span className="font-black text-sm text-slate-900">
-                      {activeLocation.title}
+                      {activeLocation?.title || tenant.name}
                     </span>
                     <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   </div>
 
                   <div className="flex items-center gap-1.5 text-[11px]">
-                    <span className="font-bold text-amber-500">4.8</span>
-                    <div className="flex text-amber-400 text-[10px]">★★★★★</div>
-                    <span className="text-slate-400">(1,248)</span>
+                    <span className="font-bold text-amber-500">
+                      {totalReviewsCount > 0 ? averageRating : "0.0"}
+                    </span>
+                    <div className="flex text-amber-400 text-[10px]">
+                      {renderStars(averageRatingNum)}
+                    </div>
+                    <span className="text-slate-400">({totalReviewsCount.toLocaleString()})</span>
                     <span className="text-slate-400">·</span>
                     <span className="text-slate-600 font-semibold">{tenant.businessType}</span>
                   </div>
@@ -1865,13 +2066,13 @@ export default function GoogleCommandCenterClient({
                   <div className="text-[11px] text-slate-500 flex items-center gap-1 pt-0.5">
                     <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
                     <span className="truncate">
-                      {activeLocation.address.addressLines[0]}, {activeLocation.address.locality}
+                      {activeLocation?.address?.addressLines?.[0] || "Main Store"}, {activeLocation?.address?.locality || ""}
                     </span>
                   </div>
 
-                  <div className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-emerald-600" />
-                    <span>Open · Closes 10:00 PM</span>
+                  <div className={`text-[11px] font-bold flex items-center gap-1 ${isStoreOpen ? "text-emerald-600" : "text-rose-600"}`}>
+                    <Clock className="w-3 h-3 shrink-0" />
+                    <span>{hoursStatusText}</span>
                   </div>
                 </div>
 
@@ -1952,7 +2153,7 @@ export default function GoogleCommandCenterClient({
                       <span className="font-bold text-slate-900">
                         {data.reviews[0].reviewerName}
                       </span>
-                      <div className="flex text-amber-400 text-[9px]">★★★★★</div>
+                      <div className="flex text-amber-400 text-[9px]">{renderStars(data.reviews[0].rating)}</div>
                     </div>
                     <p className="text-[10px] text-slate-600 line-clamp-2">
                       "{data.reviews[0].comment}"

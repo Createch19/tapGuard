@@ -96,6 +96,26 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [copiedRedirectUri, setCopiedRedirectUri] = useState(false);
+  const [liveRedirectUri, setLiveRedirectUri] = useState<string>(() => {
+    return tenant.suggestedRedirectUri || "/api/auth/google/callback";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      const origin = window.location.origin;
+      const paramUri = searchParams.get("redirect_uri");
+      if (paramUri && !paramUri.includes("localhost")) {
+        setLiveRedirectUri(paramUri);
+      } else if (
+        !tenant.suggestedRedirectUri ||
+        (tenant.suggestedRedirectUri.includes("localhost") && !origin.includes("localhost"))
+      ) {
+        setLiveRedirectUri(`${origin}/api/auth/google/callback`);
+      } else {
+        setLiveRedirectUri(tenant.suggestedRedirectUri);
+      }
+    }
+  }, [tenant.suggestedRedirectUri, searchParams]);
 
   useEffect(() => {
     if (searchParams.get("google_connected") === "true") {
@@ -469,7 +489,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                           Google Cloud OAuth Credentials Required for Live Accounts
                         </p>
                         <p className="text-[11px] text-amber-800 leading-relaxed">
-                          To connect real Google accounts and request permission on <code className="bg-amber-100 font-mono px-1 rounded">accounts.google.com</code>, add <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_ID</code> and <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_SECRET</code> to your production environment variables (e.g. Netlify / Vercel Environment Variables).
+                          To connect real Google accounts and request permission on <code className="bg-amber-100 font-mono px-1 rounded">accounts.google.com</code>, add <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_ID</code> and <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_SECRET</code> to your production environment variables (e.g. Netlify / Vercel), or configure them in Super Admin under <Link href="/admin/plan-config" className="underline font-bold text-amber-950 hover:text-black">Plan Config</Link> (takes effect immediately without redeploy).
                         </p>
                       </div>
                     </div>
@@ -482,10 +502,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                         <button
                           type="button"
                           onClick={() => {
-                            const uri =
-                              tenant.suggestedRedirectUri ||
-                              `${typeof window !== "undefined" ? window.location.origin : ""}/api/auth/google/callback`;
-                            navigator.clipboard.writeText(uri);
+                            navigator.clipboard.writeText(liveRedirectUri);
                             setCopiedRedirectUri(true);
                             setTimeout(() => setCopiedRedirectUri(false), 2500);
                           }}
@@ -496,7 +513,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                         </button>
                       </div>
                       <div className="px-3 py-2 bg-white rounded-xl border border-amber-200/80 font-mono text-[11px] text-slate-700 select-all overflow-x-auto">
-                        {tenant.suggestedRedirectUri || (typeof window !== "undefined" ? `${window.location.origin}/api/auth/google/callback` : "/api/auth/google/callback")}
+                        {liveRedirectUri}
                       </div>
                     </div>
                   </div>
@@ -514,8 +531,9 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
 
                 {/* 1-Click Authorize Button */}
                 <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <a
+                  <Link
                     href="/api/auth/google/connect"
+                    prefetch={false}
                     className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-all hover:scale-101 active:scale-99 cursor-pointer"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -525,7 +543,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
                     <span>Connect Official Google Account</span>
-                  </a>
+                  </Link>
 
                   <button
                     type="button"
@@ -539,12 +557,13 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
 
                 {/* Explicit Sandbox Simulation Link for local testing */}
                 <div className="pt-0.5">
-                  <a
+                  <Link
                     href="/api/auth/google/connect?sandbox=true"
+                    prefetch={false}
                     className="text-[11px] text-slate-400 hover:text-slate-600 underline font-medium"
                   >
                     Developing locally without Google Cloud keys? Test with Sandbox Simulation
-                  </a>
+                  </Link>
                 </div>
               </div>
 

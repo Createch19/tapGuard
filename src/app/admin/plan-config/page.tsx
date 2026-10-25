@@ -2,11 +2,13 @@ import { requireSuperAdmin } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { getGoogleOAuthCredentials, getGoogleOAuthRedirectUri } from "@/lib/google-sync";
 import PlanConfigClient from "./PlanConfigClient";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlanConfigPage() {
   await requireSuperAdmin();
+  const headersList = await headers();
 
   const configs = await prisma.planConfig.findMany({
     orderBy: { sortOrder: "asc" },
@@ -34,7 +36,7 @@ export default async function PlanConfigPage() {
   }));
 
   const { clientId, clientSecret } = await getGoogleOAuthCredentials();
-  const redirectUri = getGoogleOAuthRedirectUri();
+  const redirectUri = getGoogleOAuthRedirectUri(headersList);
 
   return (
     <PlanConfigClient

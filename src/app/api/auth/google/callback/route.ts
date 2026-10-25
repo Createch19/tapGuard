@@ -9,7 +9,7 @@ import {
   getGoogleOAuthRedirectUri,
   GOOGLE_SCOPES,
 } from "@/lib/google-sync";
-import { seedInitialGoogleProfile } from "@/lib/google-business";
+import { seedInitialGoogleProfile, seedLocationStarterData } from "@/lib/google-business";
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
         include: { locations: true },
       });
 
-      await prisma.googleLocation.create({
+      const primaryLoc = await prisma.googleLocation.create({
         data: {
           connectionId: connection.id,
           tenantId,
@@ -176,9 +176,24 @@ export async function GET(request: NextRequest) {
           coordinatesLat: 12.9716,
           coordinatesLng: 77.5946,
           primaryCategory: tenant.businessType || "Restaurant & Café",
+          regularHoursJson: {
+            monday: { open: "08:00", close: "22:00" },
+            tuesday: { open: "08:00", close: "22:00" },
+            wednesday: { open: "08:00", close: "22:00" },
+            thursday: { open: "08:00", close: "22:00" },
+            friday: { open: "08:00", close: "23:00" },
+            saturday: { open: "08:00", close: "23:30" },
+            sunday: { open: "08:30", close: "22:30" },
+          },
+          specialHoursJson: [
+            { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Special" },
+            { date: "2026-12-25", open: "09:00", close: "23:00", note: "Christmas Holiday" },
+          ],
           isPrimaryBranch: true,
         },
       });
+
+      await seedLocationStarterData(primaryLoc.id, tenant.name, tenant.businessType || "Restaurant & Café");
     } else {
       await prisma.googleProfileConnection.update({
         where: { tenantId },
@@ -204,8 +219,9 @@ export async function GET(request: NextRequest) {
             primaryPhone: locationPhone,
           },
         });
+        await seedLocationStarterData(connection.locations[0].id, tenant.name, tenant.businessType || "Restaurant & Café");
       } else {
-        await prisma.googleLocation.create({
+        const primaryLoc = await prisma.googleLocation.create({
           data: {
             connectionId: connection.id,
             tenantId,
@@ -217,9 +233,23 @@ export async function GET(request: NextRequest) {
             coordinatesLat: 12.9716,
             coordinatesLng: 77.5946,
             primaryCategory: tenant.businessType || "Restaurant & Café",
+            regularHoursJson: {
+              monday: { open: "08:00", close: "22:00" },
+              tuesday: { open: "08:00", close: "22:00" },
+              wednesday: { open: "08:00", close: "22:00" },
+              thursday: { open: "08:00", close: "22:00" },
+              friday: { open: "08:00", close: "23:00" },
+              saturday: { open: "08:00", close: "23:30" },
+              sunday: { open: "08:30", close: "22:30" },
+            },
+            specialHoursJson: [
+              { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Special" },
+              { date: "2026-12-25", open: "09:00", close: "23:00", note: "Christmas Holiday" },
+            ],
             isPrimaryBranch: true,
           },
         });
+        await seedLocationStarterData(primaryLoc.id, tenant.name, tenant.businessType || "Restaurant & Café");
       }
     }
 

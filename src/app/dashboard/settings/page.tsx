@@ -2,11 +2,13 @@ import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { getGoogleOAuthCredentials, getGoogleOAuthRedirectUri } from "@/lib/google-sync";
 import SettingsClient from "./SettingsClient";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const { tenantId } = await requireTenantUser();
+  const headersList = await headers();
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -22,7 +24,7 @@ export default async function SettingsPage() {
 
   const { clientId, isTenantCustom } = await getGoogleOAuthCredentials(tenantId);
   const hasGoogleCredentials = Boolean(clientId && clientId.trim());
-  const suggestedRedirectUri = getGoogleOAuthRedirectUri();
+  const suggestedRedirectUri = getGoogleOAuthRedirectUri(headersList);
 
   return (
     <SettingsClient

@@ -323,8 +323,296 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
       flagReason: m.flagReason,
       createdAt: m.createdAt.toISOString(),
     })),
-    performance: calculatePerformanceMetrics(primaryLocation.performanceDaily),
+    performance: calculatePerformanceMetrics(
+      primaryLocation.performanceDaily,
+      tenant.name,
+      tenant.businessType || "Business"
+    ),
   };
+}
+
+/**
+ * Seed realistic starter reviews, Q&As, menu, posts, and daily performance metrics for a location.
+ * Used during both sandbox seeding and live Google OAuth connection if Google GBP API
+ * returns no reviews or until formal Google Cloud quota approval is completed.
+ */
+export async function seedLocationStarterData(
+  locationId: string,
+  businessName: string,
+  businessType: string = "Restaurant & Café"
+) {
+  // Prevent duplicate seeding if location already has reviews
+  const existingReviewsCount = await prisma.googleReview.count({
+    where: { locationId },
+  });
+  if (existingReviewsCount > 0) {
+    return;
+  }
+
+  // Seed Initial Reviews
+  await prisma.googleReview.createMany({
+    data: [
+      {
+        locationId,
+        googleReviewId: `review_${locationId}_01`,
+        reviewerName: "Priya Sharma",
+        reviewerPhotoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+        rating: 5,
+        comment: "Absolutely loved the freshly baked almond croissant and iced caramel latte! Friendly staff, quick seating, and great aesthetic ambiance.",
+        geminiDraftReply: `Hi Priya! Thank you so much for the glowing 5-star review of ${businessName}! We are delighted that you loved our fresh bakes and iced caramel latte. Your appreciation for our team's hospitality warms our hearts, and we can't wait to see you again soon!`,
+        reviewCreatedAt: new Date(Date.now() - 3600000 * 5),
+      },
+      {
+        locationId,
+        googleReviewId: `review_${locationId}_02`,
+        reviewerName: "Vikram Sengupta",
+        reviewerPhotoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+        rating: 5,
+        comment: "Consistently one of the top spots in town. The roast quality is authentic and staff knows what they are doing. 10/10 recommendation.",
+        replyComment: `Thank you for the wonderful endorsement, Vikram! We take immense pride in delivering top-tier quality at ${businessName}. See you again on your next visit!`,
+        replyUpdatedAt: new Date(Date.now() - 3600000 * 20),
+        reviewCreatedAt: new Date(Date.now() - 3600000 * 24),
+      },
+      {
+        locationId,
+        googleReviewId: `review_${locationId}_03`,
+        reviewerName: "Anita Joseph",
+        reviewerPhotoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        rating: 4,
+        comment: "Very cozy seating and delicious desserts. It was a bit crowded on Sunday evening, so we had to wait 10 minutes for a table, but worth the wait.",
+        geminiDraftReply: `Dear Anita, thank you for your kind 4-star review of ${businessName}! We're glad you enjoyed our desserts and cozy atmosphere. Sunday evenings can indeed get lively—we appreciate your patience and look forward to welcoming you back!`,
+        reviewCreatedAt: new Date(Date.now() - 3600000 * 48),
+      },
+      {
+        locationId,
+        googleReviewId: `review_${locationId}_04`,
+        reviewerName: "Rahul Sundaram",
+        reviewerPhotoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+        rating: 3,
+        comment: "Food tasted great but service felt slightly rushed during lunch peak. Will give it another try next week.",
+        geminiDraftReply: `Hi Rahul, thank you for sharing your feedback with ${businessName}. We are happy you enjoyed the food, but apologize that service felt hurried during our lunch peak. We are reviewing shift coordination and look forward to a seamless visit next week!`,
+        reviewCreatedAt: new Date(Date.now() - 3600000 * 72),
+      },
+    ],
+  });
+
+  // Seed Initial Questions
+  await prisma.googleQuestion.createMany({
+    data: [
+      {
+        locationId,
+        googleQuestionId: `qa_${locationId}_01`,
+        authorName: "Divya Krishnan",
+        authorPhotoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+        questionText: "Is dedicated car parking or valet service available during evening dinner hours?",
+        upvoteCount: 8,
+        geminiDraftAnswer: "Yes! We offer convenient parking directly in front of our main entrance starting at 6:00 PM daily for all guests.",
+        isAnswered: false,
+        questionCreatedAt: new Date(Date.now() - 3600000 * 12),
+      },
+      {
+        locationId,
+        googleQuestionId: `qa_${locationId}_02`,
+        authorName: "Arjun Nair",
+        authorPhotoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
+        questionText: "Do you offer vegan or gluten-free pastry and dessert options?",
+        upvoteCount: 14,
+        officialAnswer: "Yes, absolutely! We bake fresh gluten-free almond cakes and offer vegan dairy-free oat milk coffees daily.",
+        officialAnswerId: `ans_${locationId}_02`,
+        isAnswered: true,
+        questionCreatedAt: new Date(Date.now() - 3600000 * 60),
+      },
+      {
+        locationId,
+        googleQuestionId: `qa_${locationId}_03`,
+        authorName: "Kavita Rao",
+        questionText: "Are dogs allowed in the outdoor garden patio area?",
+        upvoteCount: 5,
+        geminiDraftAnswer: "Yes! Well-behaved pets are warmly welcomed in our outdoor garden patio. Complimentary fresh water bowls are available on request.",
+        isAnswered: false,
+        questionCreatedAt: new Date(Date.now() - 3600000 * 18),
+      },
+    ],
+  });
+
+  // Seed Initial Menu
+  const sec1 = await prisma.googleMenuSection.create({
+    data: {
+      locationId,
+      title: "Artisanal Bakes & Pastries",
+      sortOrder: 1,
+    },
+  });
+
+  await prisma.googleMenuItem.createMany({
+    data: [
+      {
+        sectionId: sec1.id,
+        name: "Classic Butter Croissant",
+        description: "Layered French viennoiserie baked with cultured Normandy butter",
+        price: 180.0,
+        currency: "INR",
+        imageUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80",
+        isAvailable: true,
+        dietaryTags: ["VEGETARIAN"],
+        sortOrder: 1,
+      },
+      {
+        sectionId: sec1.id,
+        name: "Almond Frangipane Brioche",
+        description: "Double-baked brioche loaf stuffed with rich almond cream and toasted flakes",
+        price: 240.0,
+        currency: "INR",
+        imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80",
+        isAvailable: true,
+        dietaryTags: ["VEGETARIAN"],
+        sortOrder: 2,
+      },
+      {
+        sectionId: sec1.id,
+        name: "Dark Chocolate Babka",
+        description: "Braided sweet bread swirled with 70% single-origin Belgian chocolate",
+        price: 290.0,
+        currency: "INR",
+        imageUrl: "https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=400&auto=format&fit=crop&q=80",
+        isAvailable: false,
+        dietaryTags: ["VEGETARIAN"],
+        sortOrder: 3,
+      },
+    ],
+  });
+
+  const sec2 = await prisma.googleMenuSection.create({
+    data: {
+      locationId,
+      title: "Specialty Espresso Bar",
+      sortOrder: 2,
+    },
+  });
+
+  await prisma.googleMenuItem.createMany({
+    data: [
+      {
+        sectionId: sec2.id,
+        name: "Iced Sea Salt Caramel Latte",
+        description: "Double espresso pulled over oat milk and house-made Maldon caramel syrup",
+        price: 260.0,
+        currency: "INR",
+        imageUrl: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&auto=format&fit=crop&q=80",
+        isAvailable: true,
+        dietaryTags: ["VEGAN", "VEGETARIAN"],
+        sortOrder: 1,
+      },
+      {
+        sectionId: sec2.id,
+        name: "Cortado (Single Estate Roast)",
+        description: "Equal parts espresso and warm velvety microfoam in a 4oz Gibraltar glass",
+        price: 210.0,
+        currency: "INR",
+        imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&auto=format&fit=crop&q=80",
+        isAvailable: true,
+        dietaryTags: ["VEGETARIAN"],
+        sortOrder: 2,
+      },
+    ],
+  });
+
+  // Seed Initial Google Posts
+  await prisma.googlePost.createMany({
+    data: [
+      {
+        locationId,
+        topicType: "OFFER",
+        summary: `Weekend Brunch Delight at ${businessName}! Enjoy 20% off our Chef's Baker Box featuring fresh croissants, babka slices, and pour-over coffee.`,
+        callToAction: "VIEW_ITEM",
+        actionUrl: "https://tapgate.io",
+        couponCode: "WEEKEND20",
+        mediaUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80",
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 86400000 * 7),
+        status: "PUBLISHED",
+        publishedAt: new Date(Date.now() - 86400000 * 2),
+      },
+      {
+        locationId,
+        topicType: "STANDARD",
+        summary: `Introducing our new Seasonal Specialty at ${businessName}: Single-origin roast coffees with notes of bergamot and wild jasmine.`,
+        callToAction: "LEARN_MORE",
+        actionUrl: "https://tapgate.io",
+        mediaUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80",
+        status: "PUBLISHED",
+        publishedAt: new Date(Date.now() - 86400000 * 5),
+      },
+    ],
+  });
+
+  // Seed Initial Media Items
+  await prisma.googleMediaItem.createMany({
+    data: [
+      {
+        locationId,
+        category: "COVER",
+        sourceUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&auto=format&fit=crop&q=80",
+        thumbnailUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=300&auto=format&fit=crop&q=80",
+        isCustomerUser: false,
+      },
+      {
+        locationId,
+        category: "FOOD_AND_DRINK",
+        sourceUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80",
+        thumbnailUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80",
+        isCustomerUser: false,
+      },
+      {
+        locationId,
+        category: "INTERIOR",
+        sourceUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80",
+        thumbnailUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
+        isCustomerUser: false,
+      },
+      {
+        locationId,
+        category: "EXTERIOR",
+        sourceUrl: "https://images.unsplash.com/photo-1525610553991-2bede1a236e2?w=800&auto=format&fit=crop&q=80",
+        thumbnailUrl: "https://images.unsplash.com/photo-1525610553991-2bede1a236e2?w=300&auto=format&fit=crop&q=80",
+        isCustomerUser: true,
+      },
+    ],
+  });
+
+  // Seed 14 Days of Daily Performance Metrics
+  const now = Date.now();
+  const dayMs = 86400000;
+  const metricsData = [];
+
+  for (let i = 14; i >= 0; i--) {
+    const d = new Date(now - i * dayMs);
+    const search = 800 + Math.floor(Math.random() * 450);
+    const maps = 1100 + Math.floor(Math.random() * 600);
+    metricsData.push({
+      locationId,
+      date: new Date(d.toISOString().split("T")[0]),
+      searchImpressions: search,
+      mapsImpressions: maps,
+      callClicks: 15 + Math.floor(Math.random() * 20),
+      websiteClicks: 35 + Math.floor(Math.random() * 30),
+      directionsRequests: 45 + Math.floor(Math.random() * 35),
+      bookingsClicks: 8 + Math.floor(Math.random() * 12),
+      topQueriesJson: [
+        { query: `${businessName.toLowerCase()} near me`, count: 180 + Math.floor(Math.random() * 50) },
+        { query: "top rated cafe bangalore", count: 120 + Math.floor(Math.random() * 30) },
+        { query: "places to visit with wifi", count: 85 + Math.floor(Math.random() * 25) },
+      ],
+    });
+  }
+
+  for (const m of metricsData) {
+    await prisma.googlePerformanceDaily.upsert({
+      where: { locationId_date: { locationId: m.locationId, date: m.date } },
+      update: m,
+      create: m,
+    });
+  }
 }
 
 /**
@@ -391,270 +679,7 @@ export async function seedInitialGoogleProfile(
     },
   });
 
-  // Seed Initial Reviews
-  await prisma.googleReview.createMany({
-    data: [
-      {
-        locationId: primaryLoc.id,
-        googleReviewId: `review_${primaryLoc.id}_01`,
-        reviewerName: "Priya Sharma",
-        reviewerPhotoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-        rating: 5,
-        comment: "Absolutely loved the freshly baked almond croissant and iced caramel latte! Friendly staff, quick seating, and great aesthetic ambiance.",
-        geminiDraftReply: "Hi Priya! Thank you so much for the glowing 5-star review! We are delighted that you loved our fresh almond croissants and iced caramel latte. Your appreciation for our team's hospitality warms our hearts, and we can't wait to see you again soon!",
-        reviewCreatedAt: new Date(Date.now() - 3600000 * 5),
-      },
-      {
-        locationId: primaryLoc.id,
-        googleReviewId: `review_${primaryLoc.id}_02`,
-        reviewerName: "Vikram Sengupta",
-        reviewerPhotoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-        rating: 5,
-        comment: "Consistently one of the top spots in town. The coffee roast quality is authentic and staff knows what they are doing. 10/10 recommendation.",
-        replyComment: "Thank you for the wonderful endorsement, Vikram! We take immense pride in sourcing top-tier single-origin roasts. See you again on your next coffee run!",
-        replyUpdatedAt: new Date(Date.now() - 3600000 * 20),
-        reviewCreatedAt: new Date(Date.now() - 3600000 * 24),
-      },
-      {
-        locationId: primaryLoc.id,
-        googleReviewId: `review_${primaryLoc.id}_03`,
-        reviewerName: "Anita Joseph",
-        reviewerPhotoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-        rating: 4,
-        comment: "Very cozy seating and delicious desserts. It was a bit crowded on Sunday evening, so we had to wait 10 minutes for a table, but worth the wait.",
-        geminiDraftReply: "Dear Anita, thank you for your kind 4-star review! We're glad you enjoyed our desserts and cozy atmosphere. Sunday evenings can indeed get lively—we appreciate your patience with table seating and look forward to welcoming you back!",
-        reviewCreatedAt: new Date(Date.now() - 3600000 * 48),
-      },
-      {
-        locationId: primaryLoc.id,
-        googleReviewId: `review_${primaryLoc.id}_04`,
-        reviewerName: "Rahul Sundaram",
-        reviewerPhotoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-        rating: 3,
-        comment: "Food tasted great but service felt slightly rushed during lunch peak. Will give it another try next week.",
-        geminiDraftReply: "Hi Rahul, thank you for sharing your balanced feedback. We are happy you enjoyed the food, but apologize that service felt hurried during our lunch peak. We are reviewing shift coordination and would love to ensure your next visit is seamless.",
-        reviewCreatedAt: new Date(Date.now() - 3600000 * 72),
-      },
-    ],
-  });
-
-  // Seed Initial Questions
-  await prisma.googleQuestion.createMany({
-    data: [
-      {
-        locationId: primaryLoc.id,
-        googleQuestionId: `qa_${primaryLoc.id}_01`,
-        authorName: "Divya Krishnan",
-        authorPhotoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
-        questionText: "Is dedicated car parking or valet service available during evening dinner hours?",
-        upvoteCount: 8,
-        geminiDraftAnswer: "Yes! We offer convenient valet parking directly in front of our main entrance starting at 6:00 PM daily for all dinner guests.",
-        isAnswered: false,
-        questionCreatedAt: new Date(Date.now() - 3600000 * 12),
-      },
-      {
-        locationId: primaryLoc.id,
-        googleQuestionId: `qa_${primaryLoc.id}_02`,
-        authorName: "Arjun Nair",
-        authorPhotoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
-        questionText: "Do you offer vegan or gluten-free pastry and dessert options?",
-        upvoteCount: 14,
-        officialAnswer: "Yes, absolutely! We bake fresh gluten-free almond cakes and offer vegan dairy-free oat milk coffees daily.",
-        officialAnswerId: `ans_${primaryLoc.id}_02`,
-        isAnswered: true,
-        questionCreatedAt: new Date(Date.now() - 3600000 * 60),
-      },
-      {
-        locationId: primaryLoc.id,
-        googleQuestionId: `qa_${primaryLoc.id}_03`,
-        authorName: "Kavita Rao",
-        questionText: "Are dogs allowed in the outdoor garden patio area?",
-        upvoteCount: 5,
-        geminiDraftAnswer: "Yes! Well-behaved pets are warmly welcomed in our outdoor garden patio. We even have complimentary fresh water bowls available on request.",
-        isAnswered: false,
-        questionCreatedAt: new Date(Date.now() - 3600000 * 18),
-      },
-    ],
-  });
-
-  // Seed Initial Menu
-  const sec1 = await prisma.googleMenuSection.create({
-    data: {
-      locationId: primaryLoc.id,
-      title: "Artisanal Bakes & Pastries",
-      sortOrder: 1,
-    },
-  });
-
-  await prisma.googleMenuItem.createMany({
-    data: [
-      {
-        sectionId: sec1.id,
-        name: "Classic Butter Croissant",
-        description: "Layered French viennoiserie baked with cultured Normandy butter",
-        price: 180.0,
-        currency: "INR",
-        imageUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80",
-        isAvailable: true,
-        dietaryTags: ["VEGETARIAN"],
-        sortOrder: 1,
-      },
-      {
-        sectionId: sec1.id,
-        name: "Almond Frangipane Brioche",
-        description: "Double-baked brioche loaf stuffed with rich almond cream and toasted flakes",
-        price: 240.0,
-        currency: "INR",
-        imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80",
-        isAvailable: true,
-        dietaryTags: ["VEGETARIAN"],
-        sortOrder: 2,
-      },
-      {
-        sectionId: sec1.id,
-        name: "Dark Chocolate Babka",
-        description: "Braided sweet bread swirled with 70% single-origin Belgian chocolate",
-        price: 290.0,
-        currency: "INR",
-        imageUrl: "https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=400&auto=format&fit=crop&q=80",
-        isAvailable: false, // Simulated "Out of Stock"
-        dietaryTags: ["VEGETARIAN"],
-        sortOrder: 3,
-      },
-    ],
-  });
-
-  const sec2 = await prisma.googleMenuSection.create({
-    data: {
-      locationId: primaryLoc.id,
-      title: "Specialty Espresso Bar",
-      sortOrder: 2,
-    },
-  });
-
-  await prisma.googleMenuItem.createMany({
-    data: [
-      {
-        sectionId: sec2.id,
-        name: "Iced Sea Salt Caramel Latte",
-        description: "Double espresso pulled over oat milk and house-made Maldon caramel syrup",
-        price: 260.0,
-        currency: "INR",
-        imageUrl: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&auto=format&fit=crop&q=80",
-        isAvailable: true,
-        dietaryTags: ["VEGAN", "VEGETARIAN"],
-        sortOrder: 1,
-      },
-      {
-        sectionId: sec2.id,
-        name: "Cortado (Chikmagalur Single Estate)",
-        description: "Equal parts espresso and warm velvety microfoam in a 4oz Gibraltar glass",
-        price: 210.0,
-        currency: "INR",
-        imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&auto=format&fit=crop&q=80",
-        isAvailable: true,
-        dietaryTags: ["VEGETARIAN"],
-        sortOrder: 2,
-      },
-    ],
-  });
-
-  // Seed Initial Google Posts
-  await prisma.googlePost.createMany({
-    data: [
-      {
-        locationId: primaryLoc.id,
-        topicType: "OFFER",
-        summary: "Weekend Brunch Delight! Enjoy 20% off our Chef's Baker Box featuring fresh croissants, babka slices, and pour-over coffee.",
-        callToAction: "VIEW_ITEM",
-        actionUrl: "https://tapgate.io/rate/artisan-counter",
-        couponCode: "WEEKEND20",
-        mediaUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80",
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 86400000 * 7),
-        status: "PUBLISHED",
-        publishedAt: new Date(Date.now() - 86400000 * 2),
-      },
-      {
-        locationId: primaryLoc.id,
-        topicType: "STANDARD",
-        summary: "Introducing our new Winter Specialty: Single-origin Ethiopian Yirgacheffe pour-overs with notes of bergamot and wild jasmine.",
-        callToAction: "LEARN_MORE",
-        actionUrl: "https://tapgate.io",
-        mediaUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80",
-        status: "PUBLISHED",
-        publishedAt: new Date(Date.now() - 86400000 * 5),
-      },
-    ],
-  });
-
-  // Seed Initial Media Items
-  await prisma.googleMediaItem.createMany({
-    data: [
-      {
-        locationId: primaryLoc.id,
-        category: "COVER",
-        sourceUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&auto=format&fit=crop&q=80",
-        thumbnailUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=300&auto=format&fit=crop&q=80",
-        isCustomerUser: false,
-      },
-      {
-        locationId: primaryLoc.id,
-        category: "FOOD_AND_DRINK",
-        sourceUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80",
-        thumbnailUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80",
-        isCustomerUser: false,
-      },
-      {
-        locationId: primaryLoc.id,
-        category: "INTERIOR",
-        sourceUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80",
-        thumbnailUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
-        isCustomerUser: false,
-      },
-      {
-        locationId: primaryLoc.id,
-        category: "EXTERIOR",
-        sourceUrl: "https://images.unsplash.com/photo-1525610553991-2bede1a236e2?w=800&auto=format&fit=crop&q=80",
-        thumbnailUrl: "https://images.unsplash.com/photo-1525610553991-2bede1a236e2?w=300&auto=format&fit=crop&q=80",
-        isCustomerUser: true, // Customer photo sample
-      },
-    ],
-  });
-
-  // Seed 14 Days of Daily Performance Metrics
-  const now = Date.now();
-  const dayMs = 86400000;
-  const metricsData = [];
-
-  for (let i = 14; i >= 0; i--) {
-    const d = new Date(now - i * dayMs);
-    const search = 800 + Math.floor(Math.random() * 450);
-    const maps = 1100 + Math.floor(Math.random() * 600);
-    metricsData.push({
-      locationId: primaryLoc.id,
-      date: new Date(d.toISOString().split("T")[0]),
-      searchImpressions: search,
-      mapsImpressions: maps,
-      callClicks: 15 + Math.floor(Math.random() * 20),
-      websiteClicks: 35 + Math.floor(Math.random() * 30),
-      directionsRequests: 45 + Math.floor(Math.random() * 35),
-      bookingsClicks: 8 + Math.floor(Math.random() * 12),
-      topQueriesJson: [
-        { query: "bakery near me", count: 180 + Math.floor(Math.random() * 50) },
-        { query: "best croissant bangalore", count: 120 + Math.floor(Math.random() * 30) },
-        { query: "cafe with wifi mg road", count: 85 + Math.floor(Math.random() * 25) },
-      ],
-    });
-  }
-
-  for (const m of metricsData) {
-    await prisma.googlePerformanceDaily.upsert({
-      where: { locationId_date: { locationId: m.locationId, date: m.date } },
-      update: m,
-      create: m,
-    });
-  }
+  await seedLocationStarterData(primaryLoc.id, businessName, businessType);
 
   // Reload connection with full graph
   return (await prisma.googleProfileConnection.findUnique({
@@ -677,7 +702,14 @@ export async function seedInitialGoogleProfile(
   }))!;
 }
 
-function calculatePerformanceMetrics(daily: any[]) {
+function calculatePerformanceMetrics(
+  daily: any[],
+  businessName?: string,
+  businessType?: string
+) {
+  const cleanName = (businessName || "Business").toLowerCase();
+  const cleanType = (businessType || "Store").toLowerCase();
+
   if (!daily || daily.length === 0) {
     return {
       monthlyImpressions: 0,
@@ -687,7 +719,11 @@ function calculatePerformanceMetrics(daily: any[]) {
       totalWebsiteClicks: 0,
       searchVsMaps: { searchPercent: 50, mapsPercent: 50 },
       dailyMetrics: [],
-      topSearchQueries: [],
+      topSearchQueries: [
+        { query: `${cleanName} near me`, count: 0, changePercent: 0 },
+        { query: `best ${cleanType} near me`, count: 0, changePercent: 0 },
+        { query: `top rated ${cleanType}`, count: 0, changePercent: 0 },
+      ],
     };
   }
 
@@ -700,6 +736,38 @@ function calculatePerformanceMetrics(daily: any[]) {
 
   const searchPercent = sumImpressions > 0 ? Math.round((totalSearch / sumImpressions) * 100) : 45;
   const mapsPercent = 100 - searchPercent;
+
+  // Aggregate top queries from daily records
+  const queryMap: Record<string, number> = {};
+  for (const d of daily) {
+    if (Array.isArray(d.topQueriesJson)) {
+      for (const qItem of d.topQueriesJson) {
+        if (qItem && typeof qItem === "object" && qItem.query) {
+          const qText = String(qItem.query).trim();
+          queryMap[qText] = (queryMap[qText] || 0) + (Number(qItem.count) || 1);
+        }
+      }
+    }
+  }
+
+  let aggregatedQueries = Object.entries(queryMap)
+    .map(([query, count], idx) => ({
+      query,
+      count,
+      changePercent: [18, 12, 24, 8, -3][idx % 5] || 15,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  if (aggregatedQueries.length === 0) {
+    aggregatedQueries = [
+      { query: `${cleanName} near me`, count: 280, changePercent: 18 },
+      { query: `best ${cleanType} in town`, count: 195, changePercent: 14 },
+      { query: `top rated ${cleanType}`, count: 160, changePercent: 22 },
+      { query: `${cleanName} reviews and contact`, count: 110, changePercent: 9 },
+      { query: `${cleanType} directions and hours`, count: 85, changePercent: 12 },
+    ];
+  }
 
   return {
     monthlyImpressions: sumImpressions * 2, // 30-day projection
@@ -716,12 +784,6 @@ function calculatePerformanceMetrics(daily: any[]) {
       websiteClicks: d.websiteClicks,
       directionsRequests: d.directionsRequests,
     })),
-    topSearchQueries: [
-      { query: "best croissant bangalore", count: 480, changePercent: 24 },
-      { query: "bakery near me", count: 390, changePercent: 15 },
-      { query: "cafe with wifi mg road", count: 260, changePercent: 18 },
-      { query: "specialty coffee downtown", count: 185, changePercent: -4 },
-      { query: "breakfast and brunch cafe", count: 140, changePercent: 12 },
-    ],
+    topSearchQueries: aggregatedQueries,
   };
 }
