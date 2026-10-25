@@ -36,6 +36,7 @@ export default async function SettingsPage() {
         isVerified: tenant.googleConnection?.isVerified || false,
         geminiApiKey: tenant.geminiConfig?.customApiKey || null,
         isGoogleConnected: Boolean(tenant.googleConnection?.isVerified || tenant.googleConnection?.connectedEmail),
+        hasGoogleCredentials: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID.trim()),
       }}
     />
   );

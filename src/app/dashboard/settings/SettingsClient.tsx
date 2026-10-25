@@ -41,6 +41,7 @@ interface SettingsClientProps {
     isVerified?: boolean;
     geminiApiKey?: string | null;
     isGoogleConnected: boolean;
+    hasGoogleCredentials?: boolean;
   };
 }
 
@@ -407,6 +408,24 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                   </div>
                 </div>
 
+                {/* Mode Indicator notice */}
+                {!tenant.hasGoogleCredentials ? (
+                  <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-amber-950">Development Sandbox Mode Active</p>
+                      <p className="text-amber-800 text-[11px] mt-0.5">
+                        <code className="bg-amber-100 font-mono px-1 rounded">GOOGLE_CLIENT_ID</code> is currently empty in <code className="bg-amber-100 font-mono px-1 rounded">.env</code>. Clicking below simulates Google's permission handshake instantly for testing. Once you add your Google Cloud OAuth keys to <code className="bg-amber-100 font-mono px-1 rounded">.env</code>, this button will redirect to the real Google login and consent screen (<code className="bg-amber-100 font-mono px-1 rounded">accounts.google.com</code>).
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-2.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-800">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="font-semibold">Live Google Cloud OAuth mode active. Clicking below redirects to Google accounts consent screen.</span>
+                  </div>
+                )}
+
                 {/* 1-Click Authorize Button */}
                 <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
                   <a
@@ -419,7 +438,11 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
-                    <span>Connect & Grant Google Permissions</span>
+                    <span>
+                      {tenant.hasGoogleCredentials
+                        ? "Connect with Google (Real OAuth Screen)"
+                        : "Connect with Google (Sandbox Simulation)"}
+                    </span>
                   </a>
 
                   <button
