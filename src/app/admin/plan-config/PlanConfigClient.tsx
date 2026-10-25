@@ -56,12 +56,15 @@ export default function PlanConfigClient({
         body: JSON.stringify(config),
       });
 
-      if (!res.ok) throw new Error("Failed to save plan configuration");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save plan configuration");
+      }
 
       setSuccessId(config.id);
       setTimeout(() => setSuccessId(null), 3000);
-    } catch {
-      alert("Error saving plan configuration");
+    } catch (err) {
+      alert((err as Error).message || "Error saving plan configuration");
     } finally {
       setSavingId(null);
     }

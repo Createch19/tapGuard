@@ -65,27 +65,31 @@ export async function PUT(request: NextRequest) {
     });
 
     // Record in Audit Log
-    await prisma.auditLog.create({
-      data: {
-        actorId: admin.id,
-        actorEmail: admin.email,
-        action: "PLAN_CONFIG_UPDATED",
-        targetType: "PlanConfig",
-        targetId: updated.id,
-        metadata: {
-          plan: updated.plan,
-          price: Number(updated.price),
-          billingCycle: updated.billingCycle,
-          maxCards: updated.maxCards,
+    try {
+      await prisma.auditLog.create({
+        data: {
+          actorId: admin.id,
+          actorEmail: admin.email,
+          action: "PLAN_CONFIG_UPDATED",
+          targetType: "PlanConfig",
+          targetId: updated.id,
+          metadata: {
+            plan: updated.plan,
+            price: Number(updated.price),
+            billingCycle: updated.billingCycle,
+            maxCards: updated.maxCards,
+          },
         },
-      },
-    });
+      });
+    } catch (auditErr) {
+      console.warn("Failed to create audit log for plan config update:", auditErr);
+    }
 
     return NextResponse.json({ success: true, config: updated });
   } catch (err) {
     console.error("Failed to update plan config:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (err as Error).message || "Internal server error" },
       { status: 500 }
     );
   }

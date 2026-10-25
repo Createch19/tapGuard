@@ -396,7 +396,7 @@ export async function seedInitialGoogleProfile(
     data: [
       {
         locationId: primaryLoc.id,
-        googleReviewId: "review_google_01",
+        googleReviewId: `review_${primaryLoc.id}_01`,
         reviewerName: "Priya Sharma",
         reviewerPhotoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
         rating: 5,
@@ -406,7 +406,7 @@ export async function seedInitialGoogleProfile(
       },
       {
         locationId: primaryLoc.id,
-        googleReviewId: "review_google_02",
+        googleReviewId: `review_${primaryLoc.id}_02`,
         reviewerName: "Vikram Sengupta",
         reviewerPhotoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
         rating: 5,
@@ -417,7 +417,7 @@ export async function seedInitialGoogleProfile(
       },
       {
         locationId: primaryLoc.id,
-        googleReviewId: "review_google_03",
+        googleReviewId: `review_${primaryLoc.id}_03`,
         reviewerName: "Anita Joseph",
         reviewerPhotoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
         rating: 4,
@@ -427,7 +427,7 @@ export async function seedInitialGoogleProfile(
       },
       {
         locationId: primaryLoc.id,
-        googleReviewId: "review_google_04",
+        googleReviewId: `review_${primaryLoc.id}_04`,
         reviewerName: "Rahul Sundaram",
         reviewerPhotoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
         rating: 3,
@@ -443,7 +443,7 @@ export async function seedInitialGoogleProfile(
     data: [
       {
         locationId: primaryLoc.id,
-        googleQuestionId: "qa_google_01",
+        googleQuestionId: `qa_${primaryLoc.id}_01`,
         authorName: "Divya Krishnan",
         authorPhotoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
         questionText: "Is dedicated car parking or valet service available during evening dinner hours?",
@@ -454,19 +454,19 @@ export async function seedInitialGoogleProfile(
       },
       {
         locationId: primaryLoc.id,
-        googleQuestionId: "qa_google_02",
+        googleQuestionId: `qa_${primaryLoc.id}_02`,
         authorName: "Arjun Nair",
         authorPhotoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
         questionText: "Do you offer vegan or gluten-free pastry and dessert options?",
         upvoteCount: 14,
         officialAnswer: "Yes, absolutely! We bake fresh gluten-free almond cakes and offer vegan dairy-free oat milk coffees daily.",
-        officialAnswerId: "ans_02",
+        officialAnswerId: `ans_${primaryLoc.id}_02`,
         isAnswered: true,
         questionCreatedAt: new Date(Date.now() - 3600000 * 60),
       },
       {
         locationId: primaryLoc.id,
-        googleQuestionId: "qa_google_03",
+        googleQuestionId: `qa_${primaryLoc.id}_03`,
         authorName: "Kavita Rao",
         questionText: "Are dogs allowed in the outdoor garden patio area?",
         upvoteCount: 5,
