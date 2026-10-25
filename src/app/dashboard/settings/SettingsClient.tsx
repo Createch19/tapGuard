@@ -42,8 +42,11 @@ interface SettingsClientProps {
     lastSyncedAt?: string | null;
     isVerified?: boolean;
     geminiApiKey?: string | null;
+    customGoogleClientId?: string | null;
+    customGoogleClientSecret?: string | null;
     isGoogleConnected: boolean;
     hasGoogleCredentials?: boolean;
+    isTenantCustomCredential?: boolean;
     suggestedRedirectUri?: string;
   };
 }
@@ -69,6 +72,12 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
   );
   const [googleLocationId, setGoogleLocationId] = useState(
     tenant.googleLocationId || ""
+  );
+  const [customGoogleClientId, setCustomGoogleClientId] = useState(
+    tenant.customGoogleClientId || ""
+  );
+  const [customGoogleClientSecret, setCustomGoogleClientSecret] = useState(
+    tenant.customGoogleClientSecret || ""
   );
   const [isGoogleConnected, setIsGoogleConnected] = useState(
     tenant.isGoogleConnected
@@ -152,6 +161,8 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
           googleAccountId,
           googleLocationId,
           geminiApiKey,
+          customGoogleClientId,
+          customGoogleClientSecret,
         }),
       });
 
@@ -378,6 +389,32 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Tenant Custom Google Client ID (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={customGoogleClientId}
+                        onChange={(e) => setCustomGoogleClientId(e.target.value)}
+                        placeholder="Overrides platform app for this tenant"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Tenant Custom Google Client Secret (Optional)
+                      </label>
+                      <input
+                        type="password"
+                        value={customGoogleClientSecret}
+                        onChange={(e) => setCustomGoogleClientSecret(e.target.value)}
+                        placeholder="Overrides platform app for this tenant"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -463,10 +500,15 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                       </div>
                     </div>
                   </div>
+                ) : tenant.isTenantCustomCredential ? (
+                  <div className="flex items-center gap-2 p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-xs text-purple-800">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                    <span className="font-semibold">Tenant Custom OAuth Active: Using custom Google Cloud credentials configured specifically for this business in the database.</span>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="font-semibold">Live Google Cloud OAuth active. Clicking below redirects to Google accounts consent screen to grant permissions.</span>
+                    <span className="font-semibold">Platform Integration Active: Live Google Cloud OAuth ready. Clicking below redirects to Google accounts consent screen.</span>
                   </div>
                 )}
 
@@ -491,7 +533,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                     className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 font-semibold cursor-pointer px-2 py-1"
                   >
                     <Sliders className="w-3.5 h-3.5" />
-                    <span>{showManualFields ? "Hide manual entry" : "Enter IDs manually"}</span>
+                    <span>{showManualFields ? "Hide manual entry" : "Enter IDs & Custom Keys manually"}</span>
                   </button>
                 </div>
 
@@ -511,7 +553,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
               {showManualFields && (
                 <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-4 animate-in fade-in duration-200">
                   <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Manual Credential Provisioning
+                    Manual Credential Provisioning & Custom App
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -550,6 +592,32 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                         value={googleLocationId}
                         onChange={(e) => setGoogleLocationId(e.target.value)}
                         placeholder="locations/8923471029 or Place ID (e.g. ChIJ...)"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Tenant Custom Google Client ID (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={customGoogleClientId}
+                        onChange={(e) => setCustomGoogleClientId(e.target.value)}
+                        placeholder="Overrides platform app for this tenant"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Tenant Custom Google Client Secret (Optional)
+                      </label>
+                      <input
+                        type="password"
+                        value={customGoogleClientSecret}
+                        onChange={(e) => setCustomGoogleClientSecret(e.target.value)}
+                        placeholder="Overrides platform app for this tenant"
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
                       />
                     </div>

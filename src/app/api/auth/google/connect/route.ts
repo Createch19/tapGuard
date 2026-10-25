@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const forceSandbox = searchParams.get("sandbox") === "true";
 
-    const { clientId, clientSecret } = await getGoogleOAuthCredentials();
+    const { clientId, clientSecret } = await getGoogleOAuthCredentials(tenantId);
     const redirectUri = getGoogleOAuthRedirectUri(request);
 
     // Sandbox simulation mode is ONLY executed if explicitly requested via query parameter

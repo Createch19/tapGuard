@@ -119,10 +119,12 @@ model Tenant {
   maxCards             Int          @default(5) @map("max_cards")
   webhookUrl           String?      @map("webhook_url")
   alertEmail           String?      @map("alert_email")
-  googleBusinessEmail  String?      @map("google_business_email")
-  googleLocationId     String?      @map("google_location_id")
-  createdAt            DateTime     @default(now()) @map("created_at")
-  updatedAt            DateTime     @updatedAt @map("updated_at")
+  googleBusinessEmail      String?      @map("google_business_email")
+  googleLocationId         String?      @map("google_location_id")
+  customGoogleClientId     String?      @map("custom_google_client_id")
+  customGoogleClientSecret String?      @map("custom_google_client_secret")
+  createdAt                DateTime     @default(now()) @map("created_at")
+  updatedAt                DateTime     @updatedAt @map("updated_at")
 
   branding         TenantBranding?
   subscription     Subscription?

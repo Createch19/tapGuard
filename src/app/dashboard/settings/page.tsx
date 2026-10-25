@@ -20,7 +20,7 @@ export default async function SettingsPage() {
 
   if (!tenant) return null;
 
-  const { clientId } = await getGoogleOAuthCredentials();
+  const { clientId, isTenantCustom } = await getGoogleOAuthCredentials(tenantId);
   const hasGoogleCredentials = Boolean(clientId && clientId.trim());
   const suggestedRedirectUri = getGoogleOAuthRedirectUri();
 
@@ -40,8 +40,11 @@ export default async function SettingsPage() {
         lastSyncedAt: tenant.googleConnection?.lastSyncedAt?.toISOString() || null,
         isVerified: tenant.googleConnection?.isVerified || false,
         geminiApiKey: tenant.geminiConfig?.customApiKey || null,
+        customGoogleClientId: tenant.customGoogleClientId || null,
+        customGoogleClientSecret: tenant.customGoogleClientSecret || null,
         isGoogleConnected: Boolean(tenant.googleConnection?.isVerified || tenant.googleConnection?.connectedEmail),
         hasGoogleCredentials,
+        isTenantCustomCredential: isTenantCustom,
         suggestedRedirectUri,
       }}
     />

@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
 
     // Exchange code for tokens using dynamic redirect URI matching the request domain
     const redirectUri = getGoogleOAuthRedirectUri(request);
-    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    const tokens = await exchangeCodeForTokens(code, redirectUri, tenantId);
 
     // Fetch live user profile info from Google
     const userInfo = await fetchGoogleUserInfo(tokens.access_token);

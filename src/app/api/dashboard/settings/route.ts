@@ -16,6 +16,8 @@ export async function PUT(request: NextRequest) {
       googleLocationId,
       googleAccountId,
       geminiApiKey,
+      customGoogleClientId,
+      customGoogleClientSecret,
       disconnectGoogle,
     } = body;
 
@@ -42,6 +44,12 @@ export async function PUT(request: NextRequest) {
         webhookUrl: webhookUrl ? String(webhookUrl).trim() : null,
         googleBusinessEmail: googleBusinessEmail ? String(googleBusinessEmail).trim() : null,
         googleLocationId: googleLocationId ? String(googleLocationId).trim() : null,
+        customGoogleClientId: typeof customGoogleClientId !== "undefined"
+          ? (customGoogleClientId ? String(customGoogleClientId).trim() : null)
+          : undefined,
+        customGoogleClientSecret: typeof customGoogleClientSecret !== "undefined"
+          ? (customGoogleClientSecret ? String(customGoogleClientSecret).trim() : null)
+          : undefined,
       },
     });
 

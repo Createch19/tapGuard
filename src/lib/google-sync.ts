@@ -15,19 +15,52 @@ export const GOOGLE_SCOPES = [
 ].join(" ");
 
 /**
- * Retrieves Google OAuth credentials from process.env or database SystemSetting
+ * Retrieves Google OAuth credentials.
+ * Priority:
+ * 1. Tenant-specific custom credentials in database (Tenant.customGoogleClientId & customGoogleClientSecret)
+ * 2. Platform environment variables (GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET)
+ * 3. Platform database settings in SystemSetting (configured in /admin/plan-config)
  */
-export async function getGoogleOAuthCredentials(): Promise<{
+export async function getGoogleOAuthCredentials(tenantId?: string): Promise<{
   clientId: string | null;
   clientSecret: string | null;
+  isTenantCustom: boolean;
 }> {
+  // 1. Check if specific tenant configured their own custom Google Cloud credentials in database
+  if (tenantId) {
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          customGoogleClientId: true,
+          customGoogleClientSecret: true,
+        },
+      });
+
+      if (
+        tenant?.customGoogleClientId?.trim() &&
+        tenant?.customGoogleClientSecret?.trim()
+      ) {
+        return {
+          clientId: tenant.customGoogleClientId.trim(),
+          clientSecret: tenant.customGoogleClientSecret.trim(),
+          isTenantCustom: true,
+        };
+      }
+    } catch (err) {
+      console.warn("Could not retrieve tenant custom Google credentials:", err);
+    }
+  }
+
+  // 2. Check platform-level environment variables
   const envClientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const envClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
 
   if (envClientId && envClientSecret) {
-    return { clientId: envClientId, clientSecret: envClientSecret };
+    return { clientId: envClientId, clientSecret: envClientSecret, isTenantCustom: false };
   }
 
+  // 3. Check platform-level database SystemSetting (set by Super Admin in /admin/plan-config)
   try {
     const settings = await prisma.systemSetting.findMany({
       where: {
@@ -41,11 +74,13 @@ export async function getGoogleOAuthCredentials(): Promise<{
     return {
       clientId: envClientId || dbClientId || null,
       clientSecret: envClientSecret || dbClientSecret || null,
+      isTenantCustom: false,
     };
   } catch {
     return {
       clientId: envClientId || null,
       clientSecret: envClientSecret || null,
+      isTenantCustom: false,
     };
   }
 }
@@ -151,7 +186,8 @@ export function buildGoogleAuthUrl(
  */
 export async function exchangeCodeForTokens(
   code: string,
-  customRedirectUri?: string
+  customRedirectUri?: string,
+  tenantId?: string
 ): Promise<{
   access_token: string;
   refresh_token: string;
@@ -160,7 +196,7 @@ export async function exchangeCodeForTokens(
   token_type: string;
   id_token?: string;
 }> {
-  const { clientId, clientSecret } = await getGoogleOAuthCredentials();
+  const { clientId, clientSecret } = await getGoogleOAuthCredentials(tenantId);
   const redirectUri = customRedirectUri || getGoogleOAuthRedirectUri();
 
   if (!clientId || !clientSecret) {
@@ -205,7 +241,7 @@ export async function refreshGoogleAccessToken(connectionId: string): Promise<st
     return connection.accessToken;
   }
 
-  const { clientId, clientSecret } = await getGoogleOAuthCredentials();
+  const { clientId, clientSecret } = await getGoogleOAuthCredentials(connection.tenantId);
 
   if (!clientId || !clientSecret || connection.refreshToken.startsWith("1//simulated")) {
     const newExpiresAt = new Date(Date.now() + 3600000 * 24);
