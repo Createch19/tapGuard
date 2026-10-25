@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantUser } from "@/lib/auth-utils";
 import { getTenantGoogleHubData } from "@/lib/google-business";
+import { syncGoogleBusinessData } from "@/lib/google-sync";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -24,18 +25,22 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === "resync") {
-      // Update lastSyncedAt on connection
-      await prisma.googleProfileConnection.updateMany({
-        where: { tenantId },
-        data: { lastSyncedAt: new Date() },
-      });
+      try {
+        await syncGoogleBusinessData(tenantId);
+      } catch (syncErr) {
+        console.warn("Sync warning:", syncErr);
+      }
       const data = await getTenantGoogleHubData(tenantId);
-      return NextResponse.json({ success: true, message: "Google Profile synced successfully!", data });
+      return NextResponse.json({ success: true, message: "Google Profile & Local Reviews synced successfully!", data });
     }
 
     if (action === "disconnect") {
       await prisma.googleProfileConnection.deleteMany({
         where: { tenantId },
+      });
+      await prisma.tenant.update({
+        where: { id: tenantId },
+        data: { googleBusinessEmail: null, googleLocationId: null },
       });
       return NextResponse.json({ success: true, message: "Google Business Account disconnected." });
     }

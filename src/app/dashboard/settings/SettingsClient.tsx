@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Save,
   CheckCircle,
@@ -14,6 +16,13 @@ import {
   Key,
   Building2,
   Unlink,
+  RefreshCw,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface SettingsClientProps {
@@ -27,12 +36,17 @@ interface SettingsClientProps {
     googleBusinessEmail?: string | null;
     googleAccountId?: string | null;
     googleLocationId?: string | null;
+    accountName?: string | null;
+    lastSyncedAt?: string | null;
+    isVerified?: boolean;
     geminiApiKey?: string | null;
     isGoogleConnected: boolean;
   };
 }
 
 export default function SettingsClient({ tenant }: SettingsClientProps) {
+  const searchParams = useSearchParams();
+
   const [googleReviewUrl, setGoogleReviewUrl] = useState(
     tenant.googleReviewUrl || ""
   );
@@ -55,6 +69,11 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
   const [isGoogleConnected, setIsGoogleConnected] = useState(
     tenant.isGoogleConnected
   );
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(
+    tenant.lastSyncedAt || null
+  );
+  const [isSyncingGoogle, setIsSyncingGoogle] = useState(false);
+  const [showManualFields, setShowManualFields] = useState(false);
 
   // Gemini API provisioning
   const [geminiApiKey, setGeminiApiKey] = useState(tenant.geminiApiKey || "");
@@ -63,6 +82,42 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("google_connected") === "true") {
+      setIsGoogleConnected(true);
+      setSaveSuccess(true);
+      setStatusMessage("Google Business Profile successfully authorized and connected!");
+      setTimeout(() => setSaveSuccess(false), 5000);
+    } else if (searchParams.get("error")) {
+      const err = searchParams.get("error");
+      alert(`Google Connection Notice: ${err}`);
+    }
+  }, [searchParams]);
+
+  const handleSyncGoogle = async () => {
+    setIsSyncingGoogle(true);
+    try {
+      const res = await fetch("/api/dashboard/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resync" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setLastSyncedAt(new Date().toISOString());
+        setSaveSuccess(true);
+        setStatusMessage(json.message || "Google Profile & Reviews synchronized!");
+        setTimeout(() => setSaveSuccess(false), 4000);
+      } else {
+        alert(json.error || "Failed to synchronize with Google.");
+      }
+    } catch {
+      alert("Failed to synchronize with Google.");
+    } finally {
+      setIsSyncingGoogle(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,98 +241,247 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
           </div>
         </div>
 
-        {/* SECTION 2: Google Business Profile & Gmail Connection */}
-        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between">
+        {/* SECTION 2: Google Business Profile & Permissions */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-2xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                 <MapPin className="w-4 h-4" />
               </div>
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">
-                  Google Business Profile & Gmail Connection
+                  Google Business Profile & Permissions
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Required to activate Google Hub for live review replies, Maps Q&A, and menu sync.
+                  Authorize TapGate to sync live Google Maps reviews, customer Q&A, and menu availability
                 </p>
               </div>
             </div>
 
             {isGoogleConnected ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Connected to Google Hub
+                Authorized & Connected
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                Not Connected
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                Action Required: Not Authorized
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Connected Gmail / Business Account Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="email"
-                  value={googleBusinessEmail}
-                  onChange={(e) => setGoogleBusinessEmail(e.target.value)}
-                  placeholder="e.g. owner@artisanbakery.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
-                />
+          {isGoogleConnected ? (
+            /* --- STATE A: CONNECTED & VERIFIED --- */
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/50 to-slate-50 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-sm font-bold text-slate-900">
+                      {tenant.accountName || tenant.name}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                      Google Maps Verified
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {googleBusinessEmail || "Verified Owner / Manager"}
+                  </p>
+                  {lastSyncedAt && (
+                    <p className="text-[11px] text-slate-400">
+                      Last synchronized: {new Date(lastSyncedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isSyncingGoogle}
+                    onClick={handleSyncGoogle}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-teal-600 ${isSyncingGoogle ? "animate-spin" : ""}`} />
+                    <span>{isSyncingGoogle ? "Syncing..." : "Sync Now"}</span>
+                  </button>
+
+                  <Link
+                    href="/dashboard/google"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-2xs transition-colors"
+                  >
+                    <span>Google Hub</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleDisconnectGoogle}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Unlink className="w-3.5 h-3.5" />
+                    <span>Disconnect</span>
+                  </button>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                The primary Google account holding owner/manager access to the listing.
-              </p>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Google Business Account ID
-              </label>
-              <input
-                type="text"
-                value={googleAccountId}
-                onChange={(e) => setGoogleAccountId(e.target.value)}
-                placeholder="accounts/1098471209348128..."
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Found under Business Profile Settings → Advanced Settings → Business Profile ID.
-              </p>
-            </div>
+              {/* Collapsible Advanced Credentials view */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowManualFields(!showManualFields)}
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{showManualFields ? "Hide Technical Profile IDs" : "View Technical Profile IDs (Account & Location)"}</span>
+                  {showManualFields ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
 
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Google Location ID or Place ID
-              </label>
-              <input
-                type="text"
-                value={googleLocationId}
-                onChange={(e) => setGoogleLocationId(e.target.value)}
-                placeholder="locations/8923471029 or Place ID (e.g. ChIJ...)"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Identifies this physical storefront location on Google Maps.
-              </p>
-            </div>
-          </div>
+                {showManualFields && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-100 animate-in fade-in duration-200">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Google Business Account ID
+                      </label>
+                      <input
+                        type="text"
+                        value={googleAccountId}
+                        onChange={(e) => setGoogleAccountId(e.target.value)}
+                        placeholder="accounts/1098471209348128..."
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
 
-          {isGoogleConnected && (
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={handleDisconnectGoogle}
-                className="text-xs text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <Unlink className="w-3.5 h-3.5" />
-                <span>Disconnect Google Business Account</span>
-              </button>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Google Location / Place ID
+                      </label>
+                      <input
+                        type="text"
+                        value={googleLocationId}
+                        onChange={(e) => setGoogleLocationId(e.target.value)}
+                        placeholder="locations/8923471029..."
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* --- STATE B: UNCONNECTED - 1-CLICK GOOGLE AUTHORIZATION --- */
+            <div className="space-y-4">
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Authorize TapGate on Google Business Profile
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Connect your official business account to delegate permissions. Once connected, TapGate automatically fetches your live storefront reviews, enables Gemini AI reply drafting, and monitors Google Maps Q&A.
+                  </p>
+                </div>
+
+                {/* Permissions Breakdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Read & Reply Reviews</p>
+                      <p className="text-[10px] text-slate-400">Sync customer reviews in real-time</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Google Maps Q&A</p>
+                      <p className="text-[10px] text-slate-400">Detect & answer store questions</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Live Menu & Hours</p>
+                      <p className="text-[10px] text-slate-400">Push availability directly to Search</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 1-Click Authorize Button */}
+                <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <a
+                    href="/api/auth/google/connect"
+                    className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-all hover:scale-101 active:scale-99 cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span>Connect & Grant Google Permissions</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowManualFields(!showManualFields)}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 font-semibold cursor-pointer px-2 py-1"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>{showManualFields ? "Hide manual entry" : "Enter IDs manually"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Manual Entry Fallback */}
+              {showManualFields && (
+                <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-4 animate-in fade-in duration-200">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Manual Credential Provisioning
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Management Gmail
+                      </label>
+                      <input
+                        type="email"
+                        value={googleBusinessEmail}
+                        onChange={(e) => setGoogleBusinessEmail(e.target.value)}
+                        placeholder="owner@business.com"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Google Business Account ID
+                      </label>
+                      <input
+                        type="text"
+                        value={googleAccountId}
+                        onChange={(e) => setGoogleAccountId(e.target.value)}
+                        placeholder="accounts/1098471209348128..."
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Google Location ID or Place ID
+                      </label>
+                      <input
+                        type="text"
+                        value={googleLocationId}
+                        onChange={(e) => setGoogleLocationId(e.target.value)}
+                        placeholder="locations/8923471029 or Place ID (e.g. ChIJ...)"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-700"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

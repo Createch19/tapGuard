@@ -31,8 +31,11 @@ export default async function SettingsPage() {
         googleBusinessEmail: tenant.googleBusinessEmail || tenant.googleConnection?.connectedEmail || null,
         googleAccountId: tenant.googleConnection?.googleAccountId || null,
         googleLocationId: tenant.googleLocationId || tenant.googleConnection?.locations[0]?.googleLocationId || null,
+        accountName: tenant.googleConnection?.accountName || null,
+        lastSyncedAt: tenant.googleConnection?.lastSyncedAt?.toISOString() || null,
+        isVerified: tenant.googleConnection?.isVerified || false,
         geminiApiKey: tenant.geminiConfig?.customApiKey || null,
-        isGoogleConnected: Boolean(tenant.googleConnection),
+        isGoogleConnected: Boolean(tenant.googleConnection?.isVerified || tenant.googleConnection?.connectedEmail),
       }}
     />
   );
