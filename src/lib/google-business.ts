@@ -219,7 +219,38 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
     };
   }
 
-  const primaryLocation = connection.locations[0];
+  let primaryLocation = connection.locations[0];
+
+  // Self-heal: If live Google account has 0 reviews, trigger sync automatically to load verified listing
+  if (
+    connection.isVerified &&
+    !connection.accessToken.startsWith("ya29.simulated") &&
+    primaryLocation.reviews.length === 0
+  ) {
+    try {
+      const { syncGoogleBusinessData } = await import("@/lib/google-sync");
+      await syncGoogleBusinessData(tenantId);
+      const reloaded = await prisma.googleLocation.findUnique({
+        where: { id: primaryLocation.id },
+        include: {
+          reviews: { orderBy: { reviewCreatedAt: "desc" } },
+          questions: { orderBy: { questionCreatedAt: "desc" } },
+          menuSections: {
+            include: { items: { orderBy: { sortOrder: "asc" } } },
+            orderBy: { sortOrder: "asc" },
+          },
+          posts: { orderBy: { createdAt: "desc" } },
+          mediaItems: { orderBy: { createdAt: "desc" } },
+          performanceDaily: { orderBy: { date: "asc" }, take: 30 },
+        },
+      });
+      if (reloaded) {
+        primaryLocation = reloaded;
+      }
+    } catch (autoErr) {
+      console.warn("Auto-sync empty reviews notice:", autoErr);
+    }
+  }
 
   // Format response bundle
   return {
@@ -257,7 +288,7 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
       },
       regularHours: (loc.regularHoursJson as any) || {},
       specialHours: (loc.specialHoursJson as any) || [],
-      primaryCategory: loc.primaryCategory || "Restaurant & Café",
+      primaryCategory: loc.primaryCategory || tenant.businessType || "Business",
       autoReplyReviews: loc.autoReplyReviews,
       autoAnswerQA: loc.autoAnswerQA,
       isPrimaryBranch: loc.isPrimaryBranch,
@@ -594,24 +625,34 @@ export async function seedLocationStarterData(
   const dayMs = 86400000;
   const metricsData = [];
 
+  const isSports =
+    businessType.toLowerCase().includes("sport") ||
+    businessName.toLowerCase().includes("sport") ||
+    businessName.toLowerCase().includes("turf");
+
   for (let i = 14; i >= 0; i--) {
     const d = new Date(now - i * dayMs);
-    const search = 800 + Math.floor(Math.random() * 450);
-    const maps = 1100 + Math.floor(Math.random() * 600);
+    const search = isSports ? 20 + Math.floor(Math.random() * 15) : 30 + Math.floor(Math.random() * 20);
+    const maps = isSports ? 32 + Math.floor(Math.random() * 20) : 45 + Math.floor(Math.random() * 25);
     metricsData.push({
       locationId,
       date: new Date(d.toISOString().split("T")[0]),
       searchImpressions: search,
       mapsImpressions: maps,
-      callClicks: 15 + Math.floor(Math.random() * 20),
-      websiteClicks: 35 + Math.floor(Math.random() * 30),
-      directionsRequests: 45 + Math.floor(Math.random() * 35),
-      bookingsClicks: 8 + Math.floor(Math.random() * 12),
-      topQueriesJson: [
-        { query: `${businessName.toLowerCase()} near me`, count: 180 + Math.floor(Math.random() * 50) },
-        { query: "top rated cafe bangalore", count: 120 + Math.floor(Math.random() * 30) },
-        { query: "places to visit with wifi", count: 85 + Math.floor(Math.random() * 25) },
-      ],
+      callClicks: 2 + Math.floor(Math.random() * 3),
+      websiteClicks: 1 + Math.floor(Math.random() * 2),
+      directionsRequests: 3 + Math.floor(Math.random() * 4),
+      bookingsClicks: 1 + Math.floor(Math.random() * 2),
+      topQueriesJson: isSports
+        ? [
+            { query: `${businessName.toLowerCase()} near me`, count: 40 + Math.floor(Math.random() * 20) },
+            { query: "cricket turf near me", count: 35 + Math.floor(Math.random() * 15) },
+            { query: "sports complex booking", count: 25 + Math.floor(Math.random() * 10) },
+          ]
+        : [
+            { query: `${businessName.toLowerCase()} near me`, count: 35 + Math.floor(Math.random() * 15) },
+            { query: `${businessType.toLowerCase()} near me`, count: 25 + Math.floor(Math.random() * 10) },
+          ],
     });
   }
 

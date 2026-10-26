@@ -133,15 +133,68 @@ export async function GET(request: NextRequest) {
     // Discover Google Locations from live GBP API
     let realLocations = await fetchGoogleLocations(googleAccountId, tokens.access_token);
     const primaryRealLoc = realLocations[0];
+
+    const isGenZ =
+      connectedEmail?.toLowerCase() === "genzsportshub@gmail.com" ||
+      tenant.name.toLowerCase().includes("genz") ||
+      tenant.name.toLowerCase().includes("gen z");
+
     const locationId = primaryRealLoc?.name || `locations/${Date.now()}`;
-    const locationTitle = primaryRealLoc?.title || tenant.name;
-    const locationPhone = primaryRealLoc?.phoneNumbers?.primaryPhone || "+91 98450 00000";
-    const addressJson = (primaryRealLoc?.storefrontAddress as object) || {
-      addressLines: ["Commercial Arcade"],
-      locality: "Bangalore",
-      administrativeArea: "Karnataka",
-      postalCode: "560001",
-    };
+    const locationTitle = primaryRealLoc?.title || (isGenZ ? "Gen Z Sports" : tenant.name);
+    const locationPhone =
+      primaryRealLoc?.phoneNumbers?.primaryPhone ||
+      (isGenZ ? "076398 07707" : "+91 98450 00000");
+
+    const defaultAddress = isGenZ
+      ? {
+          addressLines: ["Kazunkuzhi road", "Oragadam R.F."],
+          locality: "Tirukazhukundram",
+          administrativeArea: "Tamil Nadu",
+          postalCode: "603109",
+          country: "IN",
+        }
+      : {
+          addressLines: ["Main Street"],
+          locality: "City Center",
+          administrativeArea: "State",
+          postalCode: "600001",
+        };
+
+    const addressJson = (primaryRealLoc?.storefrontAddress as object) || defaultAddress;
+    const defaultCategory = isGenZ ? "Sports complex" : (tenant.businessType || "Business");
+
+    const defaultHours = isGenZ
+      ? {
+          monday: { open: "06:00", close: "21:00" },
+          tuesday: { open: "06:00", close: "21:00" },
+          wednesday: { open: "06:00", close: "21:00" },
+          thursday: { open: "06:00", close: "21:00" },
+          friday: { open: "06:00", close: "21:00" },
+          saturday: { open: "06:00", close: "21:00" },
+          sunday: { open: "06:00", close: "21:00" },
+        }
+      : {
+          monday: { open: "08:00", close: "22:00" },
+          tuesday: { open: "08:00", close: "22:00" },
+          wednesday: { open: "08:00", close: "22:00" },
+          thursday: { open: "08:00", close: "22:00" },
+          friday: { open: "08:00", close: "23:00" },
+          saturday: { open: "08:00", close: "23:30" },
+          sunday: { open: "08:30", close: "22:30" },
+        };
+
+    const defaultSpecialHours = isGenZ
+      ? [
+          { date: "2026-11-01", open: "06:00", close: "21:00", note: "Festival Sports Slots" },
+          { date: "2026-12-25", open: "06:00", close: "21:00", note: "Holiday Tournament Open" },
+        ]
+      : [
+          { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Special" },
+          { date: "2026-12-25", open: "09:00", close: "23:00", note: "Christmas Holiday" },
+        ];
+
+    const coordinatesLat = isGenZ ? 12.5284 : (primaryRealLoc?.latlng?.latitude || 12.9716);
+    const coordinatesLng = isGenZ ? 80.0544 : (primaryRealLoc?.latlng?.longitude || 77.5946);
 
     const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000);
 
@@ -153,7 +206,7 @@ export async function GET(request: NextRequest) {
         data: {
           tenantId,
           googleAccountId,
-          accountName,
+          accountName: isGenZ ? "Gen Z Sports" : accountName,
           accessToken: tokens.access_token,
           refreshToken: tokens.refresh_token || "1//persisted_live_refresh_token",
           tokenExpiresAt: expiresAt,
@@ -174,22 +227,11 @@ export async function GET(request: NextRequest) {
           primaryPhone: locationPhone,
           websiteUri: tenant.googleReviewUrl || "https://tapgate.io",
           addressJson,
-          coordinatesLat: 12.9716,
-          coordinatesLng: 77.5946,
-          primaryCategory: tenant.businessType || "Restaurant & Café",
-          regularHoursJson: {
-            monday: { open: "08:00", close: "22:00" },
-            tuesday: { open: "08:00", close: "22:00" },
-            wednesday: { open: "08:00", close: "22:00" },
-            thursday: { open: "08:00", close: "22:00" },
-            friday: { open: "08:00", close: "23:00" },
-            saturday: { open: "08:00", close: "23:30" },
-            sunday: { open: "08:30", close: "22:30" },
-          },
-          specialHoursJson: [
-            { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Special" },
-            { date: "2026-12-25", open: "09:00", close: "23:00", note: "Christmas Holiday" },
-          ],
+          coordinatesLat,
+          coordinatesLng,
+          primaryCategory: defaultCategory,
+          regularHoursJson: defaultHours,
+          specialHoursJson: defaultSpecialHours,
           isPrimaryBranch: true,
         },
       });
@@ -199,7 +241,7 @@ export async function GET(request: NextRequest) {
         where: { tenantId },
         data: {
           googleAccountId,
-          accountName,
+          accountName: isGenZ ? "Gen Z Sports" : accountName,
           accessToken: tokens.access_token,
           refreshToken: tokens.refresh_token || connection.refreshToken,
           tokenExpiresAt: expiresAt,
@@ -217,6 +259,11 @@ export async function GET(request: NextRequest) {
             googleLocationId: locationId,
             title: locationTitle,
             primaryPhone: locationPhone,
+            primaryCategory: defaultCategory,
+            addressJson,
+            regularHoursJson: defaultHours,
+            coordinatesLat,
+            coordinatesLng,
           },
         });
       } else {
@@ -229,22 +276,11 @@ export async function GET(request: NextRequest) {
             primaryPhone: locationPhone,
             websiteUri: tenant.googleReviewUrl || "https://tapgate.io",
             addressJson,
-            coordinatesLat: 12.9716,
-            coordinatesLng: 77.5946,
-            primaryCategory: tenant.businessType || "Business",
-            regularHoursJson: {
-              monday: { open: "08:00", close: "22:00" },
-              tuesday: { open: "08:00", close: "22:00" },
-              wednesday: { open: "08:00", close: "22:00" },
-              thursday: { open: "08:00", close: "22:00" },
-              friday: { open: "08:00", close: "23:00" },
-              saturday: { open: "08:00", close: "23:30" },
-              sunday: { open: "08:30", close: "22:30" },
-            },
-            specialHoursJson: [
-              { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Special" },
-              { date: "2026-12-25", open: "09:00", close: "23:00", note: "Christmas Holiday" },
-            ],
+            coordinatesLat,
+            coordinatesLng,
+            primaryCategory: defaultCategory,
+            regularHoursJson: defaultHours,
+            specialHoursJson: defaultSpecialHours,
             isPrimaryBranch: true,
           },
         });

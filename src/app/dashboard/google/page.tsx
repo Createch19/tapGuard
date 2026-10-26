@@ -35,7 +35,7 @@ export default async function GoogleHubPage() {
         id: tenant.id,
         name: tenant.name,
         plan: tenant.plan,
-        businessType: tenant.businessType || "Restaurant & Café",
+        businessType: tenant.businessType || "Business",
         googleReviewUrl: tenant.googleReviewUrl,
         googleBusinessEmail: tenant.googleBusinessEmail || tenant.googleConnection?.connectedEmail || null,
         googleLocationId: tenant.googleLocationId || null,
