@@ -963,19 +963,30 @@ export default function GoogleCommandCenterClient({
               <ol className="text-xs text-slate-700 space-y-1.5 list-decimal list-inside leading-relaxed font-medium">
                 {data.connection.syncDiagnostic.resolutionSteps.map((step, idx) => (
                   <li key={idx} className="pl-1">
-                    {step.includes("https://business.google.com") ? (
-                      <>
-                        Sign in to{" "}
-                        <a
-                          href="https://business.google.com"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-teal-700 font-bold underline inline-flex items-center gap-0.5"
-                        >
-                          business.google.com <ExternalLink className="w-3 h-3" />
-                        </a>{" "}
-                        using <span className="font-mono font-semibold">{data.connection.connectedEmail}</span>.
-                      </>
+                    {step.includes("http") ? (
+                      (() => {
+                        const match = step.match(/(https?:\/\/[^\s)]+)/);
+                        if (match) {
+                          const url = match[1];
+                          const [before, after] = step.split(url);
+                          return (
+                            <>
+                              {before}
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-teal-700 font-bold underline inline-flex items-center gap-0.5"
+                              >
+                                {url.includes("business.google.com") ? "business.google.com" : url.includes("request-access") ? "Google Access Request Form" : url}{" "}
+                                <ExternalLink className="w-3 h-3 shrink-0" />
+                              </a>
+                              {after}
+                            </>
+                          );
+                        }
+                        return step;
+                      })()
                     ) : (
                       step
                     )}

@@ -1213,19 +1213,35 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
       const accountsRes = await fetchGoogleBusinessAccountsDetailed(validToken);
 
       if (!accountsRes.success) {
+        const isQuotaZero =
+          accountsRes.httpStatus === 429 ||
+          accountsRes.rawResponse?.includes("quota_limit_value") ||
+          accountsRes.rawResponse?.includes("RESOURCE_EXHAUSTED");
+
         syncDiagnostic = {
           status: "API_ERROR",
           endpoint: accountsRes.endpoint,
           httpStatus: accountsRes.httpStatus,
           googleResponseText: accountsRes.rawResponse,
-          errorTitle: `Google API Access Restricted (HTTP ${accountsRes.httpStatus || 403})`,
+          errorTitle: isQuotaZero
+            ? "Google Cloud Project Quota is 0 (Access Request Required)"
+            : `Google API Access Restricted (HTTP ${accountsRes.httpStatus || 403})`,
           errorMessage: accountsRes.errorMessage || "Google returned an error accessing Business Profile Accounts.",
-          rootCause: "Your Google Cloud Project has not been granted access to the Google Business Profile APIs, or the API is disabled in Google Cloud Console.",
-          resolutionSteps: [
-            "Enable 'My Business Account Management API' and 'My Business Business Information API' in Google Cloud Console.",
-            "Submit the Google Business Profile API Access Request Form in Google Cloud Console to whitelist your project.",
-            "Verify that your OAuth Client ID and Secret in TapGate match the authorized Google Cloud Project.",
-          ],
+          rootCause: isQuotaZero
+            ? "Google Cloud assigns a default quota limit of 0 requests/min (quota_limit_value: 0) to all new projects for Google Business Profile APIs. Even after enabling the API and connecting OAuth, Google rejects all calls until an API Access Request Form is submitted to raise quota from 0 to production tier."
+            : "Your Google Cloud Project has not been granted access to the Google Business Profile APIs, or the API is disabled in Google Cloud Console.",
+          resolutionSteps: isQuotaZero
+            ? [
+                "Open Google Cloud Console for Project Number 22466671945.",
+                "Navigate to 'APIs & Services' -> 'Enabled APIs & services' -> 'My Business Account Management API' -> 'Quotas'.",
+                "Submit the Google Business Profile API Access Request Form (https://developers.google.com/my-business/content/prereqs#request-access) providing Project Number 22466671945 to increase your quota limit from 0.",
+                "Once Google raises the quota, return to TapGate and click 'Re-check Google API'.",
+              ]
+            : [
+                "Enable 'My Business Account Management API' and 'My Business Business Information API' in Google Cloud Console.",
+                "Submit the Google Business Profile API Access Request Form in Google Cloud Console to whitelist your project.",
+                "Verify that your OAuth Client ID and Secret in TapGate match the authorized Google Cloud Project.",
+              ],
           checkedAt: new Date().toISOString(),
         };
       } else if (!accountsRes.data || accountsRes.data.length === 0) {
