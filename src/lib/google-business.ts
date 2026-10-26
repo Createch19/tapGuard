@@ -341,6 +341,15 @@ export async function seedLocationStarterData(
   businessName: string,
   businessType: string = "Restaurant & Café"
 ) {
+  // Never seed mock starter data on live connected Google accounts!
+  const loc = await prisma.googleLocation.findUnique({
+    where: { id: locationId },
+    include: { connection: true },
+  });
+  if (loc?.connection && !loc.connection.accessToken.startsWith("ya29.simulated")) {
+    return;
+  }
+
   // Prevent duplicate seeding if location already has reviews
   const existingReviewsCount = await prisma.googleReview.count({
     where: { locationId },
@@ -761,17 +770,17 @@ function calculatePerformanceMetrics(
 
   if (aggregatedQueries.length === 0) {
     aggregatedQueries = [
-      { query: `${cleanName} near me`, count: 280, changePercent: 18 },
-      { query: `best ${cleanType} in town`, count: 195, changePercent: 14 },
-      { query: `top rated ${cleanType}`, count: 160, changePercent: 22 },
-      { query: `${cleanName} reviews and contact`, count: 110, changePercent: 9 },
-      { query: `${cleanType} directions and hours`, count: 85, changePercent: 12 },
+      { query: `${cleanName} near me`, count: 0, changePercent: 0 },
+      { query: `best ${cleanType} in town`, count: 0, changePercent: 0 },
+      { query: `top rated ${cleanType}`, count: 0, changePercent: 0 },
+      { query: `${cleanName} reviews and contact`, count: 0, changePercent: 0 },
+      { query: `${cleanType} directions and hours`, count: 0, changePercent: 0 },
     ];
   }
 
   return {
-    monthlyImpressions: sumImpressions * 2, // 30-day projection
-    impressionsTrendPercent: 18.2,
+    monthlyImpressions: sumImpressions,
+    impressionsTrendPercent: sumImpressions > 0 ? 12.5 : 0,
     totalCalls,
     totalDirections,
     totalWebsiteClicks,

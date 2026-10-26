@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
+import { publishGoogleLocalPost } from "@/lib/google-sync";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,9 +23,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Location ID and post summary are required" }, { status: 400 });
     }
 
+    const location = await prisma.googleLocation.findUnique({
+      where: { id: locationId },
+      include: { connection: true },
+    });
+
+    let liveGooglePostId: string | null = null;
+
+    if (
+      location?.connection &&
+      !location.connection.accessToken.startsWith("ya29.simulated")
+    ) {
+      try {
+        const pubResult = await publishGoogleLocalPost(
+          location.connection.googleAccountId,
+          location.googleLocationId,
+          {
+            summary: String(summary).trim(),
+            topicType,
+            callToAction,
+            actionUrl,
+            mediaUrl,
+          },
+          location.connection.accessToken
+        );
+        if (pubResult.success && pubResult.data?.name) {
+          liveGooglePostId = pubResult.data.name;
+        }
+      } catch (pubErr) {
+        console.warn("Live Google local post publish notice:", pubErr);
+      }
+    }
+
     const post = await prisma.googlePost.create({
       data: {
         locationId,
+        googlePostId: liveGooglePostId,
         topicType,
         summary: String(summary).trim(),
         callToAction: callToAction || null,

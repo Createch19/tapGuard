@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MapPin,
@@ -109,6 +109,7 @@ export default function GoogleCommandCenterClient({
     description: "",
     price: "",
     sectionId: data.menuSections[0]?.id || "",
+    categoryName: "",
     dietaryTag: "VEGETARIAN",
   });
 
@@ -125,6 +126,13 @@ export default function GoogleCommandCenterClient({
     }
   );
   const [isSavingHours, setIsSavingHours] = useState(false);
+
+  // Sync hours if activeLocation changes
+  useEffect(() => {
+    if (data.locations[0]?.regularHours && Object.keys(data.locations[0].regularHours).length > 0) {
+      setWeeklyHours(data.locations[0].regularHours);
+    }
+  }, [data.locations]);
 
   // Posts Tab state
   const [showAddPostModal, setShowAddPostModal] = useState(false);
@@ -334,7 +342,8 @@ export default function GoogleCommandCenterClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "add_item",
-          sectionId: newMenuItem.sectionId,
+          sectionId: newMenuItem.sectionId === "NEW" ? "" : newMenuItem.sectionId,
+          categoryName: newMenuItem.categoryName,
           name: newMenuItem.name,
           description: newMenuItem.description,
           price: Number(newMenuItem.price),
@@ -343,23 +352,24 @@ export default function GoogleCommandCenterClient({
       });
       const json = await res.json();
       if (json.success && json.item) {
-        setData((prev) => ({
-          ...prev,
-          menuSections: prev.menuSections.map((sec) =>
-            sec.id === newMenuItem.sectionId
-              ? { ...sec, items: [...sec.items, json.item] }
-              : sec
-          ),
-        }));
+        // Re-fetch complete data bundle to reflect updated sections & items
+        const refreshRes = await fetch("/api/dashboard/google");
+        const refreshJson = await refreshRes.json();
+        if (refreshJson.success && refreshJson.data) {
+          setData(refreshJson.data);
+        }
         setShowAddMenuModal(false);
         setNewMenuItem({
           name: "",
           description: "",
           price: "",
           sectionId: data.menuSections[0]?.id || "",
+          categoryName: "",
           dietaryTag: "VEGETARIAN",
         });
         showToast("Item added to Google Structured Menu!");
+      } else {
+        showToast(json.error || "Failed to add menu item.");
       }
     } catch {
       showToast("Failed to add menu item.");
@@ -1216,16 +1226,23 @@ export default function GoogleCommandCenterClient({
               </div>
 
               {data.questions.length === 0 ? (
-                <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                <div className="p-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-4">
                   <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto">
                     <HelpCircle className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-800">No public questions yet</h3>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      When potential customers ask questions on your Google Maps listing, they will appear here with instant Gemini ground-truth draft answers.
+                    <h3 className="text-sm font-bold text-slate-800">No pending public questions</h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      Google Search & Maps now automatically synthesize answers for customer questions using verified business Ground Truth. Configure your store policies and FAQ in the Gemini AI tab so Google delivers 100% accurate information to searchers.
                     </p>
                   </div>
+                  <button
+                    onClick={() => setActiveTab("settings")}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Configure Gemini Ground Truth</span>
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -2205,17 +2222,31 @@ export default function GoogleCommandCenterClient({
 
               <div>
                 <label className="text-xs font-bold text-slate-800 block mb-1">Category</label>
-                <select
-                  value={newMenuItem.sectionId}
-                  onChange={(e) => setNewMenuItem({ ...newMenuItem, sectionId: e.target.value })}
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none font-semibold"
-                >
-                  {data.menuSections.map((sec) => (
-                    <option key={sec.id} value={sec.id}>
-                      {sec.title}
-                    </option>
-                  ))}
-                </select>
+                {data.menuSections.length > 0 ? (
+                  <select
+                    value={newMenuItem.sectionId}
+                    onChange={(e) => setNewMenuItem({ ...newMenuItem, sectionId: e.target.value })}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none font-semibold mb-2"
+                  >
+                    {data.menuSections.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.title}
+                      </option>
+                    ))}
+                    <option value="NEW">+ Create New Category...</option>
+                  </select>
+                ) : null}
+
+                {(data.menuSections.length === 0 || newMenuItem.sectionId === "NEW") && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Starters, Main Course, Beverages, Services"
+                    value={newMenuItem.categoryName}
+                    onChange={(e) => setNewMenuItem({ ...newMenuItem, categoryName: e.target.value })}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

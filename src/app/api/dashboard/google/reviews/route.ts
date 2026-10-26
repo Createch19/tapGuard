@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { generateReviewReply, GeminiTone } from "@/lib/gemini";
+import { publishGoogleReviewReply } from "@/lib/google-sync";
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,10 +57,44 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Reply text is required" }, { status: 400 });
       }
 
+      const review = await prisma.googleReview.findUnique({
+        where: { id: reviewId },
+        include: {
+          location: {
+            include: { connection: true },
+          },
+        },
+      });
+
+      if (!review) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+
+      const trimmedReply = String(replyText).trim();
+
+      // If live Google account, push reply to Google GBP v4 API
+      if (
+        review.location?.connection &&
+        !review.location.connection.accessToken.startsWith("ya29.simulated") &&
+        !review.googleReviewId.startsWith("review_")
+      ) {
+        try {
+          await publishGoogleReviewReply(
+            review.location.connection.googleAccountId,
+            review.location.googleLocationId,
+            review.googleReviewId,
+            trimmedReply,
+            review.location.connection.accessToken
+          );
+        } catch (apiErr) {
+          console.warn("Live Google review reply push notice:", apiErr);
+        }
+      }
+
       const updated = await prisma.googleReview.update({
         where: { id: reviewId },
         data: {
-          replyComment: String(replyText).trim(),
+          replyComment: trimmedReply,
           replyUpdatedAt: new Date(),
         },
       });

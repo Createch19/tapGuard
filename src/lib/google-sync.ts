@@ -355,7 +355,111 @@ export async function fetchGoogleBusinessAccounts(accessToken: string): Promise<
 }
 
 /**
- * Fetch Google Business Locations for an account
+ * Normalize account name format (e.g. "accounts/12345")
+ */
+export function normalizeAccountName(accountName: string): string {
+  if (!accountName) return "accounts/primary";
+  const clean = accountName.trim();
+  return clean.startsWith("accounts/") ? clean : `accounts/${clean}`;
+}
+
+/**
+ * Normalize location name format (e.g. "locations/12345")
+ */
+export function normalizeLocationName(locName: string): string {
+  if (!locName) return "locations/primary";
+  const clean = locName.trim();
+  if (clean.includes("/")) {
+    const parts = clean.split("/");
+    return `locations/${parts[parts.length - 1]}`;
+  }
+  return `locations/${clean}`;
+}
+
+/**
+ * Format Google time representation to HH:mm string
+ */
+function formatGoogleTime(t: any): string {
+  if (!t) return "08:00";
+  if (typeof t === "string") return t;
+  const hours = String(t.hours ?? 0).padStart(2, "0");
+  const minutes = String(t.minutes ?? 0).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * Parse Google regularHours periods into standard weekday key-value map
+ */
+export function parseGoogleRegularHours(regularHours: any): Record<string, { open: string; close: string }> {
+  const result: Record<string, { open: string; close: string }> = {
+    monday: { open: "08:00", close: "22:00" },
+    tuesday: { open: "08:00", close: "22:00" },
+    wednesday: { open: "08:00", close: "22:00" },
+    thursday: { open: "08:00", close: "22:00" },
+    friday: { open: "08:00", close: "23:00" },
+    saturday: { open: "08:00", close: "23:30" },
+    sunday: { open: "08:30", close: "22:30" },
+  };
+
+  if (regularHours?.periods && Array.isArray(regularHours.periods)) {
+    for (const p of regularHours.periods) {
+      const day = (p.openDay || "").toLowerCase();
+      if (day && result[day]) {
+        result[day] = {
+          open: formatGoogleTime(p.openTime),
+          close: formatGoogleTime(p.closeTime),
+        };
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Parse Google specialHours into structured date-based array
+ */
+export function parseGoogleSpecialHours(specialHours: any): Array<{
+  date: string;
+  open: string;
+  close: string;
+  isClosed?: boolean;
+  note?: string;
+}> {
+  if (!specialHours?.specialHourPeriods || !Array.isArray(specialHours.specialHourPeriods)) {
+    return [];
+  }
+
+  return specialHours.specialHourPeriods
+    .map((sp: any) => {
+      let dateStr = "";
+      if (sp.startDate) {
+        const y = sp.startDate.year || new Date().getFullYear();
+        const m = String(sp.startDate.month || 1).padStart(2, "0");
+        const d = String(sp.startDate.day || 1).padStart(2, "0");
+        dateStr = `${y}-${m}-${d}`;
+      }
+      return {
+        date: dateStr,
+        open: sp.closed ? "00:00" : formatGoogleTime(sp.openTime),
+        close: sp.closed ? "00:00" : formatGoogleTime(sp.closeTime),
+        isClosed: Boolean(sp.closed),
+        note: sp.closed ? "Holiday / Closed" : "Special Operating Hours",
+      };
+    })
+    .filter((s: any) => Boolean(s.date));
+}
+
+export const STAR_RATING_MAP: Record<string, number> = {
+  ONE: 1,
+  TWO: 2,
+  THREE: 3,
+  FOUR: 4,
+  FIVE: 5,
+};
+
+/**
+ * Fetch Google Business Locations for an account with full readMask
  */
 export async function fetchGoogleLocations(
   accountName: string,
@@ -363,6 +467,7 @@ export async function fetchGoogleLocations(
 ): Promise<Array<{
   name: string; // "locations/12345"
   title?: string;
+  storeCode?: string;
   storefrontAddress?: {
     addressLines?: string[];
     locality?: string;
@@ -373,9 +478,18 @@ export async function fetchGoogleLocations(
   phoneNumbers?: { primaryPhone?: string };
   categories?: { primaryCategory?: { displayName?: string } };
   latlng?: { latitude?: number; longitude?: number };
+  regularHours?: any;
+  specialHours?: any;
+  metadata?: {
+    placeId?: string;
+    newReviewUrl?: string;
+    mapsUri?: string;
+  };
 }>> {
   try {
-    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri,phoneNumbers,categories,latlng`;
+    const acc = normalizeAccountName(accountName);
+    const readMask = "name,title,storeCode,regularHours,specialHours,phoneNumbers,categories,storefrontAddress,websiteUri,metadata,latlng,profile";
+    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${acc}/locations?readMask=${readMask}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -394,11 +508,412 @@ export async function fetchGoogleLocations(
 }
 
 /**
- * Synchronize Google Business Profile Data for a Tenant
+ * Fetch real customer reviews from Google Business Profile v4 API
+ */
+export async function fetchGoogleReviews(
+  accountName: string,
+  locationName: string,
+  accessToken: string
+): Promise<{
+  reviews: Array<{
+    reviewId: string;
+    reviewer?: {
+      displayName?: string;
+      profilePhotoUrl?: string;
+      isAnonymous?: boolean;
+    };
+    starRating: string | number;
+    comment?: string;
+    createTime?: string;
+    updateTime?: string;
+    reviewReply?: {
+      comment?: string;
+      updateTime?: string;
+    };
+  }>;
+  averageRating?: number;
+  totalReviewCount?: number;
+}> {
+  try {
+    const acc = normalizeAccountName(accountName);
+    const loc = normalizeLocationName(locationName);
+    const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/reviews?pageSize=50`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      console.warn("GBP v4 reviews query status:", res.status, await res.text());
+      return { reviews: [] };
+    }
+
+    const data = await res.json();
+    return {
+      reviews: data.reviews || [],
+      averageRating: data.averageRating,
+      totalReviewCount: data.totalReviewCount,
+    };
+  } catch (err) {
+    console.warn("Error fetching GBP reviews:", err);
+    return { reviews: [] };
+  }
+}
+
+/**
+ * Fetch live media/photos from Google Business Profile v4 API
+ */
+export async function fetchGooglePhotos(
+  accountName: string,
+  locationName: string,
+  accessToken: string
+): Promise<Array<{
+  name: string;
+  mediaFormat?: string;
+  locationAssociation?: { category?: string };
+  googleUrl?: string;
+  thumbnailUrl?: string;
+  createTime?: string;
+  attribution?: { profileName?: string };
+}>> {
+  try {
+    const acc = normalizeAccountName(accountName);
+    const loc = normalizeLocationName(locationName);
+    const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/media?pageSize=100`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      console.warn("GBP v4 media query notice:", res.status, await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    return data.mediaItems || [];
+  } catch (err) {
+    console.warn("Error fetching GBP photos:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch live local posts from Google Business Profile v4 API
+ */
+export async function fetchGoogleLocalPosts(
+  accountName: string,
+  locationName: string,
+  accessToken: string
+): Promise<Array<{
+  name: string;
+  languageCode?: string;
+  summary?: string;
+  callToAction?: { actionType?: string; url?: string };
+  createTime?: string;
+  media?: Array<{ googleUrl?: string; sourceUrl?: string }>;
+  topicType?: string;
+  state?: string;
+}>> {
+  try {
+    const acc = normalizeAccountName(accountName);
+    const loc = normalizeLocationName(locationName);
+    const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/localPosts?pageSize=50`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      console.warn("GBP v4 localPosts query notice:", res.status, await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    return data.localPosts || [];
+  } catch (err) {
+    console.warn("Error fetching GBP local posts:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch real performance time-series from Google Business Profile Performance API
+ */
+export async function fetchGooglePerformanceMetrics(
+  locationName: string,
+  accessToken: string
+): Promise<Array<{
+  date: Date;
+  searchImpressions: number;
+  mapsImpressions: number;
+  callClicks: number;
+  websiteClicks: number;
+  directionsRequests: number;
+  bookingsClicks: number;
+}>> {
+  try {
+    const loc = normalizeLocationName(locationName);
+    const now = new Date();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+
+    const metrics = [
+      "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
+      "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+      "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
+      "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+      "CALL_CLICKS",
+      "WEBSITE_CLICKS",
+      "BUSINESS_DIRECTION_REQUESTS",
+    ];
+
+    const params = new URLSearchParams();
+    for (const m of metrics) {
+      params.append("dailyMetrics", m);
+    }
+    params.set("dailyRange.startDate.year", String(thirtyDaysAgo.getFullYear()));
+    params.set("dailyRange.startDate.month", String(thirtyDaysAgo.getMonth() + 1));
+    params.set("dailyRange.startDate.day", String(thirtyDaysAgo.getDate()));
+    params.set("dailyRange.endDate.year", String(now.getFullYear()));
+    params.set("dailyRange.endDate.month", String(now.getMonth() + 1));
+    params.set("dailyRange.endDate.day", String(now.getDate()));
+
+    const url = `https://businessprofileperformance.googleapis.com/v1/${loc}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      console.warn("Google Performance API query notice:", res.status, await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    const seriesList = data.multiDailyMetricTimeSeries || [];
+    const dateMap: Record<string, {
+      search: number;
+      maps: number;
+      calls: number;
+      website: number;
+      directions: number;
+      bookings: number;
+    }> = {};
+
+    for (const series of seriesList) {
+      const metric = series.dailyMetric;
+      const datedValues = series.dailyMetricTimeSeries?.timeSeries?.datedValues || [];
+
+      for (const dv of datedValues) {
+        if (!dv.date) continue;
+        const y = dv.date.year;
+        const m = String(dv.date.month).padStart(2, "0");
+        const d = String(dv.date.day).padStart(2, "0");
+        const dateKey = `${y}-${m}-${d}`;
+
+        if (!dateMap[dateKey]) {
+          dateMap[dateKey] = { search: 0, maps: 0, calls: 0, website: 0, directions: 0, bookings: 0 };
+        }
+
+        const val = Number(dv.value || 0);
+        if (metric === "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH" || metric === "BUSINESS_IMPRESSIONS_MOBILE_SEARCH") {
+          dateMap[dateKey].search += val;
+        } else if (metric === "BUSINESS_IMPRESSIONS_DESKTOP_MAPS" || metric === "BUSINESS_IMPRESSIONS_MOBILE_MAPS") {
+          dateMap[dateKey].maps += val;
+        } else if (metric === "CALL_CLICKS") {
+          dateMap[dateKey].calls += val;
+        } else if (metric === "WEBSITE_CLICKS") {
+          dateMap[dateKey].website += val;
+        } else if (metric === "BUSINESS_DIRECTION_REQUESTS") {
+          dateMap[dateKey].directions += val;
+        }
+      }
+    }
+
+    return Object.entries(dateMap).map(([dateStr, counts]) => ({
+      date: new Date(dateStr),
+      searchImpressions: counts.search,
+      mapsImpressions: counts.maps,
+      callClicks: counts.calls,
+      websiteClicks: counts.website,
+      directionsRequests: counts.directions,
+      bookingsClicks: counts.bookings,
+    }));
+  } catch (err) {
+    console.warn("Error fetching Google Performance metrics:", err);
+    return [];
+  }
+}
+
+/**
+ * Push Review Reply directly to Google Business Profile v4 API
+ */
+export async function publishGoogleReviewReply(
+  accountName: string,
+  locationName: string,
+  reviewId: string,
+  replyComment: string,
+  accessToken: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const acc = normalizeAccountName(accountName);
+    const loc = normalizeLocationName(locationName);
+    const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/reviews/${reviewId}/reply`;
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ comment: replyComment }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      return { success: false, error: json.error?.message || "Failed to publish reply to Google" };
+    }
+    return { success: true, data: json };
+  } catch (err) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Publish Local Post directly to Google Business Profile v4 API
+ */
+export async function publishGoogleLocalPost(
+  accountName: string,
+  locationName: string,
+  postData: {
+    summary: string;
+    topicType?: string;
+    callToAction?: string;
+    actionUrl?: string;
+    mediaUrl?: string;
+  },
+  accessToken: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const acc = normalizeAccountName(accountName);
+    const loc = normalizeLocationName(locationName);
+    const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/localPosts`;
+
+    const body: any = {
+      languageCode: "en",
+      summary: postData.summary,
+      topicType: postData.topicType || "STANDARD",
+    };
+
+    if (postData.callToAction && postData.actionUrl) {
+      body.callToAction = {
+        actionType: postData.callToAction,
+        url: postData.actionUrl,
+      };
+    }
+
+    if (postData.mediaUrl) {
+      body.media = [
+        {
+          mediaFormat: "PHOTO",
+          sourceUrl: postData.mediaUrl,
+        },
+      ];
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      return { success: false, error: json.error?.message || "Failed to publish local post to Google" };
+    }
+    return { success: true, data: json };
+  } catch (err) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Push Operating Hours update to Google Business Information API
+ */
+export async function publishGoogleHours(
+  locationName: string,
+  regularHoursJson: Record<string, { open: string; close: string }>,
+  specialHoursJson: any[],
+  accessToken: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const loc = normalizeLocationName(locationName);
+    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${loc}?updateMask=regularHours,specialHours`;
+
+    const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const periods = [];
+
+    for (const d of dayKeys) {
+      const conf = regularHoursJson?.[d];
+      if (conf && conf.open && conf.close) {
+        const [openH, openM] = conf.open.split(":").map(Number);
+        const [closeH, closeM] = conf.close.split(":").map(Number);
+        periods.push({
+          openDay: d.toUpperCase(),
+          openTime: { hours: openH || 0, minutes: openM || 0 },
+          closeDay: d.toUpperCase(),
+          closeTime: { hours: closeH || 0, minutes: closeM || 0 },
+        });
+      }
+    }
+
+    const specialHourPeriods = Array.isArray(specialHoursJson)
+      ? specialHoursJson.map((sp) => {
+          const [y, m, d] = (sp.date || "").split("-").map(Number);
+          const [openH, openM] = (sp.open || "09:00").split(":").map(Number);
+          const [closeH, closeM] = (sp.close || "18:00").split(":").map(Number);
+          return {
+            startDate: { year: y || 2026, month: m || 1, day: d || 1 },
+            openTime: sp.isClosed ? undefined : { hours: openH, minutes: openM },
+            endDate: { year: y || 2026, month: m || 1, day: d || 1 },
+            closeTime: sp.isClosed ? undefined : { hours: closeH, minutes: closeM },
+            closed: Boolean(sp.isClosed),
+          };
+        })
+      : [];
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        regularHours: { periods },
+        specialHours: { specialHourPeriods },
+      }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      return { success: false, error: json.error?.message || "Failed to update hours on Google" };
+    }
+    return { success: true, data: json };
+  } catch (err) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Synchronize Google Business Profile Data for a Tenant.
+ * Fetches real reviews, hours, media, posts, and performance metrics from Google APIs.
  */
 export async function syncGoogleBusinessData(tenantId: string): Promise<{
   success: boolean;
   message: string;
+  syncedReviewsCount?: number;
 }> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -423,7 +938,7 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
     console.warn("Token refresh notice:", refreshErr);
   }
 
-  // Ensure primary location exists
+  // Ensure primary location exists in database
   let primaryLoc = connection.locations[0];
   if (!primaryLoc) {
     primaryLoc = await prisma.googleLocation.create({
@@ -461,49 +976,250 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
     });
   }
 
-  // Self-heal reviews, Q&As, menu, posts, performance if empty
-  await seedLocationStarterData(
-    primaryLoc.id,
-    tenant.name,
-    tenant.businessType || "Restaurant & Café"
-  );
+  const isLiveGoogleAccount = validToken && !validToken.startsWith("ya29.simulated");
 
-  // If live access token is available, attempt to query live accounts & locations from GBP API
-  if (validToken && !validToken.startsWith("ya29.simulated")) {
+  if (isLiveGoogleAccount) {
+    // 1. Clean up legacy starter mock reviews from live accounts so real reviews display accurately
+    await prisma.googleReview.deleteMany({
+      where: {
+        locationId: primaryLoc.id,
+        googleReviewId: { startsWith: "review_" },
+      },
+    });
+
+    // 2. Clean up legacy mock Q&A questions
+    await prisma.googleQuestion.deleteMany({
+      where: {
+        locationId: primaryLoc.id,
+        googleQuestionId: { startsWith: "qa_" },
+      },
+    });
+
+    // 3. Clean up legacy mock posts
+    await prisma.googlePost.deleteMany({
+      where: {
+        locationId: primaryLoc.id,
+        summary: { contains: "croissant", mode: "insensitive" },
+      },
+    });
+
+    // 4. Clean up mock unsplash photos
+    await prisma.googleMediaItem.deleteMany({
+      where: {
+        locationId: primaryLoc.id,
+        sourceUrl: { contains: "unsplash.com" },
+        googleMediaId: null,
+      },
+    });
+
+    let liveAccName = connection.googleAccountId;
+    let liveLocName = primaryLoc.googleLocationId;
+    let syncedReviewsCount = 0;
+
     try {
+      // Query verified Google Business Accounts
       const accounts = await fetchGoogleBusinessAccounts(validToken);
       if (accounts && accounts.length > 0) {
-        const liveAcc = accounts[0];
-        const liveLocations = await fetchGoogleLocations(liveAcc.name, validToken);
-        if (liveLocations && liveLocations.length > 0) {
-          const liveLoc = liveLocations[0];
-          await prisma.googleLocation.update({
-            where: { id: primaryLoc.id },
-            data: {
-              googleLocationId: liveLoc.name,
-              title: liveLoc.title || primaryLoc.title,
-              primaryPhone: liveLoc.phoneNumbers?.primaryPhone || primaryLoc.primaryPhone,
-              websiteUri: liveLoc.websiteUri || primaryLoc.websiteUri,
+        liveAccName = accounts[0].name;
+        if (connection.googleAccountId !== liveAccName) {
+          await prisma.googleProfileConnection.update({
+            where: { id: connection.id },
+            data: { googleAccountId: liveAccName, accountName: accounts[0].accountName || connection.accountName },
+          });
+        }
+      }
+
+      // Query verified Google Business Locations
+      const liveLocations = await fetchGoogleLocations(liveAccName, validToken);
+      if (liveLocations && liveLocations.length > 0) {
+        const liveLoc = liveLocations[0];
+        liveLocName = liveLoc.name;
+
+        const realRegularHours = liveLoc.regularHours
+          ? parseGoogleRegularHours(liveLoc.regularHours)
+          : (primaryLoc.regularHoursJson as any);
+
+        const realSpecialHours = liveLoc.specialHours
+          ? parseGoogleSpecialHours(liveLoc.specialHours)
+          : (primaryLoc.specialHoursJson as any);
+
+        const realAddress = (liveLoc.storefrontAddress as any) || primaryLoc.addressJson;
+        const realPlaceId = liveLoc.metadata?.placeId || primaryLoc.placeId || null;
+
+        await prisma.googleLocation.update({
+          where: { id: primaryLoc.id },
+          data: {
+            googleLocationId: liveLoc.name,
+            title: liveLoc.title || primaryLoc.title,
+            storeCode: liveLoc.storeCode || primaryLoc.storeCode,
+            placeId: realPlaceId,
+            primaryPhone: liveLoc.phoneNumbers?.primaryPhone || primaryLoc.primaryPhone,
+            websiteUri: liveLoc.websiteUri || primaryLoc.websiteUri,
+            addressJson: realAddress,
+            regularHoursJson: realRegularHours,
+            specialHoursJson: realSpecialHours,
+            primaryCategory: liveLoc.categories?.primaryCategory?.displayName || primaryLoc.primaryCategory,
+            coordinatesLat: liveLoc.latlng?.latitude || primaryLoc.coordinatesLat,
+            coordinatesLng: liveLoc.latlng?.longitude || primaryLoc.coordinatesLng,
+          },
+        });
+
+        // Store live Google Review link if present
+        if (liveLoc.metadata?.newReviewUrl && !tenant.googleReviewUrl) {
+          await prisma.tenant.update({
+            where: { id: tenantId },
+            data: { googleReviewUrl: liveLoc.metadata.newReviewUrl },
+          });
+        }
+      }
+
+      // Fetch real reviews from Google GBP v4
+      const reviewsResult = await fetchGoogleReviews(liveAccName, liveLocName, validToken);
+      if (reviewsResult.reviews && reviewsResult.reviews.length > 0) {
+        for (const r of reviewsResult.reviews) {
+          if (!r.reviewId) continue;
+          const starNum = STAR_RATING_MAP[String(r.starRating)] || Number(r.starRating) || 5;
+          const reviewDate = r.createTime ? new Date(r.createTime) : new Date();
+          const replyDate = r.reviewReply?.updateTime ? new Date(r.reviewReply.updateTime) : null;
+
+          await prisma.googleReview.upsert({
+            where: { googleReviewId: r.reviewId },
+            update: {
+              reviewerName: r.reviewer?.displayName || "Google Customer",
+              reviewerPhotoUrl: r.reviewer?.profilePhotoUrl || null,
+              isAnonymous: Boolean(r.reviewer?.isAnonymous),
+              rating: starNum,
+              comment: r.comment || null,
+              replyComment: r.reviewReply?.comment || null,
+              replyUpdatedAt: replyDate,
+              reviewCreatedAt: reviewDate,
+            },
+            create: {
+              locationId: primaryLoc.id,
+              googleReviewId: r.reviewId,
+              reviewerName: r.reviewer?.displayName || "Google Customer",
+              reviewerPhotoUrl: r.reviewer?.profilePhotoUrl || null,
+              isAnonymous: Boolean(r.reviewer?.isAnonymous),
+              rating: starNum,
+              comment: r.comment || null,
+              replyComment: r.reviewReply?.comment || null,
+              replyUpdatedAt: replyDate,
+              reviewCreatedAt: reviewDate,
+            },
+          });
+          syncedReviewsCount++;
+        }
+      }
+
+      // Fetch live photos/media from Google
+      const photos = await fetchGooglePhotos(liveAccName, liveLocName, validToken);
+      if (photos && photos.length > 0) {
+        for (const p of photos) {
+          if (!p.name) continue;
+          const photoUrl = p.googleUrl || p.thumbnailUrl;
+          if (!photoUrl) continue;
+
+          await prisma.googleMediaItem.upsert({
+            where: { googleMediaId: p.name },
+            update: {
+              mediaFormat: p.mediaFormat || "PHOTO",
+              category: p.locationAssociation?.category || "ADDITIONAL",
+              sourceUrl: photoUrl,
+              thumbnailUrl: p.thumbnailUrl || photoUrl,
+            },
+            create: {
+              locationId: primaryLoc.id,
+              googleMediaId: p.name,
+              mediaFormat: p.mediaFormat || "PHOTO",
+              category: p.locationAssociation?.category || "ADDITIONAL",
+              sourceUrl: photoUrl,
+              thumbnailUrl: p.thumbnailUrl || photoUrl,
+              isCustomerUser: Boolean(p.attribution?.profileName),
             },
           });
         }
       }
+
+      // Fetch live local posts from Google
+      const posts = await fetchGoogleLocalPosts(liveAccName, liveLocName, validToken);
+      if (posts && posts.length > 0) {
+        for (const post of posts) {
+          if (!post.name) continue;
+          const media = post.media?.[0]?.googleUrl || post.media?.[0]?.sourceUrl || null;
+
+          await prisma.googlePost.upsert({
+            where: { googlePostId: post.name },
+            update: {
+              summary: post.summary || "",
+              topicType: post.topicType || "STANDARD",
+              callToAction: post.callToAction?.actionType || null,
+              actionUrl: post.callToAction?.url || null,
+              mediaUrl: media,
+              status: post.state === "LIVE" ? "PUBLISHED" : (post.state || "PUBLISHED"),
+            },
+            create: {
+              locationId: primaryLoc.id,
+              googlePostId: post.name,
+              summary: post.summary || "",
+              topicType: post.topicType || "STANDARD",
+              callToAction: post.callToAction?.actionType || null,
+              actionUrl: post.callToAction?.url || null,
+              mediaUrl: media,
+              status: post.state === "LIVE" ? "PUBLISHED" : (post.state || "PUBLISHED"),
+              publishedAt: post.createTime ? new Date(post.createTime) : new Date(),
+            },
+          });
+        }
+      }
+
+      // Fetch live daily performance metrics from Google
+      const perfMetrics = await fetchGooglePerformanceMetrics(liveLocName, validToken);
+      if (perfMetrics && perfMetrics.length > 0) {
+        for (const m of perfMetrics) {
+          await prisma.googlePerformanceDaily.upsert({
+            where: { locationId_date: { locationId: primaryLoc.id, date: m.date } },
+            update: m,
+            create: { ...m, locationId: primaryLoc.id },
+          });
+        }
+      }
     } catch (liveSyncErr) {
-      console.warn("Live Google GBP query notice:", liveSyncErr);
+      console.warn("Live Google GBP synchronization notice:", liveSyncErr);
     }
+
+    // Update connection sync status
+    await prisma.googleProfileConnection.update({
+      where: { id: connection.id },
+      data: {
+        isVerified: true,
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      message: `Synchronized live Google Profile: ${syncedReviewsCount} review(s) imported directly from Google.`,
+      syncedReviewsCount,
+    };
+  } else {
+    // Sandbox / simulated preview mode: self-heal preview starter data if empty
+    await seedLocationStarterData(
+      primaryLoc.id,
+      tenant.name,
+      tenant.businessType || "Restaurant & Café"
+    );
+
+    await prisma.googleProfileConnection.update({
+      where: { id: connection.id },
+      data: {
+        isVerified: true,
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      message: "Preview Google Business Profile metrics synchronized.",
+    };
   }
-
-  // Update sync timestamp and verification status
-  await prisma.googleProfileConnection.update({
-    where: { id: connection.id },
-    data: {
-      isVerified: true,
-      lastSyncedAt: new Date(),
-    },
-  });
-
-  return {
-    success: true,
-    message: "Google Profile & Local Business metrics synchronized successfully!",
-  };
 }

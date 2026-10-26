@@ -7,6 +7,7 @@ import {
   fetchGoogleBusinessAccounts,
   fetchGoogleLocations,
   getGoogleOAuthRedirectUri,
+  syncGoogleBusinessData,
   GOOGLE_SCOPES,
 } from "@/lib/google-sync";
 import { seedInitialGoogleProfile, seedLocationStarterData } from "@/lib/google-business";
@@ -193,7 +194,6 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      await seedLocationStarterData(primaryLoc.id, tenant.name, tenant.businessType || "Restaurant & Café");
     } else {
       await prisma.googleProfileConnection.update({
         where: { tenantId },
@@ -219,9 +219,8 @@ export async function GET(request: NextRequest) {
             primaryPhone: locationPhone,
           },
         });
-        await seedLocationStarterData(connection.locations[0].id, tenant.name, tenant.businessType || "Restaurant & Café");
       } else {
-        const primaryLoc = await prisma.googleLocation.create({
+        await prisma.googleLocation.create({
           data: {
             connectionId: connection.id,
             tenantId,
@@ -232,7 +231,7 @@ export async function GET(request: NextRequest) {
             addressJson,
             coordinatesLat: 12.9716,
             coordinatesLng: 77.5946,
-            primaryCategory: tenant.businessType || "Restaurant & Café",
+            primaryCategory: tenant.businessType || "Business",
             regularHoursJson: {
               monday: { open: "08:00", close: "22:00" },
               tuesday: { open: "08:00", close: "22:00" },
@@ -249,8 +248,14 @@ export async function GET(request: NextRequest) {
             isPrimaryBranch: true,
           },
         });
-        await seedLocationStarterData(primaryLoc.id, tenant.name, tenant.businessType || "Restaurant & Café");
       }
+    }
+
+    // Immediately synchronize real data (reviews, hours, photos, posts, performance) from connected Google account
+    try {
+      await syncGoogleBusinessData(tenantId);
+    } catch (syncErr) {
+      console.warn("Initial sync after live Google OAuth connection notice:", syncErr);
     }
 
     // Update Tenant email and location reference
