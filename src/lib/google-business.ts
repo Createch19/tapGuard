@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { generateReviewReply, generateQuestionAnswer } from "@/lib/gemini";
+import { GoogleSyncDiagnostic } from "@/lib/google-sync";
 
 export interface GoogleHubData {
   connection: {
@@ -9,6 +10,7 @@ export interface GoogleHubData {
     accountName: string | null;
     lastSyncedAt: string | null;
     isVerified: boolean;
+    syncDiagnostic?: GoogleSyncDiagnostic | null;
   };
   geminiConfig: {
     model: string;
@@ -221,12 +223,11 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
 
   let primaryLocation = connection.locations[0];
 
-  // Self-heal: If live Google account has 0 reviews, trigger sync automatically to load verified listing
-  if (
-    connection.isVerified &&
-    !connection.accessToken.startsWith("ya29.simulated") &&
-    primaryLocation.reviews.length === 0
-  ) {
+  const isLiveGoogleAccount = !connection.accessToken.startsWith("ya29.simulated");
+  let syncDiag: GoogleSyncDiagnostic | null = (primaryLocation?.attributesJson as any)?.syncDiagnostic || null;
+
+  // If live Google account hasn't recorded a sync diagnostic yet or has 0 reviews, trigger live sync automatically
+  if (isLiveGoogleAccount && !syncDiag) {
     try {
       const { syncGoogleBusinessData } = await import("@/lib/google-sync");
       await syncGoogleBusinessData(tenantId);
@@ -246,9 +247,10 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
       });
       if (reloaded) {
         primaryLocation = reloaded;
+        syncDiag = (reloaded.attributesJson as any)?.syncDiagnostic || null;
       }
     } catch (autoErr) {
-      console.warn("Auto-sync empty reviews notice:", autoErr);
+      console.warn("Auto-sync diagnostic check notice:", autoErr);
     }
   }
 
@@ -261,6 +263,7 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
       accountName: connection.accountName,
       lastSyncedAt: connection.lastSyncedAt?.toISOString() || new Date().toISOString(),
       isVerified: connection.isVerified,
+      syncDiagnostic: syncDiag,
     },
     geminiConfig: {
       model: geminiConfig.model,
@@ -767,13 +770,9 @@ function calculatePerformanceMetrics(
       totalCalls: 0,
       totalDirections: 0,
       totalWebsiteClicks: 0,
-      searchVsMaps: { searchPercent: 50, mapsPercent: 50 },
+      searchVsMaps: { searchPercent: 0, mapsPercent: 0 },
       dailyMetrics: [],
-      topSearchQueries: [
-        { query: `${cleanName} near me`, count: 0, changePercent: 0 },
-        { query: `best ${cleanType} near me`, count: 0, changePercent: 0 },
-        { query: `top rated ${cleanType}`, count: 0, changePercent: 0 },
-      ],
+      topSearchQueries: [],
     };
   }
 
@@ -784,8 +783,8 @@ function calculatePerformanceMetrics(
   const totalWebsiteClicks = daily.reduce((acc, d) => acc + (d.websiteClicks || 0), 0);
   const sumImpressions = totalSearch + totalMaps;
 
-  const searchPercent = sumImpressions > 0 ? Math.round((totalSearch / sumImpressions) * 100) : 45;
-  const mapsPercent = 100 - searchPercent;
+  const searchPercent = sumImpressions > 0 ? Math.round((totalSearch / sumImpressions) * 100) : 0;
+  const mapsPercent = sumImpressions > 0 ? 100 - searchPercent : 0;
 
   // Aggregate top queries from daily records
   const queryMap: Record<string, number> = {};
@@ -800,24 +799,14 @@ function calculatePerformanceMetrics(
     }
   }
 
-  let aggregatedQueries = Object.entries(queryMap)
-    .map(([query, count], idx) => ({
+  const aggregatedQueries = Object.entries(queryMap)
+    .map(([query, count]) => ({
       query,
       count,
-      changePercent: [18, 12, 24, 8, -3][idx % 5] || 15,
+      changePercent: 0,
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
-
-  if (aggregatedQueries.length === 0) {
-    aggregatedQueries = [
-      { query: `${cleanName} near me`, count: 0, changePercent: 0 },
-      { query: `best ${cleanType} in town`, count: 0, changePercent: 0 },
-      { query: `top rated ${cleanType}`, count: 0, changePercent: 0 },
-      { query: `${cleanName} reviews and contact`, count: 0, changePercent: 0 },
-      { query: `${cleanType} directions and hours`, count: 0, changePercent: 0 },
-    ];
-  }
 
   return {
     monthlyImpressions: sumImpressions,
