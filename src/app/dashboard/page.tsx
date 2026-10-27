@@ -36,15 +36,12 @@ export default async function DashboardOverviewPage() {
   const redirectedTaps = await prisma.tapEvent.count({
     where: {
       tenantId,
-      outcome: { in: ["REDIRECTED", "DIRECT_REDIRECT"] },
+      outcome: { in: ["REDIRECTED", "DIRECT_REDIRECT", "REVIEW_COPIED"] },
     },
   });
 
-  const feedbackCaptured = await prisma.tapEvent.count({
-    where: {
-      tenantId,
-      outcome: "FEEDBACK_CAPTURED",
-    },
+  const feedbackCaptured = await prisma.privateFeedback.count({
+    where: { tenantId },
   });
 
   const activeCards = tenant.cards.filter((c) => c.status === "ACTIVE").length;
@@ -346,13 +343,14 @@ export default async function DashboardOverviewPage() {
 
                 if (
                   event.outcome === "REDIRECTED" ||
-                  event.outcome === "DIRECT_REDIRECT"
+                  event.outcome === "DIRECT_REDIRECT" ||
+                  event.outcome === "REVIEW_COPIED"
                 ) {
                   badgeClass = "bg-teal-50 text-teal-700 border border-teal-200";
                   badgeText = "Google 5★ Redirect";
-                } else if (event.outcome === "FEEDBACK_CAPTURED") {
+                } else if (event.outcome === "FEEDBACK_CAPTURED" || event.feedback) {
                   badgeClass = "bg-amber-50 text-amber-800 border border-amber-200";
-                  badgeText = `Private Feedback (${event.rating || "?"}★)`;
+                  badgeText = `Private Feedback (${event.feedback?.rating || event.rating || "?"}★)`;
                 }
 
                 return (

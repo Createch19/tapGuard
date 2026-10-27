@@ -81,6 +81,7 @@ export default async function RatePage({
       tone,
       customSentences,
       seedOffset,
+      primaryLanguage,
     });
 
     keywordConfig = {

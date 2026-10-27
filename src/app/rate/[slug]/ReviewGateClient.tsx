@@ -129,8 +129,12 @@ export default function ReviewGateClient({
   };
 
   // Keyword Sentence Helpers
-  const currentLangBundle = keywordConfig?.sentenceBundle?.[selectedLang] ||
-    keywordConfig?.sentenceBundle?.["EN"] || [];
+  const normSelectedLang = (selectedLang || initialLang || "EN").toUpperCase();
+  const currentLangBundle =
+    keywordConfig?.sentenceBundle?.[normSelectedLang] ||
+    keywordConfig?.sentenceBundle?.[selectedLang] ||
+    keywordConfig?.sentenceBundle?.["EN"] ||
+    [];
   const currentSentence =
     currentLangBundle.length > 0
       ? currentLangBundle[sentenceIdx % currentLangBundle.length]

@@ -49,14 +49,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update the tap event outcome
-    await prisma.tapEvent.update({
-      where: { id: tapEventId },
-      data: {
-        rating: Number(rating),
-        outcome: "FEEDBACK_CAPTURED",
-      },
-    });
+    // Update the tap event outcome & ensure tenantId is attached
+    if (tapEventId) {
+      await prisma.tapEvent
+        .update({
+          where: { id: tapEventId },
+          data: {
+            tenantId,
+            rating: Number(rating),
+            outcome: "FEEDBACK_CAPTURED",
+          },
+        })
+        .catch((err) => {
+          console.warn("Could not update tap event outcome for feedback:", err);
+        });
+    }
 
     // Dispatch webhook & email alert
     await dispatchFeedbackAlerts(tenant.webhookUrl, tenant.alertEmail, {

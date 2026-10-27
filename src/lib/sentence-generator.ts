@@ -379,10 +379,44 @@ export interface SentenceGeneratorOptions {
   keywords?: string[];
   businessType?: string | null;
   language?: SupportedLanguage;
+  primaryLanguage?: string;
   tone?: "CASUAL" | "ENTHUSIASTIC" | "SHORT" | "DETAILED";
   customSentences?: string[];
   count?: number;
   seedOffset?: number; // Mathematical offset for non-repeating permutation
+}
+
+/**
+ * Checks if a custom sentence belongs to the target language script or primary language.
+ * Prevents English custom sentences from overwriting index 0 of Tamil, Hindi, Telugu, or Kannada bundles.
+ */
+function isCustomSentenceLanguageCompatible(
+  sentence: string,
+  targetLang: SupportedLanguage,
+  primaryLang: string = "EN"
+): boolean {
+  const hasTamil = /[\u0B80-\u0BFF]/.test(sentence);
+  const hasHindi = /[\u0900-\u097F]/.test(sentence);
+  const hasTelugu = /[\u0C00-\u0C7F]/.test(sentence);
+  const hasKannada = /[\u0C80-\u0CFF]/.test(sentence);
+
+  if (hasTamil) return targetLang === "TA";
+  if (hasHindi) return targetLang === "HI";
+  if (hasTelugu) return targetLang === "TE";
+  if (hasKannada) return targetLang === "KN";
+
+  // If sentence is in Latin/English characters:
+  // Do NOT inject Latin custom sentences into Indic script languages
+  if (targetLang === "TA" || targetLang === "HI" || targetLang === "TE" || targetLang === "KN") {
+    return false;
+  }
+
+  // Allow Latin sentences in EN or TANGLISH
+  const normalizedPrimary = (primaryLang || "EN").toUpperCase();
+  if (normalizedPrimary === "TANGLISH") {
+    return targetLang === "TANGLISH" || targetLang === "EN";
+  }
+  return targetLang === normalizedPrimary || targetLang === "EN";
 }
 
 /**
@@ -421,12 +455,18 @@ export function generateReviewSentences(options: SentenceGeneratorOptions): stri
   const results: string[] = [];
   const usedCombos = new Set<string>();
 
-  // If user provided custom sentences, weave them into first positions
-  const customList = (options.customSentences || []).filter((s) => s.trim().length > 0);
+  // If user provided custom sentences, only weave them in if compatible with this language
+  const customList = (options.customSentences || [])
+    .map((s) => s.trim())
+    .filter(
+      (s) =>
+        s.length > 0 &&
+        isCustomSentenceLanguageCompatible(s, language, options.primaryLanguage)
+    );
   if (customList.length > 0) {
     const customPick = customList[seed % customList.length];
-    results.push(customPick.trim());
-    usedCombos.add(customPick.trim());
+    results.push(customPick);
+    usedCombos.add(customPick);
   }
 
   const openingsLen = grammar.openings.length;
