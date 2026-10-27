@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   title: "TapGate — Smart NFC Google Review Management Platform",
   description:
     "B2B SaaS platform for managing NFC and QR-code-based Google Review cards with Smart Rating Gate, private feedback interception, and multi-tenant analytics.",
+  icons: {
+    icon: [
+      { url: "/icon.png" },
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

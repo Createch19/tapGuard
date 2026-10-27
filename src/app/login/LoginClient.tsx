@@ -60,9 +60,7 @@ export default function LoginClient() {
       {/* Header */}
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-2">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-slate-900">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-black">
-            T
-          </div>
+          <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-lg object-contain shadow-xs" />
           <span>TapGate</span>
         </Link>
         <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full border border-slate-200">

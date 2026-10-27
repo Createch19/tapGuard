@@ -75,9 +75,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
       {/* Mobile Bar */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold">
-            A
-          </div>
+          <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-lg object-contain shadow-xs" />
           <div>
             <div className="text-[10px] text-teal-400 font-semibold uppercase tracking-wider">
               Super Admin
@@ -112,9 +110,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
           {/* Header */}
           <div className="mb-6">
             <Link href="/" className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-teal-500 text-slate-950 flex items-center justify-center font-black text-base shadow-sm">
-                T
-              </div>
+              <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-xl object-contain shadow-xs" />
               <div>
                 <span className="font-extrabold text-base tracking-tight text-white">
                   TapGate

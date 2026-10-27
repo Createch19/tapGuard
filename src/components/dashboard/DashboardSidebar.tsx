@@ -107,9 +107,7 @@ export default function DashboardSidebar({
       {/* Mobile Top Navbar */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold">
-            T
-          </div>
+          <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-lg object-contain shadow-xs" />
           <div>
             <div className="text-xs text-slate-400 font-medium leading-none">TapGate</div>
             <div className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[180px]">
@@ -144,9 +142,7 @@ export default function DashboardSidebar({
           {/* Logo & Tenant Header */}
           <div className="mb-6">
             <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-black text-base shadow-sm">
-                T
-              </div>
+              <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-xl object-contain shadow-xs" />
               <div>
                 <span className="font-extrabold text-base tracking-tight text-slate-900">
                   TapGate

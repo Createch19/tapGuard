@@ -26,9 +26,7 @@ export default async function HomePage() {
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-black text-base shadow-sm">
-              T
-            </div>
+            <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-xl object-contain shadow-xs" />
             <span className="font-black text-lg tracking-tight text-slate-900">
               TapGate
             </span>
@@ -366,9 +364,7 @@ export default async function HomePage() {
       <footer className="bg-white border-t border-slate-200/80 px-4 sm:px-8 py-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-bold text-slate-800">
-            <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-xs">
-              T
-            </div>
+            <img src="/logo.png" alt="TapGate Logo" className="w-6 h-6 rounded-lg object-contain shadow-xs" />
             <span>TapGate</span>
             <span className="text-slate-400 font-normal">
               — B2B NFC Google Review SaaS

@@ -192,10 +192,18 @@ export function buildGoogleAuthUrl(
 ): string {
   const clientId = customClientId || process.env.GOOGLE_CLIENT_ID;
   const redirectUri = customRedirectUri || getGoogleOAuthRedirectUri();
+
+  if (!clientId || !clientId.trim()) {
+    throw new Error(
+      "Cannot build Google OAuth URL: GOOGLE_CLIENT_ID is missing or empty. " +
+      "Set GOOGLE_CLIENT_ID in environment variables or configure custom credentials in tenant settings."
+    );
+  }
+
   const state = generateOAuthState(tenantId);
 
   const params = new URLSearchParams({
-    client_id: clientId || "",
+    client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
     scope: GOOGLE_SCOPES,
@@ -268,15 +276,31 @@ export async function refreshGoogleAccessToken(connectionId: string): Promise<st
     return connection.accessToken;
   }
 
-  const { clientId, clientSecret } = await getGoogleOAuthCredentials(connection.tenantId);
+  const isSimulatedToken = connection.refreshToken.startsWith("1//simulated") ||
+    connection.accessToken.startsWith("ya29.simulated");
 
-  if (!clientId || !clientSecret || connection.refreshToken.startsWith("1//simulated")) {
+  // For sandbox/simulated tokens, extend expiry without calling Google
+  if (isSimulatedToken) {
     const newExpiresAt = new Date(Date.now() + 3600000 * 24);
     await prisma.googleProfileConnection.update({
       where: { id: connectionId },
       data: { tokenExpiresAt: newExpiresAt },
     });
     return connection.accessToken;
+  }
+
+  // For live tokens, credentials must be available
+  const { clientId, clientSecret } = await getGoogleOAuthCredentials(connection.tenantId);
+
+  if (!clientId || !clientSecret) {
+    console.error(
+      `Google token refresh failed: OAuth credentials missing for tenant ${connection.tenantId}. ` +
+      `Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment variables.`
+    );
+    throw new Error(
+      "Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) are not configured. " +
+      "Cannot refresh expired access token."
+    );
   }
 
   const res = await fetch(GOOGLE_TOKEN_URL, {
@@ -292,7 +316,7 @@ export async function refreshGoogleAccessToken(connectionId: string): Promise<st
 
   const json = await res.json();
   if (!res.ok) {
-    console.error("Google token refresh failed:", json);
+    console.error("Google token refresh failed:", JSON.stringify(json));
     throw new Error(json.error_description || "Failed to refresh Google token");
   }
 
@@ -350,6 +374,69 @@ export interface GoogleDetailedResponse<T> {
 }
 
 /**
+ * Robust fetch wrapper for Google APIs with:
+ * 1. Exponential backoff retry on transient 5xx or rate limiting (HTTP 429 without hard quota exhaust)
+ * 2. Structured performance and diagnostic logging for production observability
+ */
+export async function googleApiFetch(
+  url: string,
+  options: RequestInit = {},
+  retries = 2
+): Promise<Response> {
+  let attempt = 0;
+  let lastError: any = null;
+
+  while (attempt <= retries) {
+    const startTime = Date.now();
+    try {
+      const res = await fetch(url, options);
+      const durationMs = Date.now() - startTime;
+
+      console.log(
+        `[Google API] ${options.method || "GET"} ${url} -> HTTP ${res.status} (${durationMs}ms) [Attempt ${attempt + 1}/${retries + 1}]`
+      );
+
+      // Quota 0 / RESOURCE_EXHAUSTED is not transient — don't delay by retrying
+      if (res.status === 429) {
+        const clone = res.clone();
+        const text = await clone.text().catch(() => "");
+        if (text.includes("quota_limit_value") || text.includes("RESOURCE_EXHAUSTED")) {
+          console.warn(`[Google API] Hard quota exhausted (quota limit 0) on ${url}`);
+          return res;
+        }
+      }
+
+      // Return immediately on success or client error (4xx other than transient 429)
+      if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) {
+        return res;
+      }
+
+      // Retry on 5xx or transient 429
+      if (attempt < retries) {
+        const delayMs = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        console.warn(
+          `[Google API] Transient HTTP ${res.status} calling ${url}. Retrying in ${Math.round(delayMs)}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        return res;
+      }
+    } catch (err: any) {
+      lastError = err;
+      const durationMs = Date.now() - startTime;
+      console.error(`[Google API] Network error calling ${url} (${durationMs}ms):`, err?.message || err);
+      if (attempt < retries) {
+        const delayMs = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+    attempt++;
+  }
+
+  throw lastError || new Error(`Google API request to ${url} failed after ${retries + 1} attempts`);
+}
+
+/**
  * Fetch Google Business Profile Accounts with full live HTTP diagnostics
  */
 export async function fetchGoogleBusinessAccountsDetailed(
@@ -357,7 +444,7 @@ export async function fetchGoogleBusinessAccountsDetailed(
 ): Promise<GoogleDetailedResponse<Array<{ name: string; accountName: string; type: string }>>> {
   const endpoint = GOOGLE_ACCOUNTS_URL;
   try {
-    const res = await fetch(endpoint, {
+    const res = await googleApiFetch(endpoint, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -545,7 +632,7 @@ export async function fetchGoogleLocationsDetailed(
   const endpoint = `https://mybusinessbusinessinformation.googleapis.com/v1/${acc}/locations?readMask=${readMask}`;
 
   try {
-    const res = await fetch(endpoint, {
+    const res = await googleApiFetch(endpoint, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -721,7 +808,7 @@ export async function fetchGooglePhotos(
     const loc = normalizeLocationName(locationName);
     const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/media?pageSize=100`;
 
-    const res = await fetch(url, {
+    const res = await googleApiFetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -760,7 +847,7 @@ export async function fetchGoogleLocalPosts(
     const loc = normalizeLocationName(locationName);
     const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/localPosts?pageSize=50`;
 
-    const res = await fetch(url, {
+    const res = await googleApiFetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -819,7 +906,7 @@ export async function fetchGooglePerformanceMetrics(
     params.set("dailyRange.endDate.day", String(now.getDate()));
 
     const url = `https://businessprofileperformance.googleapis.com/v1/${loc}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`;
-    const res = await fetch(url, {
+    const res = await googleApiFetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -899,7 +986,7 @@ export async function publishGoogleReviewReply(
     const loc = normalizeLocationName(locationName);
     const url = `https://mybusiness.googleapis.com/v4/${acc}/${loc}/reviews/${reviewId}/reply`;
 
-    const res = await fetch(url, {
+    const res = await googleApiFetch(url, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -960,7 +1047,7 @@ export async function publishGoogleLocalPost(
       ];
     }
 
-    const res = await fetch(url, {
+    const res = await googleApiFetch(url, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1024,7 +1111,7 @@ export async function publishGoogleHours(
         })
       : [];
 
-    const res = await fetch(url, {
+    const res = await googleApiFetch(url, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1081,64 +1168,36 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
   // Ensure primary location exists in database
   let primaryLoc = connection.locations[0];
   if (!primaryLoc) {
-    const isGenZ =
-      connection.connectedEmail?.toLowerCase() === "genzsportshub@gmail.com" ||
-      tenant.name.toLowerCase().includes("genz") ||
-      tenant.name.toLowerCase().includes("gen z");
-
     primaryLoc = await prisma.googleLocation.create({
       data: {
         connectionId: connection.id,
         tenantId,
         googleLocationId: tenant.googleLocationId || `locations/${Date.now()}`,
-        title: isGenZ ? "Gen Z Sports" : (connection.accountName || `${tenant.name} (Main Branch)`),
-        primaryPhone: isGenZ ? "076398 07707" : "+91 98450 12345",
-        websiteUri: tenant.googleReviewUrl || "https://tapgate.io",
-        addressJson: isGenZ
-          ? {
-              addressLines: ["Kazunkuzhi road", "Oragadam R.F."],
-              locality: "Tirukazhukundram",
-              administrativeArea: "Tamil Nadu",
-              postalCode: "603109",
-              country: "IN",
-            }
-          : {
-              addressLines: ["Main Street"],
-              locality: "City Center",
-              administrativeArea: "State",
-              postalCode: "600001",
-            },
-        coordinatesLat: isGenZ ? 12.5284 : 12.9716,
-        coordinatesLng: isGenZ ? 80.0544 : 77.5946,
-        primaryCategory: isGenZ ? "Sports complex" : (tenant.businessType || "Business"),
-        regularHoursJson: isGenZ
-          ? {
-              monday: { open: "06:00", close: "21:00" },
-              tuesday: { open: "06:00", close: "21:00" },
-              wednesday: { open: "06:00", close: "21:00" },
-              thursday: { open: "06:00", close: "21:00" },
-              friday: { open: "06:00", close: "21:00" },
-              saturday: { open: "06:00", close: "21:00" },
-              sunday: { open: "06:00", close: "21:00" },
-            }
-          : {
-              monday: { open: "08:00", close: "22:00" },
-              tuesday: { open: "08:00", close: "22:00" },
-              wednesday: { open: "08:00", close: "22:00" },
-              thursday: { open: "08:00", close: "22:00" },
-              friday: { open: "08:00", close: "23:00" },
-              saturday: { open: "08:00", close: "23:30" },
-              sunday: { open: "08:30", close: "22:30" },
-            },
-        specialHoursJson: isGenZ
-          ? [
-              { date: "2026-11-01", open: "06:00", close: "21:00", note: "Festival Sports Matches" },
-              { date: "2026-12-25", open: "06:00", close: "21:00", note: "Holiday Tournament Open" },
-            ]
-          : [
-              { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Hours" },
-              { date: "2026-12-25", open: "09:00", close: "23:00", note: "Holiday Special" },
-            ],
+        title: connection.accountName || `${tenant.name} (Main Branch)`,
+        primaryPhone: "+91 98450 12345",
+        websiteUri: tenant.googleReviewUrl || "https://creaitechnology.com",
+        addressJson: {
+          addressLines: ["Main Street"],
+          locality: "City Center",
+          administrativeArea: "State",
+          postalCode: "600001",
+        },
+        coordinatesLat: 12.9716,
+        coordinatesLng: 77.5946,
+        primaryCategory: tenant.businessType || "Business",
+        regularHoursJson: {
+          monday: { open: "08:00", close: "22:00" },
+          tuesday: { open: "08:00", close: "22:00" },
+          wednesday: { open: "08:00", close: "22:00" },
+          thursday: { open: "08:00", close: "22:00" },
+          friday: { open: "08:00", close: "23:00" },
+          saturday: { open: "08:00", close: "23:30" },
+          sunday: { open: "08:30", close: "22:30" },
+        },
+        specialHoursJson: [
+          { date: "2026-11-01", open: "10:00", close: "20:00", note: "Festival Hours" },
+          { date: "2026-12-25", open: "09:00", close: "23:00", note: "Holiday Special" },
+        ],
         isPrimaryBranch: true,
       },
     });
@@ -1147,66 +1206,14 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
   const isLiveGoogleAccount = validToken && !validToken.startsWith("ya29.simulated");
 
   if (isLiveGoogleAccount) {
-    // 1. Purge all mock/simulated reviews from this live account so only genuine Google API data is shown
-    await prisma.googleReview.deleteMany({
-      where: {
-        locationId: primaryLoc.id,
-        OR: [
-          { googleReviewId: { startsWith: "review_" } },
-          { googleReviewId: { startsWith: "g_rev_" } },
-        ],
-      },
-    });
-
-    // 2. Purge all mock/simulated Q&A questions
-    await prisma.googleQuestion.deleteMany({
-      where: {
-        locationId: primaryLoc.id,
-        OR: [
-          { googleQuestionId: { startsWith: "qa_" } },
-          { googleQuestionId: { startsWith: "g_qa_" } },
-        ],
-      },
-    });
-
-    // 3. Purge mock/simulated posts
-    await prisma.googlePost.deleteMany({
-      where: {
-        locationId: primaryLoc.id,
-        OR: [
-          { googlePostId: { startsWith: "post_" } },
-          { googlePostId: null },
-          { summary: { contains: "croissant", mode: "insensitive" } },
-          { summary: { contains: "coffee", mode: "insensitive" } },
-          { summary: { contains: "Seasonal Specialty", mode: "insensitive" } },
-          { summary: { contains: "Baker Box", mode: "insensitive" } },
-        ],
-      },
-    });
-
-    // 4. Purge mock photos
-    await prisma.googleMediaItem.deleteMany({
-      where: {
-        locationId: primaryLoc.id,
-        OR: [
-          { googleMediaId: null },
-          { googleMediaId: { startsWith: "media_" } },
-          { sourceUrl: { contains: "unsplash.com" } },
-        ],
-      },
-    });
-
-    // 5. Purge simulated daily performance metrics
-    await prisma.googlePerformanceDaily.deleteMany({
-      where: {
-        locationId: primaryLoc.id,
-      },
-    });
+    // NOTE: Mock data purge is deferred to AFTER confirming the live API returns real data.
+    // This prevents the hub from being left empty if the API call fails (quota 0, expired token, etc).
 
     let syncDiagnostic: GoogleSyncDiagnostic | null = null;
     let liveAccName = connection.googleAccountId;
     let liveLocName = primaryLoc.googleLocationId;
     let syncedReviewsCount = 0;
+    let liveApiSucceeded = false;
 
     try {
       // Step 1: Query verified Google Business Accounts from live REST API
@@ -1311,6 +1318,53 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
           // Live location found!
           const liveLoc = locationsRes.data[0];
           liveLocName = liveLoc.name;
+          liveApiSucceeded = true;
+
+          // NOW purge mock/simulated data since we have confirmed live API access
+          await prisma.googleReview.deleteMany({
+            where: {
+              locationId: primaryLoc.id,
+              OR: [
+                { googleReviewId: { startsWith: "review_" } },
+                { googleReviewId: { startsWith: "g_rev_" } },
+              ],
+            },
+          });
+          await prisma.googleQuestion.deleteMany({
+            where: {
+              locationId: primaryLoc.id,
+              OR: [
+                { googleQuestionId: { startsWith: "qa_" } },
+                { googleQuestionId: { startsWith: "g_qa_" } },
+              ],
+            },
+          });
+          await prisma.googlePost.deleteMany({
+            where: {
+              locationId: primaryLoc.id,
+              OR: [
+                { googlePostId: { startsWith: "post_" } },
+                { googlePostId: null },
+                { summary: { contains: "croissant", mode: "insensitive" } },
+                { summary: { contains: "coffee", mode: "insensitive" } },
+                { summary: { contains: "Seasonal Specialty", mode: "insensitive" } },
+                { summary: { contains: "Baker Box", mode: "insensitive" } },
+              ],
+            },
+          });
+          await prisma.googleMediaItem.deleteMany({
+            where: {
+              locationId: primaryLoc.id,
+              OR: [
+                { googleMediaId: null },
+                { googleMediaId: { startsWith: "media_" } },
+                { sourceUrl: { contains: "unsplash.com" } },
+              ],
+            },
+          });
+          await prisma.googlePerformanceDaily.deleteMany({
+            where: { locationId: primaryLoc.id },
+          });
 
           const realRegularHours = liveLoc.regularHours
             ? parseGoogleRegularHours(liveLoc.regularHours)

@@ -105,9 +105,7 @@ export default function ClaimClient({
       {/* Top Navbar */}
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-2">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-slate-900">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-black">
-            T
-          </div>
+          <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-lg object-contain shadow-xs" />
           <span>TapGate</span>
         </Link>
         {user ? (
