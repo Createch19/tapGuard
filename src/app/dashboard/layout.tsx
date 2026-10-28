@@ -2,6 +2,9 @@ import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -24,7 +27,7 @@ export default async function DashboardLayout({
   const unresolvedFeedbackCount = await prisma.privateFeedback.count({
     where: {
       tenantId,
-      isResolved: false,
+      isResolved: { not: true },
     },
   });
 

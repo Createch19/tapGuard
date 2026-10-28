@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -45,6 +45,31 @@ export default function DashboardSidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [badgeCount, setBadgeCount] = useState(unresolvedFeedbackCount);
+
+  useEffect(() => {
+    setBadgeCount(unresolvedFeedbackCount);
+  }, [unresolvedFeedbackCount]);
+
+  useEffect(() => {
+    const fetchLatestCount = () => {
+      fetch("/api/dashboard/feedback/count")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && typeof data.count === "number") {
+            setBadgeCount(data.count);
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchLatestCount();
+
+    window.addEventListener("feedback-status-changed", fetchLatestCount);
+    return () => {
+      window.removeEventListener("feedback-status-changed", fetchLatestCount);
+    };
+  }, [pathname]);
 
   const navLinks = [
     {
@@ -72,7 +97,7 @@ export default function DashboardSidebar({
       name: "Private Feedback",
       href: "/dashboard/feedback",
       icon: MessageSquareWarning,
-      badge: unresolvedFeedbackCount > 0 ? unresolvedFeedbackCount : null,
+      badge: badgeCount > 0 ? badgeCount : null,
     },
     {
       name: "Branding & Gate",

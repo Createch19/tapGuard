@@ -68,7 +68,7 @@ export default async function DashboardOverviewPage() {
 
   // Unresolved private feedback count
   const unresolvedFeedback = await prisma.privateFeedback.findMany({
-    where: { tenantId, isResolved: false },
+    where: { tenantId, isResolved: { not: true } },
     orderBy: { createdAt: "desc" },
     take: 3,
   });
