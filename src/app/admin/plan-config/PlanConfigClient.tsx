@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Save, CheckCircle, Copy, Check, Key, AlertCircle } from "lucide-react";
 
 interface PlanConfigItem {
@@ -54,23 +54,24 @@ export default function PlanConfigClient({
   const [oauthSaved, setOauthSaved] = useState(false);
   const [copiedUri, setCopiedUri] = useState(false);
 
-  const [liveRedirectUri, setLiveRedirectUri] = useState<string>(
-    platformGoogleOAuth?.redirectUri || "/api/auth/google/callback"
+  const isClient = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
   );
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.location.origin) {
+  const liveRedirectUri = (() => {
+    if (isClient && typeof window !== "undefined" && window.location.origin) {
       const origin = window.location.origin;
       if (
         !platformGoogleOAuth?.redirectUri ||
         (platformGoogleOAuth.redirectUri.includes("localhost") && !origin.includes("localhost"))
       ) {
-        setLiveRedirectUri(`${origin}/api/auth/google/callback`);
-      } else {
-        setLiveRedirectUri(platformGoogleOAuth.redirectUri);
+        return `${origin}/api/auth/google/callback`;
       }
     }
-  }, [platformGoogleOAuth?.redirectUri]);
+    return platformGoogleOAuth?.redirectUri || "/api/auth/google/callback";
+  })();
 
   const handleFieldChange = (
     id: string,

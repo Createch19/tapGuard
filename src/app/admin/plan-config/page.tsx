@@ -35,8 +35,22 @@ export default async function PlanConfigPage() {
     isActive: c.isActive,
   }));
 
-  const { clientId, clientSecret } = await getGoogleOAuthCredentials();
-  const redirectUri = getGoogleOAuthRedirectUri(headersList);
+  let clientId = "";
+  let clientSecret = "";
+  try {
+    const creds = await getGoogleOAuthCredentials();
+    clientId = creds.clientId || "";
+    clientSecret = creds.clientSecret || "";
+  } catch (err) {
+    console.warn("Could not retrieve Google OAuth credentials:", err);
+  }
+
+  let redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/google/callback`;
+  try {
+    redirectUri = getGoogleOAuthRedirectUri(headersList);
+  } catch (err) {
+    console.warn("Could not compute Google OAuth redirect URI:", err);
+  }
 
   return (
     <PlanConfigClient

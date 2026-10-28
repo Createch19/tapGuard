@@ -86,34 +86,74 @@ export async function getGoogleOAuthCredentials(tenantId?: string): Promise<{
   }
 }
 
+function extractHeader(source: unknown, name: string): string | null {
+  if (!source || typeof source !== "object") return null;
+
+  const obj = source as Record<string, unknown>;
+
+  // 1. Direct .get() method (Headers, ReadonlyHeaders from await headers())
+  if (typeof (obj as { get?: unknown }).get === "function") {
+    try {
+      const val = (obj as unknown as Headers).get(name);
+      if (typeof val === "string" && val.trim()) return val.trim();
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. Nested source.headers with .get() method (Request, NextRequest)
+  const headersObj = obj["headers"] as Record<string, unknown> | undefined;
+  if (headersObj && typeof (headersObj as { get?: unknown }).get === "function") {
+    try {
+      const val = (headersObj as unknown as Headers).get(name);
+      if (typeof val === "string" && val.trim()) return val.trim();
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. Nested source.headers as a plain Record/Map/Object
+  if (headersObj && typeof headersObj === "object") {
+    const direct = headersObj[name] || headersObj[name.toLowerCase()];
+    if (typeof direct === "string" && direct.trim()) return direct.trim();
+    if (Array.isArray(direct) && direct.length > 0 && typeof direct[0] === "string") {
+      return direct[0].trim();
+    }
+  }
+
+  // 4. Plain dictionary / record of headers
+  const direct = obj[name] || obj[name.toLowerCase()];
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  if (Array.isArray(direct) && direct.length > 0 && typeof direct[0] === "string") {
+    return direct[0].trim();
+  }
+
+  return null;
+}
+
 /**
  * Returns dynamic base URL based on incoming request headers or env fallback
  */
-export function getAppBaseUrl(reqOrHeaders?: Request | NextRequest | Headers | string | null): string {
+export function getAppBaseUrl(reqOrHeaders?: Request | NextRequest | Headers | unknown | string | null): string {
   if (typeof reqOrHeaders === "string" && reqOrHeaders.trim()) {
     return reqOrHeaders.trim().replace(/\/$/, "");
   }
 
   if (reqOrHeaders && typeof reqOrHeaders === "object") {
-    let host: string | null = null;
-    let proto = "https";
-
-    if ("headers" in reqOrHeaders && reqOrHeaders.headers) {
-      // It's a Request or NextRequest
-      host = reqOrHeaders.headers.get("x-forwarded-host") || reqOrHeaders.headers.get("host");
-      proto = reqOrHeaders.headers.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
-    } else if ("get" in reqOrHeaders && typeof (reqOrHeaders as Headers).get === "function") {
-      // It's a Headers instance (e.g. from await headers())
-      host = (reqOrHeaders as Headers).get("x-forwarded-host") || (reqOrHeaders as Headers).get("host");
-      proto = (reqOrHeaders as Headers).get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
-    }
-
-    if (host) {
-      return `${proto}://${host}`.replace(/\/$/, "");
-    }
-
+    // If it's a NextRequest with nextUrl origin
     if ("nextUrl" in reqOrHeaders && (reqOrHeaders as NextRequest).nextUrl?.origin) {
       return (reqOrHeaders as NextRequest).nextUrl.origin.replace(/\/$/, "");
+    }
+
+    const host =
+      extractHeader(reqOrHeaders, "x-forwarded-host") ||
+      extractHeader(reqOrHeaders, "host");
+
+    if (host) {
+      const proto =
+        extractHeader(reqOrHeaders, "x-forwarded-proto") ||
+        (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
+      return `${proto}://${host}`.replace(/\/$/, "");
     }
   }
 
