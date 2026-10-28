@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { getGoogleOAuthCredentials, getGoogleOAuthRedirectUri } from "@/lib/google-sync";
@@ -27,28 +28,36 @@ export default async function SettingsPage() {
   const suggestedRedirectUri = getGoogleOAuthRedirectUri(headersList);
 
   return (
-    <SettingsClient
-      tenant={{
-        id: tenant.id,
-        name: tenant.name,
-        googleReviewUrl: tenant.googleReviewUrl,
-        smartGateEnabled: tenant.smartGateEnabled,
-        alertEmail: tenant.alertEmail,
-        webhookUrl: tenant.webhookUrl,
-        googleBusinessEmail: tenant.googleBusinessEmail || tenant.googleConnection?.connectedEmail || null,
-        googleAccountId: tenant.googleConnection?.googleAccountId || null,
-        googleLocationId: tenant.googleLocationId || tenant.googleConnection?.locations[0]?.googleLocationId || null,
-        accountName: tenant.googleConnection?.accountName || null,
-        lastSyncedAt: tenant.googleConnection?.lastSyncedAt?.toISOString() || null,
-        isVerified: tenant.googleConnection?.isVerified || false,
-        geminiApiKey: tenant.geminiConfig?.customApiKey || null,
-        customGoogleClientId: tenant.customGoogleClientId || null,
-        customGoogleClientSecret: tenant.customGoogleClientSecret || null,
-        isGoogleConnected: Boolean(tenant.googleConnection?.isVerified || tenant.googleConnection?.connectedEmail),
-        hasGoogleCredentials,
-        isTenantCustomCredential: isTenantCustom,
-        suggestedRedirectUri,
-      }}
-    />
+    <Suspense
+      fallback={
+        <div className="min-h-[400px] flex items-center justify-center">
+          <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SettingsClient
+        tenant={{
+          id: tenant.id,
+          name: tenant.name,
+          googleReviewUrl: tenant.googleReviewUrl,
+          smartGateEnabled: tenant.smartGateEnabled,
+          alertEmail: tenant.alertEmail,
+          webhookUrl: tenant.webhookUrl,
+          googleBusinessEmail: tenant.googleBusinessEmail || tenant.googleConnection?.connectedEmail || null,
+          googleAccountId: tenant.googleConnection?.googleAccountId || null,
+          googleLocationId: tenant.googleLocationId || tenant.googleConnection?.locations?.[0]?.googleLocationId || null,
+          accountName: tenant.googleConnection?.accountName || null,
+          lastSyncedAt: tenant.googleConnection?.lastSyncedAt?.toISOString() || null,
+          isVerified: tenant.googleConnection?.isVerified || false,
+          geminiApiKey: tenant.geminiConfig?.customApiKey || null,
+          customGoogleClientId: tenant.customGoogleClientId || null,
+          customGoogleClientSecret: tenant.customGoogleClientSecret || null,
+          isGoogleConnected: Boolean(tenant.googleConnection?.isVerified || tenant.googleConnection?.connectedEmail),
+          hasGoogleCredentials,
+          isTenantCustomCredential: isTenantCustom,
+          suggestedRedirectUri,
+        }}
+      />
+    </Suspense>
   );
 }
