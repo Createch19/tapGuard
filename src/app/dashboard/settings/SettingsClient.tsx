@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   Save,
   CheckCircle,
@@ -49,10 +48,19 @@ interface SettingsClientProps {
     isTenantCustomCredential?: boolean;
     suggestedRedirectUri?: string;
   };
+  initialQuery?: {
+    googleConnected?: boolean;
+    accountEmail?: string | null;
+    error?: string | null;
+    redirectUri?: string | null;
+  };
 }
 
-export default function SettingsClient({ tenant }: SettingsClientProps) {
-  const searchParams = useSearchParams();
+export default function SettingsClient({ tenant, initialQuery }: SettingsClientProps) {
+  const queryGoogleConnected = initialQuery?.googleConnected || false;
+  const queryAccountEmail = initialQuery?.accountEmail || null;
+  const queryError = initialQuery?.error || null;
+  const queryRedirectUri = initialQuery?.redirectUri || null;
 
   const [googleReviewUrl, setGoogleReviewUrl] = useState(
     tenant.googleReviewUrl || ""
@@ -97,15 +105,14 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
   const [statusMessage, setStatusMessage] = useState("");
   const [copiedRedirectUri, setCopiedRedirectUri] = useState(false);
   const [liveRedirectUri, setLiveRedirectUri] = useState<string>(() => {
-    return tenant.suggestedRedirectUri || "/api/auth/google/callback";
+    return queryRedirectUri || tenant.suggestedRedirectUri || "/api/auth/google/callback";
   });
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.origin) {
       const origin = window.location.origin;
-      const paramUri = searchParams.get("redirect_uri");
-      if (paramUri && !paramUri.includes("localhost")) {
-        setLiveRedirectUri(paramUri);
+      if (queryRedirectUri && !queryRedirectUri.includes("localhost")) {
+        setLiveRedirectUri(queryRedirectUri);
       } else if (
         !tenant.suggestedRedirectUri ||
         (tenant.suggestedRedirectUri.includes("localhost") && !origin.includes("localhost"))
@@ -115,29 +122,27 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
         setLiveRedirectUri(tenant.suggestedRedirectUri);
       }
     }
-  }, [tenant.suggestedRedirectUri, searchParams]);
+  }, [tenant.suggestedRedirectUri, queryRedirectUri]);
 
   useEffect(() => {
-    if (searchParams.get("google_connected") === "true") {
+    if (queryGoogleConnected) {
       setIsGoogleConnected(true);
       setSaveSuccess(true);
-      const email = searchParams.get("account_email");
-      if (email) {
-        setGoogleBusinessEmail(email);
+      if (queryAccountEmail) {
+        setGoogleBusinessEmail(queryAccountEmail);
       }
       setStatusMessage(
-        email
-          ? `Google Account (${email}) successfully verified and connected!`
+        queryAccountEmail
+          ? `Google Account (${queryAccountEmail}) successfully verified and connected!`
           : "Google Business Profile successfully authorized and connected!"
       );
       setTimeout(() => setSaveSuccess(false), 5000);
-    } else if (searchParams.get("error") === "google_credentials_missing") {
+    } else if (queryError === "google_credentials_missing") {
       setStatusMessage("Google Cloud OAuth credentials not configured on server.");
-    } else if (searchParams.get("error")) {
-      const err = searchParams.get("error");
-      alert(`Google Connection Notice: ${err}`);
+    } else if (queryError) {
+      alert(`Google Connection Notice: ${queryError}`);
     }
-  }, [searchParams]);
+  }, [queryGoogleConnected, queryAccountEmail, queryError]);
 
   const handleSyncGoogle = async () => {
     setIsSyncingGoogle(true);
@@ -480,7 +485,7 @@ export default function SettingsClient({ tenant }: SettingsClientProps) {
                 </div>
 
                 {/* Live Google Cloud Setup Warning if keys missing */}
-                {(!tenant.hasGoogleCredentials || searchParams.get("error") === "google_credentials_missing") ? (
+                {(!tenant.hasGoogleCredentials || queryError === "google_credentials_missing") ? (
                   <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200/90 space-y-3">
                     <div className="flex items-start gap-2.5">
                       <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
