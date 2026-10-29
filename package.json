@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma db push && prisma generate && tsx prisma/prod-sync.ts && next build",
+    "build": "prisma generate && next build",
+    "db:sync": "prisma db push && tsx prisma/prod-sync.ts",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts"
