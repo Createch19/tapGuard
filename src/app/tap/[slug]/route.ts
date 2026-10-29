@@ -38,7 +38,9 @@ export async function GET(
     },
   });
 
-  const baseUrl = request.nextUrl.origin;
+  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : request.nextUrl.origin);
 
   // 1. Card Not Found
   if (!card) {
