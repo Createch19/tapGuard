@@ -326,6 +326,25 @@ model Card {
   label         String?
   activatedAt   DateTime?  @map("activated_at")
   deactivatedAt DateTime?  @map("deactivated_at")
+
+  // Card-specific Branding Gate Configuration & Overrides
+  overrideGate         Boolean       @default(false) @map("override_gate")
+  gateTemplate         GateTemplate? @map("gate_template")
+  customRedirectUrl    String?       @map("custom_redirect_url")
+  customRedirectTitle  String?       @map("custom_redirect_title")
+  customRedirectDirect Boolean?      @map("custom_redirect_direct")
+  googleReviewUrl      String?       @map("google_review_url")
+  smartGateEnabled     Boolean?      @map("smart_gate_enabled")
+  zomatoUrl            String?       @map("zomato_url")
+  swiggyUrl            String?       @map("swiggy_url")
+  instagramUrl         String?       @map("instagram_url")
+  facebookUrl          String?       @map("facebook_url")
+  youtubeUrl           String?       @map("youtube_url")
+  deliveryOfferText    String?       @map("delivery_offer_text")
+  deliveryPhone        String?       @map("delivery_phone")
+  greetingTitle        String?       @map("greeting_title")
+  greetingSubtitle     String?       @map("greeting_subtitle")
+
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 

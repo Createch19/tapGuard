@@ -36,6 +36,15 @@ export default async function CardsPage() {
     status: c.status,
     activatedAt: c.activatedAt?.toISOString() || null,
     tapCount: c.tapEvents.length,
+    overrideGate: Boolean(c.overrideGate),
+    gateTemplate: c.gateTemplate,
+    customRedirectUrl: c.customRedirectUrl,
+    customRedirectTitle: c.customRedirectTitle,
+    customRedirectDirect: c.customRedirectDirect,
+    googleReviewUrl: c.googleReviewUrl,
+    smartGateEnabled: c.smartGateEnabled,
+    zomatoUrl: c.zomatoUrl,
+    swiggyUrl: c.swiggyUrl,
   }));
 
   const rawPlan = String(
@@ -58,6 +67,14 @@ export default async function CardsPage() {
       tenantPlan={effectivePlan}
       baseUrl={baseUrl}
       maxCards={tenant.maxCards}
+      tenantDefaults={{
+        gateTemplate: tenant.gateTemplate,
+        googleReviewUrl: tenant.googleReviewUrl,
+        zomatoUrl: tenant.zomatoUrl,
+        swiggyUrl: tenant.swiggyUrl,
+        customRedirectUrl: tenant.customRedirectUrl,
+        smartGateEnabled: tenant.smartGateEnabled,
+      }}
     />
   );
 }

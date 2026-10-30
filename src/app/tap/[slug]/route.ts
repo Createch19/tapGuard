@@ -73,30 +73,42 @@ export async function GET(
     },
   });
 
+  // Resolve Effective Gate Configuration (Card-level override VS Tenant-level default)
+  const isOverridden = Boolean(card.overrideGate);
+  const effectiveGateTemplate = isOverridden && card.gateTemplate ? card.gateTemplate : card.tenant.gateTemplate;
+  const effectiveCustomDirect = isOverridden && card.customRedirectDirect !== null && card.customRedirectDirect !== undefined
+    ? card.customRedirectDirect
+    : card.tenant.customRedirectDirect;
+  const effectiveCustomRedirectUrl = isOverridden && card.customRedirectUrl ? card.customRedirectUrl : card.tenant.customRedirectUrl;
+  const effectiveSmartGateEnabled = isOverridden && card.smartGateEnabled !== null && card.smartGateEnabled !== undefined
+    ? card.smartGateEnabled
+    : card.tenant.smartGateEnabled;
+  const effectiveGoogleReviewUrl = isOverridden && card.googleReviewUrl ? card.googleReviewUrl : card.tenant.googleReviewUrl;
+
   // 5. If Custom Redirect Template is active with Direct 307 Redirect enabled
   if (
-    card.tenant.gateTemplate === "CUSTOM_REDIRECT" &&
-    card.tenant.customRedirectDirect &&
-    card.tenant.customRedirectUrl
+    effectiveGateTemplate === "CUSTOM_REDIRECT" &&
+    effectiveCustomDirect &&
+    effectiveCustomRedirectUrl
   ) {
     await prisma.tapEvent.update({
       where: { id: tapEvent.id },
       data: { outcome: "DIRECT_REDIRECT" },
     });
-    return NextResponse.redirect(card.tenant.customRedirectUrl, 307);
+    return NextResponse.redirect(effectiveCustomRedirectUrl, 307);
   }
 
   // 6. If Google Review Gate is active and Smart Gate is DISABLED -> Direct Google Review Redirect
   if (
-    card.tenant.gateTemplate === "GOOGLE_REVIEW" &&
-    !card.tenant.smartGateEnabled
+    effectiveGateTemplate === "GOOGLE_REVIEW" &&
+    !effectiveSmartGateEnabled
   ) {
     await prisma.tapEvent.update({
       where: { id: tapEvent.id },
       data: { outcome: "DIRECT_REDIRECT" },
     });
 
-    const destination = card.tenant.googleReviewUrl || "https://google.com";
+    const destination = effectiveGoogleReviewUrl || "https://google.com";
     return NextResponse.redirect(destination, 307);
   }
 

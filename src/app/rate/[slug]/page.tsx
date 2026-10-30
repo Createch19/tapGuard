@@ -64,7 +64,7 @@ export default async function RatePage({
     const primaryLanguage = rk.primaryLanguage || "EN";
     const keywords = rk.keywords || [];
     const customSentences = rk.customSentences || [];
-    const tone = (rk.tone as any) || "CASUAL";
+    const tone = (rk.tone as unknown as "CASUAL" | "ENTHUSIASTIC" | "DETAILED" | "SHORT") || "CASUAL";
     const seedOffset = rk.lastServedIndex || 0;
 
     const nextIndex = (rk.lastServedIndex + 1) % 10000;
@@ -92,6 +92,22 @@ export default async function RatePage({
     };
   }
 
+  // Resolve Effective Gate Configuration (Card Override VS Tenant Default)
+  const isOverridden = Boolean(card.overrideGate);
+  const effectiveGateTemplate = isOverridden && card.gateTemplate ? card.gateTemplate : tenant.gateTemplate;
+  const effectiveGoogleReviewUrl = isOverridden && card.googleReviewUrl ? card.googleReviewUrl : (tenant.googleReviewUrl || "https://google.com");
+  const effectiveZomatoUrl = isOverridden && card.zomatoUrl ? card.zomatoUrl : tenant.zomatoUrl;
+  const effectiveSwiggyUrl = isOverridden && card.swiggyUrl ? card.swiggyUrl : tenant.swiggyUrl;
+  const effectiveInstagramUrl = isOverridden && card.instagramUrl ? card.instagramUrl : tenant.instagramUrl;
+  const effectiveFacebookUrl = isOverridden && card.facebookUrl ? card.facebookUrl : tenant.facebookUrl;
+  const effectiveYoutubeUrl = isOverridden && card.youtubeUrl ? card.youtubeUrl : tenant.youtubeUrl;
+  const effectiveDeliveryOfferText = isOverridden && card.deliveryOfferText ? card.deliveryOfferText : tenant.deliveryOfferText;
+  const effectiveDeliveryPhone = isOverridden && card.deliveryPhone ? card.deliveryPhone : tenant.deliveryPhone;
+  const effectiveCustomRedirectUrl = isOverridden && card.customRedirectUrl ? card.customRedirectUrl : tenant.customRedirectUrl;
+  const effectiveCustomRedirectTitle = isOverridden && card.customRedirectTitle ? card.customRedirectTitle : (tenant.customRedirectTitle || "View Online Menu");
+  const effectiveGreetingTitle = isOverridden && card.greetingTitle ? card.greetingTitle : (tenant.greetingTitle || "How was your experience?");
+  const effectiveGreetingSubtitle = isOverridden && card.greetingSubtitle ? card.greetingSubtitle : (tenant.greetingSubtitle || "Your feedback helps us continuously improve our service.");
+
   return (
     <ReviewGateClient
       cardId={card.id}
@@ -99,22 +115,19 @@ export default async function RatePage({
       cardLabel={card.label}
       tenantId={tenant.id}
       tenantName={tenant.name}
-      gateTemplate={tenant.gateTemplate}
-      googleReviewUrl={tenant.googleReviewUrl || "https://google.com"}
-      instagramUrl={tenant.instagramUrl}
-      facebookUrl={tenant.facebookUrl}
-      youtubeUrl={tenant.youtubeUrl}
-      swiggyUrl={tenant.swiggyUrl}
-      zomatoUrl={tenant.zomatoUrl}
-      deliveryOfferText={tenant.deliveryOfferText}
-      deliveryPhone={tenant.deliveryPhone}
-      customRedirectUrl={tenant.customRedirectUrl}
-      customRedirectTitle={tenant.customRedirectTitle || "View Online Menu"}
-      greetingTitle={tenant.greetingTitle || "How was your experience?"}
-      greetingSubtitle={
-        tenant.greetingSubtitle ||
-        "Your feedback helps us continuously improve our service."
-      }
+      gateTemplate={effectiveGateTemplate}
+      googleReviewUrl={effectiveGoogleReviewUrl}
+      instagramUrl={effectiveInstagramUrl}
+      facebookUrl={effectiveFacebookUrl}
+      youtubeUrl={effectiveYoutubeUrl}
+      swiggyUrl={effectiveSwiggyUrl}
+      zomatoUrl={effectiveZomatoUrl}
+      deliveryOfferText={effectiveDeliveryOfferText}
+      deliveryPhone={effectiveDeliveryPhone}
+      customRedirectUrl={effectiveCustomRedirectUrl}
+      customRedirectTitle={effectiveCustomRedirectTitle}
+      greetingTitle={effectiveGreetingTitle}
+      greetingSubtitle={effectiveGreetingSubtitle}
       primaryColor={branding?.primaryColor || "#0D9488"}
       secondaryColor={branding?.secondaryColor || "#F0FDFA"}
       accentColor={branding?.accentColor || "#14B8A6"}
