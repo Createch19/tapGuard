@@ -105,8 +105,35 @@ export default async function RatePage({
   const effectiveDeliveryPhone = isOverridden && card.deliveryPhone ? card.deliveryPhone : tenant.deliveryPhone;
   const effectiveCustomRedirectUrl = isOverridden && card.customRedirectUrl ? card.customRedirectUrl : tenant.customRedirectUrl;
   const effectiveCustomRedirectTitle = isOverridden && card.customRedirectTitle ? card.customRedirectTitle : (tenant.customRedirectTitle || "View Online Menu");
-  const effectiveGreetingTitle = isOverridden && card.greetingTitle ? card.greetingTitle : (tenant.greetingTitle || "How was your experience?");
-  const effectiveGreetingSubtitle = isOverridden && card.greetingSubtitle ? card.greetingSubtitle : (tenant.greetingSubtitle || "Your feedback helps us continuously improve our service.");
+  const defaultGreeting =
+    effectiveGateTemplate === "DELIVERY_DINING"
+      ? "Order Online & Delivery"
+      : effectiveGateTemplate === "SOCIAL_HUB"
+      ? "Connect With Us"
+      : effectiveGateTemplate === "CUSTOM_REDIRECT"
+      ? "Explore Our Menu"
+      : "How was your experience?";
+
+  const defaultSubtitle =
+    effectiveGateTemplate === "DELIVERY_DINING"
+      ? "Select your favorite food platform or call us directly for takeaway."
+      : effectiveGateTemplate === "SOCIAL_HUB"
+      ? "Follow our official channels for latest updates, events & offers."
+      : effectiveGateTemplate === "CUSTOM_REDIRECT"
+      ? "Browse our digital items, special promotions, and services."
+      : "Your feedback helps us continuously improve our service.";
+
+  const effectiveGreetingTitle =
+    isOverridden && card.greetingTitle
+      ? card.greetingTitle
+      : tenant.greetingTitle && tenant.greetingTitle !== "How was your experience?"
+      ? tenant.greetingTitle
+      : defaultGreeting;
+
+  const effectiveGreetingSubtitle =
+    isOverridden && card.greetingSubtitle
+      ? card.greetingSubtitle
+      : tenant.greetingSubtitle || defaultSubtitle;
 
   return (
     <ReviewGateClient

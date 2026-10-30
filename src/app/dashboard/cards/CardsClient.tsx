@@ -26,6 +26,12 @@ import {
 } from "lucide-react";
 import ThematicQrGenerator from "@/components/qr/ThematicQrGenerator";
 
+export type GateTemplateType =
+  | "GOOGLE_REVIEW"
+  | "SOCIAL_HUB"
+  | "DELIVERY_DINING"
+  | "CUSTOM_REDIRECT";
+
 export interface CardItem {
   id: string;
   shortCode: string;
@@ -35,7 +41,7 @@ export interface CardItem {
   activatedAt?: string | null;
   tapCount: number;
   overrideGate?: boolean;
-  gateTemplate?: "GOOGLE_REVIEW" | "SOCIAL_HUB" | "DELIVERY_DINING" | "CUSTOM_REDIRECT" | null;
+  gateTemplate?: GateTemplateType | null;
   customRedirectUrl?: string | null;
   customRedirectTitle?: string | null;
   customRedirectDirect?: boolean | null;
@@ -43,14 +49,30 @@ export interface CardItem {
   smartGateEnabled?: boolean | null;
   zomatoUrl?: string | null;
   swiggyUrl?: string | null;
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  youtubeUrl?: string | null;
+  deliveryOfferText?: string | null;
+  deliveryPhone?: string | null;
+  greetingTitle?: string | null;
+  greetingSubtitle?: string | null;
 }
 
 export interface TenantDefaults {
-  gateTemplate?: "GOOGLE_REVIEW" | "SOCIAL_HUB" | "DELIVERY_DINING" | "CUSTOM_REDIRECT";
+  gateTemplate?: GateTemplateType;
   googleReviewUrl?: string | null;
   zomatoUrl?: string | null;
   swiggyUrl?: string | null;
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  youtubeUrl?: string | null;
+  deliveryOfferText?: string | null;
+  deliveryPhone?: string | null;
   customRedirectUrl?: string | null;
+  customRedirectTitle?: string | null;
+  customRedirectDirect?: boolean;
+  greetingTitle?: string | null;
+  greetingSubtitle?: string | null;
   smartGateEnabled?: boolean;
 }
 
@@ -62,6 +84,41 @@ interface CardsClientProps {
   maxCards: number;
   tenantDefaults?: TenantDefaults;
 }
+
+const TEMPLATE_PRESETS = [
+  {
+    id: "DELIVERY_DINING" as GateTemplateType,
+    name: "Swiggy & Zomato Delivery",
+    badge: "Food & Delivery Hub",
+    description: "Branded delivery gateway with Swiggy, Zomato, phone takeaway & offers",
+    icon: "🛵",
+    borderActive: "border-rose-500 bg-rose-50/70 ring-2 ring-rose-300",
+  },
+  {
+    id: "GOOGLE_REVIEW" as GateTemplateType,
+    name: "Google Review Smart Gate",
+    badge: "Reviews & SEO",
+    description: "5-Star rating gate with AI review sentences & negative feedback capture",
+    icon: "⭐",
+    borderActive: "border-amber-500 bg-amber-50/70 ring-2 ring-amber-300",
+  },
+  {
+    id: "SOCIAL_HUB" as GateTemplateType,
+    name: "Social Media Hub",
+    badge: "Social Following",
+    description: "Direct customer access to your Instagram, Facebook, and YouTube channels",
+    icon: "📱",
+    borderActive: "border-indigo-500 bg-indigo-50/70 ring-2 ring-indigo-300",
+  },
+  {
+    id: "CUSTOM_REDIRECT" as GateTemplateType,
+    name: "Digital Menu / Custom Link",
+    badge: "Online Menu & Web",
+    description: "Display an interactive menu card, PDF catalog, or direct instant redirect",
+    icon: "📖",
+    borderActive: "border-purple-500 bg-purple-50/70 ring-2 ring-purple-300",
+  },
+];
 
 export default function CardsClient({
   cards: initialCards,
@@ -75,32 +132,47 @@ export default function CardsClient({
   const [search, setSearch] = useState("");
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [selectedQrCard, setSelectedQrCard] = useState<CardItem | null>(null);
-  const [editingCard, setEditingCard] = useState<CardItem | null>(null);
-  const [editLabel, setEditLabel] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  // Modal States
-  const [gateModalCard, setGateModalCard] = useState<CardItem | null>(null);
-  const [showResetAllModal, setShowResetAllModal] = useState(false);
-  const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkMode, setBulkMode] = useState<"ALL" | "SELECTED">("SELECTED");
-  const [bulkPreset, setBulkPreset] = useState<"ZOMATO" | "GOOGLE" | "CUSTOM_URL" | "DEFAULT">("ZOMATO");
-  const [bulkUrl, setBulkUrl] = useState(tenantDefaults.zomatoUrl || "");
-  const [bulkTitle, setBulkTitle] = useState("Order on Zomato");
-  const [bulkDirect, setBulkDirect] = useState(true);
+  // Single Unified Card Edit & Template Modal State
+  const [editingCard, setEditingCard] = useState<CardItem | null>(null);
+  const [formLabel, setFormLabel] = useState("");
+  const [formStatus, setFormStatus] = useState<"ACTIVE" | "DEACTIVATED">("ACTIVE");
+  const [formOverrideGate, setFormOverrideGate] = useState(false);
+  const [formGateTemplate, setFormGateTemplate] = useState<GateTemplateType>("GOOGLE_REVIEW");
 
-  // Individual Card Gate Form State
-  const [gateOverrideEnabled, setGateOverrideEnabled] = useState(false);
-  const [gatePreset, setGatePreset] = useState<"ZOMATO" | "GOOGLE" | "CUSTOM_URL" | "SWIGGY">("ZOMATO");
-  const [formZomatoUrl, setFormZomatoUrl] = useState("");
+  // Template Form Fields
   const [formSwiggyUrl, setFormSwiggyUrl] = useState("");
+  const [formZomatoUrl, setFormZomatoUrl] = useState("");
+  const [formDeliveryPhone, setFormDeliveryPhone] = useState("");
+  const [formDeliveryOfferText, setFormDeliveryOfferText] = useState("");
   const [formGoogleUrl, setFormGoogleUrl] = useState("");
+  const [formSmartGate, setFormSmartGate] = useState(true);
+  const [formInstagramUrl, setFormInstagramUrl] = useState("");
+  const [formFacebookUrl, setFormFacebookUrl] = useState("");
+  const [formYoutubeUrl, setFormYoutubeUrl] = useState("");
   const [formCustomUrl, setFormCustomUrl] = useState("");
   const [formCustomTitle, setFormCustomTitle] = useState("View Online Menu");
-  const [formDirectRedirect, setFormDirectRedirect] = useState(true);
-  const [formSmartGate, setFormSmartGate] = useState(true);
+  const [formDirectRedirect, setFormDirectRedirect] = useState(false);
+  const [formGreetingTitle, setFormGreetingTitle] = useState("");
+
+  // Bulk Modal State
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkMode, setBulkMode] = useState<"ALL" | "SELECTED">("SELECTED");
+  const [bulkTemplate, setBulkTemplate] = useState<GateTemplateType | "DEFAULT">("DELIVERY_DINING");
+  const [bulkSwiggyUrl, setBulkSwiggyUrl] = useState(tenantDefaults.swiggyUrl || "");
+  const [bulkZomatoUrl, setBulkZomatoUrl] = useState(tenantDefaults.zomatoUrl || "");
+  const [bulkDeliveryPhone, setBulkDeliveryPhone] = useState(tenantDefaults.deliveryPhone || "");
+  const [bulkDeliveryOffer, setBulkDeliveryOffer] = useState(tenantDefaults.deliveryOfferText || "");
+  const [bulkGoogleUrl, setBulkGoogleUrl] = useState(tenantDefaults.googleReviewUrl || "");
+  const [bulkCustomUrl, setBulkCustomUrl] = useState(tenantDefaults.customRedirectUrl || "");
+  const [bulkCustomTitle, setBulkCustomTitle] = useState("View Online Menu");
+  const [bulkDirect, setBulkDirect] = useState(false);
+
+  // Reset All Modal
+  const [showResetAllModal, setShowResetAllModal] = useState(false);
 
   const activeCardsCount = cards.filter((c) => c.status === "ACTIVE").length;
 
@@ -148,138 +220,92 @@ export default function CardsClient({
     }
   };
 
-  const handleSaveLabel = async (e: React.FormEvent) => {
+  // Open Unified Card Edit & Template Modal
+  const handleOpenEditModal = (card: CardItem) => {
+    setEditingCard(card);
+    setFormLabel(card.label || "");
+    setFormStatus(card.status === "DEACTIVATED" ? "DEACTIVATED" : "ACTIVE");
+    setFormOverrideGate(Boolean(card.overrideGate));
+
+    const initialTemplate =
+      card.gateTemplate || tenantDefaults.gateTemplate || "GOOGLE_REVIEW";
+    setFormGateTemplate(initialTemplate);
+
+    setFormSwiggyUrl(card.swiggyUrl || tenantDefaults.swiggyUrl || "");
+    setFormZomatoUrl(card.zomatoUrl || tenantDefaults.zomatoUrl || "");
+    setFormDeliveryPhone(card.deliveryPhone || tenantDefaults.deliveryPhone || "");
+    setFormDeliveryOfferText(card.deliveryOfferText || tenantDefaults.deliveryOfferText || "");
+    setFormGoogleUrl(card.googleReviewUrl || tenantDefaults.googleReviewUrl || "");
+    setFormSmartGate(card.smartGateEnabled ?? tenantDefaults.smartGateEnabled ?? true);
+    setFormInstagramUrl(card.instagramUrl || tenantDefaults.instagramUrl || "");
+    setFormFacebookUrl(card.facebookUrl || tenantDefaults.facebookUrl || "");
+    setFormYoutubeUrl(card.youtubeUrl || tenantDefaults.youtubeUrl || "");
+    setFormCustomUrl(card.customRedirectUrl || tenantDefaults.customRedirectUrl || "");
+    setFormCustomTitle(card.customRedirectTitle || tenantDefaults.customRedirectTitle || "View Online Menu");
+    setFormDirectRedirect(card.customRedirectDirect ?? tenantDefaults.customRedirectDirect ?? false);
+    setFormGreetingTitle(card.greetingTitle || "");
+  };
+
+  // Save Card Settings (Label + Gate Template)
+  const handleSaveCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCard) return;
 
     setIsUpdating(true);
     try {
-      const res = await fetch(`/api/dashboard/cards/${editingCard.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: editLabel }),
-      });
+      const payload: Record<string, unknown> = {
+        label: formLabel.trim(),
+        status: formStatus,
+        overrideGate: formOverrideGate,
+      };
 
-      if (!res.ok) throw new Error("Failed to update label");
-
-      setCards((prev) =>
-        prev.map((c) =>
-          c.id === editingCard.id ? { ...c, label: editLabel } : c
-        )
-      );
-      setEditingCard(null);
-      showToast("Card label updated");
-    } catch {
-      alert("Failed to update card label");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Open Card Gate Modal with prefilled values
-  const handleOpenGateModal = (card: CardItem) => {
-    setGateModalCard(card);
-    setGateOverrideEnabled(Boolean(card.overrideGate));
-
-    const isZomato =
-      card.zomatoUrl ||
-      (card.customRedirectUrl && card.customRedirectUrl.toLowerCase().includes("zomato"));
-    const isSwiggy =
-      card.swiggyUrl ||
-      (card.customRedirectUrl && card.customRedirectUrl.toLowerCase().includes("swiggy"));
-
-    if (isZomato) {
-      setGatePreset("ZOMATO");
-    } else if (isSwiggy) {
-      setGatePreset("SWIGGY");
-    } else if (card.gateTemplate === "GOOGLE_REVIEW") {
-      setGatePreset("GOOGLE");
-    } else if (card.gateTemplate === "CUSTOM_REDIRECT") {
-      setGatePreset("CUSTOM_URL");
-    } else {
-      setGatePreset("ZOMATO");
-    }
-
-    setFormZomatoUrl(card.zomatoUrl || tenantDefaults.zomatoUrl || "");
-    setFormSwiggyUrl(card.swiggyUrl || tenantDefaults.swiggyUrl || "");
-    setFormGoogleUrl(card.googleReviewUrl || tenantDefaults.googleReviewUrl || "");
-    setFormCustomUrl(card.customRedirectUrl || tenantDefaults.customRedirectUrl || "");
-    setFormCustomTitle(card.customRedirectTitle || "View Online Menu");
-    setFormDirectRedirect(card.customRedirectDirect ?? true);
-    setFormSmartGate(card.smartGateEnabled ?? true);
-  };
-
-  // Save Card Gate Form
-  const handleSaveCardGate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!gateModalCard) return;
-
-    setIsUpdating(true);
-    try {
-      let payload: Record<string, unknown> = {};
-
-      if (!gateOverrideEnabled) {
-        payload = {
-          overrideGate: false,
-        };
-      } else if (gatePreset === "ZOMATO") {
-        payload = {
-          overrideGate: true,
-          gateTemplate: formDirectRedirect ? "CUSTOM_REDIRECT" : "DELIVERY_DINING",
-          customRedirectUrl: formDirectRedirect ? formZomatoUrl : null,
-          customRedirectTitle: "Order on Zomato",
-          customRedirectDirect: formDirectRedirect,
-          zomatoUrl: formZomatoUrl,
-        };
-      } else if (gatePreset === "GOOGLE") {
-        payload = {
-          overrideGate: true,
-          gateTemplate: "GOOGLE_REVIEW",
-          googleReviewUrl: formGoogleUrl,
-          smartGateEnabled: formSmartGate,
-          customRedirectDirect: !formSmartGate,
-        };
-      } else if (gatePreset === "CUSTOM_URL") {
-        payload = {
-          overrideGate: true,
-          gateTemplate: "CUSTOM_REDIRECT",
-          customRedirectUrl: formCustomUrl,
-          customRedirectTitle: formCustomTitle || "View Online Menu",
-          customRedirectDirect: formDirectRedirect,
-        };
-      } else if (gatePreset === "SWIGGY") {
-        payload = {
-          overrideGate: true,
-          gateTemplate: formDirectRedirect ? "CUSTOM_REDIRECT" : "DELIVERY_DINING",
-          customRedirectUrl: formDirectRedirect ? formSwiggyUrl : null,
-          customRedirectTitle: "Order on Swiggy",
-          customRedirectDirect: formDirectRedirect,
-          swiggyUrl: formSwiggyUrl,
-        };
+      if (formOverrideGate) {
+        payload.gateTemplate = formGateTemplate;
+        if (formGateTemplate === "DELIVERY_DINING") {
+          payload.swiggyUrl = formSwiggyUrl || null;
+          payload.zomatoUrl = formZomatoUrl || null;
+          payload.deliveryPhone = formDeliveryPhone || null;
+          payload.deliveryOfferText = formDeliveryOfferText || null;
+          payload.customRedirectDirect = false;
+        } else if (formGateTemplate === "GOOGLE_REVIEW") {
+          payload.googleReviewUrl = formGoogleUrl || null;
+          payload.smartGateEnabled = formSmartGate;
+          payload.customRedirectDirect = !formSmartGate;
+        } else if (formGateTemplate === "SOCIAL_HUB") {
+          payload.instagramUrl = formInstagramUrl || null;
+          payload.facebookUrl = formFacebookUrl || null;
+          payload.youtubeUrl = formYoutubeUrl || null;
+          payload.customRedirectDirect = false;
+        } else if (formGateTemplate === "CUSTOM_REDIRECT") {
+          payload.customRedirectUrl = formCustomUrl || null;
+          payload.customRedirectTitle = formCustomTitle || "View Online Menu";
+          payload.customRedirectDirect = formDirectRedirect;
+        }
+        payload.greetingTitle = formGreetingTitle ? formGreetingTitle.trim() : null;
       }
 
-      const res = await fetch(`/api/dashboard/cards/${gateModalCard.id}`, {
+      const res = await fetch(`/api/dashboard/cards/${editingCard.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to save gate configuration");
+      if (!res.ok) throw new Error("Failed to save card settings");
       const data = await res.json();
 
       setCards((prev) =>
-        prev.map((c) => (c.id === gateModalCard.id ? { ...c, ...data.card } : c))
+        prev.map((c) => (c.id === editingCard.id ? { ...c, ...data.card } : c))
       );
-      setGateModalCard(null);
-      showToast(`Gate settings updated for ${gateModalCard.shortCode}!`);
+      setEditingCard(null);
+      showToast(`Updated card ${formLabel || editingCard.shortCode} successfully!`);
     } catch {
-      alert("Failed to save gate settings. Please try again.");
+      alert("Failed to save card settings. Please try again.");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // 1-Click Reset ALL Cards to Default Google Review Gate
+  // 1-Click Reset ALL Cards to Default Business Gate
   const handleResetAllToDefault = async () => {
     setIsUpdating(true);
     try {
@@ -298,9 +324,9 @@ export default function CardsClient({
         }))
       );
       setShowResetAllModal(false);
-      showToast("⚡ All cards set to Default Google Review Gate!");
+      showToast("All cards reset to default business gate!");
     } catch {
-      alert("Failed to reset all cards to default.");
+      alert("Failed to reset cards.");
     } finally {
       setIsUpdating(false);
     }
@@ -312,96 +338,73 @@ export default function CardsClient({
     setIsUpdating(true);
 
     try {
-      if (bulkMode === "ALL") {
-        if (bulkPreset === "DEFAULT") {
-          await handleResetAllToDefault();
-          setShowBulkModal(false);
-          return;
-        }
+      const isAll = bulkMode === "ALL";
+      const targetIds = isAll ? cards.map((c) => c.id) : selectedCardIds;
 
-        const action = bulkPreset === "ZOMATO" ? "SET_ALL_ZOMATO" : "SET_ALL_CUSTOM_URL";
+      if (!isAll && targetIds.length === 0) return;
+
+      if (bulkTemplate === "DEFAULT") {
         const res = await fetch("/api/dashboard/cards/bulk-gate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action,
-            zomatoUrl: bulkUrl,
-            customRedirectUrl: bulkUrl,
-            customRedirectTitle: bulkTitle,
-            customRedirectDirect: bulkDirect,
+            action: isAll ? "RESET_ALL_TO_DEFAULT" : "SET_TEMPLATE",
+            cardIds: isAll ? undefined : targetIds,
+            overrideGate: false,
           }),
         });
 
-        if (!res.ok) throw new Error("Bulk update failed");
+        if (!res.ok) throw new Error("Failed to reset cards");
 
-        // Refresh state
         setCards((prev) =>
-          prev.map((c) => ({
-            ...c,
-            overrideGate: true,
-            gateTemplate: bulkDirect ? "CUSTOM_REDIRECT" : "DELIVERY_DINING",
-            customRedirectUrl: bulkDirect ? bulkUrl : null,
-            customRedirectDirect: bulkDirect,
-            customRedirectTitle: bulkTitle,
-            zomatoUrl: bulkPreset === "ZOMATO" ? bulkUrl : c.zomatoUrl,
-          }))
+          prev.map((c) =>
+            targetIds.includes(c.id) ? { ...c, overrideGate: false } : c
+          )
         );
-        setShowBulkModal(false);
-        showToast("⚡ All cards updated successfully!");
       } else {
-        // SELECTED CARDS
-        if (selectedCardIds.length === 0) return;
+        const updateData: Record<string, unknown> = {
+          overrideGate: true,
+          gateTemplate: bulkTemplate,
+        };
 
-        let updateData: Record<string, unknown> = {};
-        if (bulkPreset === "DEFAULT") {
-          updateData = { overrideGate: false };
-        } else if (bulkPreset === "ZOMATO") {
-          updateData = {
-            overrideGate: true,
-            gateTemplate: bulkDirect ? "CUSTOM_REDIRECT" : "DELIVERY_DINING",
-            customRedirectUrl: bulkDirect ? bulkUrl : null,
-            customRedirectTitle: "Order on Zomato",
-            customRedirectDirect: bulkDirect,
-            zomatoUrl: bulkUrl,
-          };
-        } else if (bulkPreset === "GOOGLE") {
-          updateData = {
-            overrideGate: true,
-            gateTemplate: "GOOGLE_REVIEW",
-            googleReviewUrl: bulkUrl || tenantDefaults.googleReviewUrl,
-            smartGateEnabled: true,
-          };
-        } else if (bulkPreset === "CUSTOM_URL") {
-          updateData = {
-            overrideGate: true,
-            gateTemplate: "CUSTOM_REDIRECT",
-            customRedirectUrl: bulkUrl,
-            customRedirectTitle: bulkTitle,
-            customRedirectDirect: bulkDirect,
-          };
+        if (bulkTemplate === "DELIVERY_DINING") {
+          updateData.swiggyUrl = bulkSwiggyUrl || null;
+          updateData.zomatoUrl = bulkZomatoUrl || null;
+          updateData.deliveryPhone = bulkDeliveryPhone || null;
+          updateData.deliveryOfferText = bulkDeliveryOffer || null;
+          updateData.customRedirectDirect = false;
+        } else if (bulkTemplate === "GOOGLE_REVIEW") {
+          updateData.googleReviewUrl = bulkGoogleUrl || null;
+          updateData.smartGateEnabled = true;
+          updateData.customRedirectDirect = false;
+        } else if (bulkTemplate === "CUSTOM_REDIRECT") {
+          updateData.customRedirectUrl = bulkCustomUrl || null;
+          updateData.customRedirectTitle = bulkCustomTitle || "View Online Menu";
+          updateData.customRedirectDirect = bulkDirect;
         }
 
         const res = await fetch("/api/dashboard/cards/bulk-gate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "UPDATE_SELECTED",
-            cardIds: selectedCardIds,
+            action: "SET_TEMPLATE",
+            cardIds: isAll ? undefined : targetIds,
             ...updateData,
           }),
         });
 
-        if (!res.ok) throw new Error("Bulk update failed");
+        if (!res.ok) throw new Error("Failed bulk update");
 
         setCards((prev) =>
           prev.map((c) =>
-            selectedCardIds.includes(c.id) ? { ...c, ...updateData } : c
+            targetIds.includes(c.id) ? { ...c, ...updateData } : c
           )
         );
-        setSelectedCardIds([]);
-        setShowBulkModal(false);
-        showToast(`⚡ Updated ${selectedCardIds.length} selected card(s)!`);
       }
+
+      setSelectedCardIds([]);
+      setShowBulkModal(false);
+      showToast(`Updated ${targetIds.length} card(s) successfully!`);
     } catch {
       alert("Failed to perform bulk update.");
     } finally {
@@ -409,7 +412,6 @@ export default function CardsClient({
     }
   };
 
-  // Toggle selection for a card
   const handleToggleSelect = (cardId: string) => {
     setSelectedCardIds((prev) =>
       prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
@@ -427,66 +429,56 @@ export default function CardsClient({
   // Badge Renderer
   const renderGateBadge = (card: CardItem) => {
     if (!card.overrideGate) {
+      const defaultName =
+        tenantDefaults.gateTemplate === "DELIVERY_DINING"
+          ? "Swiggy & Zomato Delivery"
+          : tenantDefaults.gateTemplate === "SOCIAL_HUB"
+          ? "Social Media Hub"
+          : tenantDefaults.gateTemplate === "CUSTOM_REDIRECT"
+          ? "Digital Menu"
+          : "Google Review";
+
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
           <Sparkles className="w-3 h-3 text-teal-600" />
-          <span>Default: Google Review</span>
+          <span>Default: {defaultName}</span>
         </span>
       );
     }
 
     const t = card.gateTemplate || "GOOGLE_REVIEW";
 
-    if (t === "CUSTOM_REDIRECT") {
-      const isZomato =
-        card.zomatoUrl ||
-        (card.customRedirectUrl && card.customRedirectUrl.toLowerCase().includes("zomato"));
-      if (isZomato) {
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-            <span>Zomato {card.customRedirectDirect ? "Direct" : "Gate"}</span>
-          </span>
-        );
-      }
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-          <Globe className="w-3 h-3 text-purple-600" />
-          <span>Custom URL {card.customRedirectDirect ? "(Direct)" : "(Gate)"}</span>
-        </span>
-      );
-    }
-
     if (t === "DELIVERY_DINING") {
-      if (card.zomatoUrl) {
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-            <Utensils className="w-3 h-3 text-rose-600" />
-            <span>Zomato Delivery</span>
-          </span>
-        );
-      }
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-          <Utensils className="w-3 h-3 text-amber-600" />
-          <span>Delivery Hub</span>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <Utensils className="w-3 h-3 text-rose-600" />
+          <span>🛵 Swiggy & Zomato Delivery</span>
         </span>
       );
     }
 
     if (t === "GOOGLE_REVIEW") {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-          <Star className="w-3 h-3 text-blue-600" />
-          <span>Google Review {card.smartGateEnabled ? "(Smart 5★)" : "(Direct)"}</span>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+          <Star className="w-3 h-3 text-amber-500 fill-amber-400" />
+          <span>⭐ Google Review {card.smartGateEnabled ? "(Smart 5★)" : "(Direct)"}</span>
+        </span>
+      );
+    }
+
+    if (t === "SOCIAL_HUB") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <Layers className="w-3 h-3 text-indigo-600" />
+          <span>📱 Social Media Hub</span>
         </span>
       );
     }
 
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-        <Layers className="w-3 h-3 text-indigo-600" />
-        <span>Social Hub</span>
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+        <Globe className="w-3 h-3 text-purple-600" />
+        <span>📖 Digital Menu {card.customRedirectDirect ? "(Direct)" : "(Gate)"}</span>
       </span>
     );
   };
@@ -505,10 +497,10 @@ export default function CardsClient({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-2xs">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>NFC Cards & QR Touchpoints</span>
+            <span>NFC Cards & Dynamic Gate Touchpoints</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Configure each card&apos;s brand gate independently (Zomato, Google Review, Custom URL) with zero reprinting
+            Assign dynamic gate templates (Swiggy & Zomato Delivery, Google Review Smart Gate, Social Hub) per card with zero reprinting
           </p>
         </div>
 
@@ -522,30 +514,32 @@ export default function CardsClient({
             </span>
           </div>
 
-          {/* ONE-CLICK SET TO DEFAULT GOOGLE REVIEW GATE */}
+          {/* Reset All to Business Default */}
           <button
             onClick={() => setShowResetAllModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-xl text-xs font-bold transition-all shadow-2xs hover:border-teal-300"
-            title="1-Click reset all cards to default Google Review Brand Gate"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-all shadow-2xs"
+            title="Reset all cards to company default gate template"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>1-Click: Reset All to Default</span>
+            <span>Reset All to Default</span>
           </button>
 
-          {/* BULK CHANGE ALL CARDS (CUSTOM URL / PROMO / ZOMATO) */}
+          {/* Bulk Update All Cards */}
           <button
             onClick={() => {
               setBulkMode("ALL");
-              setBulkPreset("CUSTOM_URL");
-              setBulkUrl("");
-              setBulkTitle("View Online Menu");
+              setBulkTemplate("DELIVERY_DINING");
+              setBulkSwiggyUrl(tenantDefaults.swiggyUrl || "");
+              setBulkZomatoUrl(tenantDefaults.zomatoUrl || "");
+              setBulkDeliveryPhone(tenantDefaults.deliveryPhone || "");
+              setBulkDeliveryOffer(tenantDefaults.deliveryOfferText || "");
               setShowBulkModal(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-all shadow-2xs"
-            title="Change all cards to a custom URL or promo simultaneously"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-xl text-xs font-semibold transition-all shadow-2xs"
+            title="Batch configure template for all cards"
           >
-            <Globe className="w-3.5 h-3.5 text-slate-600" />
-            <span>Set All to Custom URL</span>
+            <Sliders className="w-3.5 h-3.5 text-teal-600" />
+            <span>Batch Assign All Cards</span>
           </button>
 
           <Link
@@ -566,7 +560,7 @@ export default function CardsClient({
         </div>
       </div>
 
-      {/* Floating / Sticky Bulk Action Bar when cards are selected */}
+      {/* Floating Bulk Action Bar when cards are selected */}
       {selectedCardIds.length > 0 && (
         <div className="bg-slate-900 text-white p-3.5 px-5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center gap-2.5">
@@ -579,52 +573,48 @@ export default function CardsClient({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Quick Set to Zomato */}
+            {/* Quick Set to Swiggy & Zomato Delivery */}
             <button
               onClick={() => {
                 setBulkMode("SELECTED");
-                setBulkPreset("ZOMATO");
-                setBulkUrl(tenantDefaults.zomatoUrl || "");
-                setBulkTitle("Order on Zomato");
-                setBulkDirect(true);
+                setBulkTemplate("DELIVERY_DINING");
+                setBulkSwiggyUrl(tenantDefaults.swiggyUrl || "");
+                setBulkZomatoUrl(tenantDefaults.zomatoUrl || "");
+                setBulkDeliveryPhone(tenantDefaults.deliveryPhone || "");
+                setBulkDeliveryOffer(tenantDefaults.deliveryOfferText || "");
                 setShowBulkModal(true);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-xs"
             >
               <Utensils className="w-3 h-3" />
-              <span>Set to Zomato</span>
+              <span>🛵 Swiggy & Zomato Delivery</span>
             </button>
 
             {/* Quick Set to Google Review */}
             <button
               onClick={() => {
                 setBulkMode("SELECTED");
-                setBulkPreset("GOOGLE");
-                setBulkUrl(tenantDefaults.googleReviewUrl || "");
-                setBulkTitle("Google Review");
-                setBulkDirect(false);
+                setBulkTemplate("GOOGLE_REVIEW");
+                setBulkGoogleUrl(tenantDefaults.googleReviewUrl || "");
                 setShowBulkModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs"
             >
               <Star className="w-3 h-3" />
-              <span>Set to Google Review</span>
+              <span>⭐ Google Review Gate</span>
             </button>
 
-            {/* Quick Set to Custom URL */}
+            {/* Quick Set to Social Hub */}
             <button
               onClick={() => {
                 setBulkMode("SELECTED");
-                setBulkPreset("CUSTOM_URL");
-                setBulkUrl("");
-                setBulkTitle("View Online Menu");
-                setBulkDirect(true);
+                setBulkTemplate("SOCIAL_HUB");
                 setShowBulkModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs"
             >
-              <Globe className="w-3 h-3" />
-              <span>Set Custom URL</span>
+              <Layers className="w-3 h-3" />
+              <span>📱 Social Hub</span>
             </button>
 
             {/* Reset Selected to Default */}
@@ -636,7 +626,7 @@ export default function CardsClient({
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      action: "UPDATE_SELECTED",
+                      action: "SET_TEMPLATE",
                       cardIds: selectedCardIds,
                       overrideGate: false,
                     }),
@@ -650,82 +640,71 @@ export default function CardsClient({
                     )
                   );
                   setSelectedCardIds([]);
-                  showToast("Selected cards reset to Default Brand Gate!");
+                  showToast(`Reset ${selectedCardIds.length} card(s) to company default!`);
                 } catch {
-                  alert("Failed to reset selected cards.");
+                  alert("Failed to reset selected cards");
                 } finally {
                   setIsUpdating(false);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset to Default</span>
-            </button>
-
-            <button
-              onClick={() => setSelectedCardIds([])}
-              className="p-1 text-slate-400 hover:text-white"
-            >
-              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      {/* Search & Stats Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
+        <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
+            placeholder="Search by code, label, or URL..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by card label, code (ART-01) or slug..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-2xs"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900"
           />
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <span>
+            Showing <strong className="text-slate-800">{filteredCards.length}</strong> of{" "}
+            {cards.length} cards
+          </span>
         </div>
       </div>
 
-      {/* Cards Table / Grid */}
+      {/* Cards Table */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
         {filteredCards.length === 0 ? (
-          <div className="text-center py-12 p-4">
-            <CreditCard className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-slate-800 mb-1">
-              No matching NFC cards found
-            </h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-              You haven&apos;t claimed any NFC review cards matching this filter yet.
+          <div className="text-center py-12 px-4">
+            <CreditCard className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-slate-700">No cards found</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              {search
+                ? "No NFC cards matched your search query. Try another term."
+                : "You don't have any cards claimed yet. Claim your first card to get started."}
             </p>
-            <Link
-              href="/claim"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 text-white rounded-xl text-xs font-semibold"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Claim a Card Now</span>
-            </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                <tr>
                   <th className="py-3.5 px-4 w-10 text-center">
-                    <button
-                      onClick={handleSelectAll}
-                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                      title="Select all cards"
-                    >
+                    <button onClick={handleSelectAll} className="cursor-pointer">
                       {selectedCardIds.length === filteredCards.length && filteredCards.length > 0 ? (
                         <CheckSquare className="w-4 h-4 text-teal-600" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-300" />
+                        <Square className="w-4 h-4 text-slate-300 hover:text-slate-500" />
                       )}
                     </button>
                   </th>
-                  <th className="py-3.5 px-4">Card Code & Label</th>
-                  <th className="py-3.5 px-4">Brand Gate / Target</th>
+                  <th className="py-3.5 px-4">Card / Placement</th>
+                  <th className="py-3.5 px-4">Dynamic Gate Template</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4">Tap Target URL</th>
                   <th className="py-3.5 px-4 text-center">Total Taps</th>
@@ -768,11 +747,8 @@ export default function CardsClient({
                             <div className="font-bold text-slate-900 flex items-center gap-1.5">
                               <span>{card.label || "Untitled Stand"}</span>
                               <button
-                                onClick={() => {
-                                  setEditingCard(card);
-                                  setEditLabel(card.label || "");
-                                }}
-                                title="Edit Label"
+                                onClick={() => handleOpenEditModal(card)}
+                                title="Edit Placement & Template"
                                 className="text-slate-400 hover:text-teal-600"
                               >
                                 <Edit2 className="w-3 h-3" />
@@ -785,14 +761,14 @@ export default function CardsClient({
                         </div>
                       </td>
 
-                      {/* BRAND GATE COLUMN */}
+                      {/* Dynamic Gate Template Badge & Quick Edit */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
                           {renderGateBadge(card)}
                           <button
-                            onClick={() => handleOpenGateModal(card)}
-                            className="p-1 text-slate-400 hover:text-teal-600 rounded-md hover:bg-slate-100 transition-colors"
-                            title="Configure Card Brand Gate / Target"
+                            onClick={() => handleOpenEditModal(card)}
+                            className="p-1 text-slate-400 hover:text-teal-700 rounded-md hover:bg-slate-100 transition-colors"
+                            title="Change Gate Template"
                           >
                             <Sliders className="w-3.5 h-3.5" />
                           </button>
@@ -831,7 +807,7 @@ export default function CardsClient({
                         </div>
                       </td>
 
-                      {/* Tap Count */}
+                      {/* Total Taps */}
                       <td className="py-4 px-4 text-center">
                         <span className="font-bold text-slate-800 text-sm">
                           {card.tapCount}
@@ -841,13 +817,14 @@ export default function CardsClient({
                       {/* Actions */}
                       <td className="py-4 px-5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Quick Configure Gate button */}
+                          {/* Edit Card & Template button */}
                           <button
-                            onClick={() => handleOpenGateModal(card)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-teal-700 hover:bg-teal-50 border border-slate-200 transition-colors"
-                            title="Configure Brand Gate"
+                            onClick={() => handleOpenEditModal(card)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 font-semibold transition-colors"
+                            title="Edit Card & Gate Template"
                           >
-                            <Sliders className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
                           </button>
 
                           {/* QR Code Modal Button */}
@@ -865,7 +842,7 @@ export default function CardsClient({
                             target="_blank"
                             rel="noreferrer"
                             className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors"
-                            title="Test Tap Experience"
+                            title="Test Tap Experience (Customer View)"
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
@@ -898,190 +875,236 @@ export default function CardsClient({
         )}
       </div>
 
-      {/* MODAL 1: Individual Card Gate Configuration Modal */}
-      {gateModalCard && (
+      {/* UNIFIED MODAL: Edit NFC Card Placement & Gate Template */}
+      {editingCard && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in overflow-y-auto">
-          <div className="bg-white rounded-3xl p-5 sm:p-7 max-w-lg w-full border border-slate-200 shadow-2xl relative my-8">
+          <div className="bg-white rounded-3xl p-5 sm:p-7 max-w-xl w-full border border-slate-200 shadow-2xl relative my-8 max-h-[92vh] overflow-y-auto">
             <button
-              onClick={() => setGateModalCard(null)}
+              onClick={() => setEditingCard(null)}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center font-bold text-sm">
-                <Sliders className="w-5 h-5 text-teal-600" />
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5 pr-8">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center font-bold text-base">
+                  <CreditCard className="w-6 h-6 text-teal-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Edit Card & Gate Template
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Hardware Code: <span className="font-mono font-bold text-slate-700">{editingCard.shortCode}</span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Card Brand Gate: {gateModalCard.label || gateModalCard.shortCode}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Code: <span className="font-mono">{gateModalCard.shortCode}</span> • Permanent URL: /tap/{gateModalCard.urlSlug}
-                </p>
-              </div>
+
+              <a
+                href={`/tap/${editingCard.urlSlug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
+                title="Preview live tap landing"
+              >
+                <span>Live Test</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
 
-            <form onSubmit={handleSaveCardGate} className="space-y-4">
-              {/* Choose Mode: Default VS Override */}
-              <div className="grid grid-cols-2 gap-2.5 p-1 bg-slate-100 rounded-2xl">
-                <button
-                  type="button"
-                  onClick={() => setGateOverrideEnabled(false)}
-                  className={`py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
-                    !gateOverrideEnabled
-                      ? "bg-white text-teal-800 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  🏢 Inherit Business Default
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGateOverrideEnabled(true)}
-                  className={`py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
-                    gateOverrideEnabled
-                      ? "bg-white text-teal-800 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  ⚡ Card-Specific Override
-                </button>
+            <form onSubmit={handleSaveCard} className="space-y-5">
+              {/* Card Placement Label & Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Card Placement Label *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formLabel}
+                    onChange={(e) => setFormLabel(e.target.value)}
+                    placeholder="e.g. Table 4, Billing Counter, Bar"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Card Status
+                  </label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as "ACTIVE" | "DEACTIVATED")}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900 font-semibold"
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="DEACTIVATED">Paused</option>
+                  </select>
+                </div>
               </div>
 
-              {!gateOverrideEnabled ? (
-                <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-2">
+              {/* Choose Mode: Business Default VS Card Template Override */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Gate Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2.5 p-1 bg-slate-100 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setFormOverrideGate(false)}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      !formOverrideGate
+                        ? "bg-white text-teal-800 shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    🏢 Inherit Business Default
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormOverrideGate(true)}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      formOverrideGate
+                        ? "bg-white text-teal-800 shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    ⚡ Card Template Override
+                  </button>
+                </div>
+              </div>
+
+              {!formOverrideGate ? (
+                <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-1.5">
                   <div className="flex items-center gap-2 text-teal-900 font-bold text-xs">
                     <Sparkles className="w-4 h-4 text-teal-600 shrink-0" />
-                    <span>Inheriting Global Branding Gate</span>
+                    <span>Inheriting Company Default Gate Template</span>
                   </div>
                   <p className="text-xs text-teal-800 leading-relaxed">
-                    This card will automatically route to your company default (Google Review Gate). When you update your business settings in Branding Gate, this card adapts automatically.
+                    This card automatically follows your company template set in <strong className="text-teal-950">Branding Gate</strong> (currently {tenantDefaults.gateTemplate || "Google Review Smart Gate"}). Whenever you update your branding, this card updates automatically.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4 pt-1 animate-in fade-in">
-                  {/* Preset Selector */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Target Destination Preset
+                      Select Dynamic Gate Template for this Card
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {/* Zomato */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGatePreset("ZOMATO");
-                          if (!formZomatoUrl && tenantDefaults.zomatoUrl) {
-                            setFormZomatoUrl(tenantDefaults.zomatoUrl);
-                          }
-                        }}
-                        className={`p-2.5 rounded-xl border text-center transition-all ${
-                          gatePreset === "ZOMATO"
-                            ? "border-rose-500 bg-rose-50/80 text-rose-900 font-bold ring-2 ring-rose-300/40"
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
-                        }`}
-                      >
-                        <span className="block text-base">🔴</span>
-                        <span className="text-[11px] font-semibold block mt-0.5">Zomato</span>
-                      </button>
-
-                      {/* Google Review */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGatePreset("GOOGLE");
-                          if (!formGoogleUrl && tenantDefaults.googleReviewUrl) {
-                            setFormGoogleUrl(tenantDefaults.googleReviewUrl);
-                          }
-                        }}
-                        className={`p-2.5 rounded-xl border text-center transition-all ${
-                          gatePreset === "GOOGLE"
-                            ? "border-blue-500 bg-blue-50/80 text-blue-900 font-bold ring-2 ring-blue-300/40"
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
-                        }`}
-                      >
-                        <span className="block text-base">⭐</span>
-                        <span className="text-[11px] font-semibold block mt-0.5">Google Review</span>
-                      </button>
-
-                      {/* Swiggy */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGatePreset("SWIGGY");
-                          if (!formSwiggyUrl && tenantDefaults.swiggyUrl) {
-                            setFormSwiggyUrl(tenantDefaults.swiggyUrl);
-                          }
-                        }}
-                        className={`p-2.5 rounded-xl border text-center transition-all ${
-                          gatePreset === "SWIGGY"
-                            ? "border-orange-500 bg-orange-50/80 text-orange-900 font-bold ring-2 ring-orange-300/40"
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
-                        }`}
-                      >
-                        <span className="block text-base">🟠</span>
-                        <span className="text-[11px] font-semibold block mt-0.5">Swiggy</span>
-                      </button>
-
-                      {/* Custom URL */}
-                      <button
-                        type="button"
-                        onClick={() => setGatePreset("CUSTOM_URL")}
-                        className={`p-2.5 rounded-xl border text-center transition-all ${
-                          gatePreset === "CUSTOM_URL"
-                            ? "border-purple-500 bg-purple-50/80 text-purple-900 font-bold ring-2 ring-purple-300/40"
-                            : "border-slate-200 hover:border-slate-300 text-slate-700"
-                        }`}
-                      >
-                        <span className="block text-base">🌐</span>
-                        <span className="text-[11px] font-semibold block mt-0.5">Custom URL</span>
-                      </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {TEMPLATE_PRESETS.map((preset) => {
+                        const isSelected = formGateTemplate === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setFormGateTemplate(preset.id)}
+                            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                              isSelected
+                                ? preset.borderActive
+                                : "border-slate-200 hover:border-slate-300 bg-white"
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-2xl shrink-0">{preset.icon}</span>
+                              <div>
+                                <span className="font-bold text-xs text-slate-900 block">
+                                  {preset.name}
+                                </span>
+                                <span className="text-[11px] text-slate-500 leading-tight block mt-0.5">
+                                  {preset.description}
+                                </span>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* PRESET FIELDS */}
-                  {gatePreset === "ZOMATO" && (
-                    <div className="space-y-3 p-3.5 bg-rose-50/50 border border-rose-200 rounded-2xl">
-                      <div>
-                        <label className="block text-xs font-semibold text-rose-950 mb-1">
-                          Zomato Restaurant Link *
-                        </label>
-                        <input
-                          type="url"
-                          required
-                          value={formZomatoUrl}
-                          onChange={(e) => setFormZomatoUrl(e.target.value)}
-                          placeholder="https://www.zomato.com/restaurant-slug"
-                          className="w-full px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                        />
+                  {/* 1. SWIGGY & ZOMATO DELIVERY TEMPLATE FIELDS */}
+                  {formGateTemplate === "DELIVERY_DINING" && (
+                    <div className="p-4 bg-rose-50/60 border border-rose-200 rounded-2xl space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-2 text-rose-950 font-bold text-xs">
+                        <Utensils className="w-4 h-4 text-rose-600" />
+                        <span>Swiggy & Zomato Delivery Portal Settings</span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <span className="text-xs font-semibold text-slate-800 block">
-                            Direct 307 Redirect to Zomato
-                          </span>
-                          <span className="text-[11px] text-slate-500 block">
-                            Customer jumps straight to Zomato upon tap
-                          </span>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Swiggy Restaurant URL
+                          </label>
+                          <input
+                            type="url"
+                            value={formSwiggyUrl}
+                            onChange={(e) => setFormSwiggyUrl(e.target.value)}
+                            placeholder="https://www.swiggy.com/restaurants/..."
+                            className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                          />
                         </div>
-                        <input
-                          type="checkbox"
-                          checked={formDirectRedirect}
-                          onChange={(e) => setFormDirectRedirect(e.target.checked)}
-                          className="w-4 h-4 text-rose-600 rounded cursor-pointer"
-                        />
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Zomato Restaurant URL
+                          </label>
+                          <input
+                            type="url"
+                            value={formZomatoUrl}
+                            onChange={(e) => setFormZomatoUrl(e.target.value)}
+                            placeholder="https://www.zomato.com/..."
+                            className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Direct Takeaway Phone (Optional)
+                          </label>
+                          <input
+                            type="tel"
+                            value={formDeliveryPhone}
+                            onChange={(e) => setFormDeliveryPhone(e.target.value)}
+                            placeholder="+91 98765 43210"
+                            className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Offer Banner Text (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={formDeliveryOfferText}
+                            onChange={(e) => setFormDeliveryOfferText(e.target.value)}
+                            placeholder="Flat 15% OFF on takeaway orders!"
+                            className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {gatePreset === "GOOGLE" && (
-                    <div className="space-y-3 p-3.5 bg-blue-50/50 border border-blue-200 rounded-2xl">
+                  {/* 2. GOOGLE REVIEW SMART GATE FIELDS */}
+                  {formGateTemplate === "GOOGLE_REVIEW" && (
+                    <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-2 text-amber-950 font-bold text-xs">
+                        <Star className="w-4 h-4 text-amber-600 fill-amber-500" />
+                        <span>Google Review Smart Gate Settings</span>
+                      </div>
+
                       <div>
-                        <label className="block text-xs font-semibold text-blue-950 mb-1">
-                          Google Review URL *
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Google Business Review URL *
                         </label>
                         <input
                           type="url"
@@ -1089,100 +1112,122 @@ export default function CardsClient({
                           value={formGoogleUrl}
                           onChange={(e) => setFormGoogleUrl(e.target.value)}
                           placeholder="https://g.page/r/your-id/review"
-                          className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center justify-between p-3 bg-white border border-amber-200 rounded-xl">
                         <div>
-                          <span className="text-xs font-semibold text-slate-800 block">
-                            Smart 5-Star Gate Filtering
+                          <span className="text-xs font-bold text-slate-800 block">
+                            Smart 5-Star Gate Protection
                           </span>
                           <span className="text-[11px] text-slate-500 block">
-                            4-5★ to Google, 1-3★ to private feedback form
+                            4-5★ routes to Google Review with AI sentence suggestions; 1-3★ opens private manager feedback form
                           </span>
                         </div>
                         <input
                           type="checkbox"
                           checked={formSmartGate}
                           onChange={(e) => setFormSmartGate(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                          className="w-4 h-4 text-amber-600 rounded cursor-pointer"
                         />
                       </div>
                     </div>
                   )}
 
-                  {gatePreset === "SWIGGY" && (
-                    <div className="space-y-3 p-3.5 bg-orange-50/50 border border-orange-200 rounded-2xl">
+                  {/* 3. SOCIAL MEDIA HUB FIELDS */}
+                  {formGateTemplate === "SOCIAL_HUB" && (
+                    <div className="p-4 bg-indigo-50/60 border border-indigo-200 rounded-2xl space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-2 text-indigo-950 font-bold text-xs">
+                        <Layers className="w-4 h-4 text-indigo-600" />
+                        <span>Social Media Channels</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Instagram URL
+                          </label>
+                          <input
+                            type="url"
+                            value={formInstagramUrl}
+                            onChange={(e) => setFormInstagramUrl(e.target.value)}
+                            placeholder="https://instagram.com/yourhandle"
+                            className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Facebook URL
+                          </label>
+                          <input
+                            type="url"
+                            value={formFacebookUrl}
+                            onChange={(e) => setFormFacebookUrl(e.target.value)}
+                            placeholder="https://facebook.com/yourpage"
+                            className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="block text-xs font-semibold text-orange-950 mb-1">
-                          Swiggy Restaurant Link *
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          YouTube Channel (Optional)
                         </label>
                         <input
                           type="url"
-                          required
-                          value={formSwiggyUrl}
-                          onChange={(e) => setFormSwiggyUrl(e.target.value)}
-                          placeholder="https://www.swiggy.com/restaurants/..."
-                          className="w-full px-3 py-2 bg-white border border-orange-300 rounded-xl text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <div>
-                          <span className="text-xs font-semibold text-slate-800 block">
-                            Direct 307 Redirect to Swiggy
-                          </span>
-                          <span className="text-[11px] text-slate-500 block">
-                            Customer jumps straight to Swiggy menu
-                          </span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={formDirectRedirect}
-                          onChange={(e) => setFormDirectRedirect(e.target.checked)}
-                          className="w-4 h-4 text-orange-600 rounded cursor-pointer"
+                          value={formYoutubeUrl}
+                          onChange={(e) => setFormYoutubeUrl(e.target.value)}
+                          placeholder="https://youtube.com/@channel"
+                          className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         />
                       </div>
                     </div>
                   )}
 
-                  {gatePreset === "CUSTOM_URL" && (
-                    <div className="space-y-3 p-3.5 bg-purple-50/50 border border-purple-200 rounded-2xl">
+                  {/* 4. CUSTOM REDIRECTION / DIGITAL MENU FIELDS */}
+                  {formGateTemplate === "CUSTOM_REDIRECT" && (
+                    <div className="p-4 bg-purple-50/60 border border-purple-200 rounded-2xl space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-2 text-purple-950 font-bold text-xs">
+                        <Globe className="w-4 h-4 text-purple-600" />
+                        <span>Digital Menu / Custom Destination</span>
+                      </div>
+
                       <div>
-                        <label className="block text-xs font-semibold text-purple-950 mb-1">
-                          Destination URL (Menu PDF, Website, Promo) *
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Target URL (Online Menu, Website, PDF) *
                         </label>
                         <input
                           type="url"
                           required
                           value={formCustomUrl}
                           onChange={(e) => setFormCustomUrl(e.target.value)}
-                          placeholder="https://yourbrand.com/menu.pdf"
-                          className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                          placeholder="https://yourbrand.com/menu"
+                          className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Button Title (if showing gate screen)
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Button Title (Shown on Gate Screen)
                         </label>
                         <input
                           type="text"
                           value={formCustomTitle}
                           onChange={(e) => setFormCustomTitle(e.target.value)}
                           placeholder="View Online Menu"
-                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                          className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center justify-between p-3 bg-white border border-purple-200 rounded-xl">
                         <div>
-                          <span className="text-xs font-semibold text-slate-800 block">
+                          <span className="text-xs font-bold text-slate-800 block">
                             Direct Instant Redirect
                           </span>
                           <span className="text-[11px] text-slate-500 block">
-                            Hop directly to URL without showing intermediate screen
+                            Bypass intermediate gate screen and hop straight to target URL
                           </span>
                         </div>
                         <input
@@ -1194,23 +1239,38 @@ export default function CardsClient({
                       </div>
                     </div>
                   )}
+
+                  {/* Optional Greeting Title */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Custom Greeting Title on Screen (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={formGreetingTitle}
+                      onChange={(e) => setFormGreetingTitle(e.target.value)}
+                      placeholder="e.g. Order Online & Takeaway, How was your meal?"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white text-slate-900"
+                    />
+                  </div>
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setGateModalCard(null)}
-                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
+                  onClick={() => setEditingCard(null)}
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="flex-1 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-sm"
+                  className="flex-1 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  Save Gate Settings
+                  {isUpdating ? "Saving..." : "Save Card & Template"}
                 </button>
               </div>
             </form>
@@ -1218,7 +1278,7 @@ export default function CardsClient({
         </div>
       )}
 
-      {/* MODAL 2: 1-Click Reset ALL Cards to Default Google Review Gate */}
+      {/* MODAL 2: 1-Click Reset ALL Cards to Default Business Gate */}
       {showResetAllModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl relative">
@@ -1237,7 +1297,7 @@ export default function CardsClient({
               Reset All Cards to Default Brand Gate?
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              This will immediately set all <strong className="text-slate-900">{cards.length} cards</strong> back to your business&apos;s Default Google Review Brand Gate. Any individual overrides (such as Zomato or custom URLs) will be cleared.
+              This will immediately set all <strong className="text-slate-900">{cards.length} cards</strong> back to your business&apos;s Default Brand Gate. Any individual overrides (such as delivery or custom URLs) will be cleared.
             </p>
 
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-5 space-y-1 text-xs">
@@ -1245,7 +1305,7 @@ export default function CardsClient({
                 ✓ No Hardware Changes:
               </div>
               <div className="text-slate-500">
-                All physical NFC stands & printed QR codes will instantly route to your Google Review Gate.
+                All physical NFC stands & printed QR codes will instantly route to your default business template.
               </div>
             </div>
 
@@ -1273,7 +1333,7 @@ export default function CardsClient({
       {/* MODAL 3: Bulk Update (Selected or All Cards) */}
       {showBulkModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl relative">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full border border-slate-200 shadow-2xl relative">
             <button
               onClick={() => setShowBulkModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
@@ -1283,110 +1343,154 @@ export default function CardsClient({
 
             <h3 className="text-base font-bold text-slate-900 mb-1">
               {bulkMode === "ALL"
-                ? `Update All (${cards.length}) Cards`
-                : `Update (${selectedCardIds.length}) Selected Cards`}
+                ? `Assign Template to All (${cards.length}) Cards`
+                : `Assign Template to (${selectedCardIds.length}) Selected Cards`}
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Select what all targeted cards should point to:
+              Select which dynamic gate template all targeted cards should display:
             </p>
 
             <form onSubmit={handleBulkSubmit} className="space-y-4">
-              {/* Preset selection */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* Template selection */}
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setBulkPreset("ZOMATO");
-                    setBulkUrl(tenantDefaults.zomatoUrl || "");
-                    setBulkTitle("Order on Zomato");
-                  }}
-                  className={`p-2 rounded-xl border text-center text-xs font-semibold ${
-                    bulkPreset === "ZOMATO"
+                  onClick={() => setBulkTemplate("DELIVERY_DINING")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                    bulkTemplate === "DELIVERY_DINING"
                       ? "border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-200"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  🔴 Zomato
+                  <span className="block text-sm">🛵</span>
+                  <span className="block mt-0.5">Swiggy & Zomato</span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => {
-                    setBulkPreset("CUSTOM_URL");
-                    setBulkUrl("");
-                    setBulkTitle("View Online Menu");
-                  }}
-                  className={`p-2 rounded-xl border text-center text-xs font-semibold ${
-                    bulkPreset === "CUSTOM_URL"
+                  onClick={() => setBulkTemplate("GOOGLE_REVIEW")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                    bulkTemplate === "GOOGLE_REVIEW"
+                      ? "border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-200"
+                      : "border-slate-200 text-slate-700"
+                  }`}
+                >
+                  <span className="block text-sm">⭐</span>
+                  <span className="block mt-0.5">Google Review Gate</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkTemplate("CUSTOM_REDIRECT")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                    bulkTemplate === "CUSTOM_REDIRECT"
                       ? "border-purple-500 bg-purple-50 text-purple-900 ring-2 ring-purple-200"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  🌐 Custom URL
+                  <span className="block text-sm">📖</span>
+                  <span className="block mt-0.5">Digital Menu / URL</span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => {
-                    setBulkPreset("DEFAULT");
-                  }}
-                  className={`p-2 rounded-xl border text-center text-xs font-semibold ${
-                    bulkPreset === "DEFAULT"
+                  onClick={() => setBulkTemplate("DEFAULT")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                    bulkTemplate === "DEFAULT"
                       ? "border-teal-500 bg-teal-50 text-teal-900 ring-2 ring-teal-200"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  ⭐ Default Gate
+                  <span className="block text-sm">🏢</span>
+                  <span className="block mt-0.5">Company Default</span>
                 </button>
               </div>
 
-              {bulkPreset !== "DEFAULT" && (
-                <div className="space-y-3">
+              {/* Template specific fields */}
+              {bulkTemplate === "DELIVERY_DINING" && (
+                <div className="space-y-3 p-3.5 bg-rose-50/60 border border-rose-200 rounded-2xl">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      {bulkPreset === "ZOMATO" ? "Zomato URL *" : "Destination URL *"}
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Swiggy URL
+                    </label>
+                    <input
+                      type="url"
+                      value={bulkSwiggyUrl}
+                      onChange={(e) => setBulkSwiggyUrl(e.target.value)}
+                      placeholder="https://www.swiggy.com/..."
+                      className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Zomato URL
+                    </label>
+                    <input
+                      type="url"
+                      value={bulkZomatoUrl}
+                      onChange={(e) => setBulkZomatoUrl(e.target.value)}
+                      placeholder="https://www.zomato.com/..."
+                      className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {bulkTemplate === "GOOGLE_REVIEW" && (
+                <div className="space-y-3 p-3.5 bg-amber-50/60 border border-amber-200 rounded-2xl">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Google Review URL
+                    </label>
+                    <input
+                      type="url"
+                      value={bulkGoogleUrl}
+                      onChange={(e) => setBulkGoogleUrl(e.target.value)}
+                      placeholder="https://g.page/r/..."
+                      className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {bulkTemplate === "CUSTOM_REDIRECT" && (
+                <div className="space-y-3 p-3.5 bg-purple-50/60 border border-purple-200 rounded-2xl">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Target Destination URL *
                     </label>
                     <input
                       type="url"
                       required
-                      value={bulkUrl}
-                      onChange={(e) => setBulkUrl(e.target.value)}
-                      placeholder={
-                        bulkPreset === "ZOMATO"
-                          ? "https://www.zomato.com/..."
-                          : "https://yourbrand.com/special-menu"
-                      }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      value={bulkCustomUrl}
+                      onChange={(e) => setBulkCustomUrl(e.target.value)}
+                      placeholder="https://yourbrand.com/menu"
+                      className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs"
                     />
                   </div>
 
-                  {bulkPreset === "CUSTOM_URL" && (
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Title / Label
-                      </label>
-                      <input
-                        type="text"
-                        value={bulkTitle}
-                        onChange={(e) => setBulkTitle(e.target.value)}
-                        placeholder="View Online Menu"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Button Title
+                    </label>
+                    <input
+                      type="text"
+                      value={bulkCustomTitle}
+                      onChange={(e) => setBulkCustomTitle(e.target.value)}
+                      placeholder="View Online Menu"
+                      className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs"
+                    />
+                  </div>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-800 block">
-                        Direct 307 Redirect
-                      </span>
-                      <span className="text-[11px] text-slate-500 block">
-                        Redirect immediately without intermediate screen
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-between p-2.5 bg-white border border-purple-200 rounded-xl">
+                    <span className="text-xs font-semibold text-slate-800">
+                      Direct Instant Redirect
+                    </span>
                     <input
                       type="checkbox"
                       checked={bulkDirect}
                       onChange={(e) => setBulkDirect(e.target.checked)}
-                      className="w-4 h-4 text-teal-600 rounded cursor-pointer"
+                      className="w-4 h-4 text-purple-600 rounded cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1396,16 +1500,16 @@ export default function CardsClient({
                 <button
                   type="button"
                   onClick={() => setShowBulkModal(false)}
-                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="flex-1 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-sm"
+                  className="flex-1 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  Apply to Cards
+                  {isUpdating ? "Applying..." : "Apply to Cards"}
                 </button>
               </div>
             </form>
@@ -1458,60 +1562,6 @@ export default function CardsClient({
               tenantPlan={tenantPlan}
               compact={true}
             />
-          </div>
-        </div>
-      )}
-
-      {/* Edit Label Modal */}
-      {editingCard && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-xl relative">
-            <button
-              onClick={() => setEditingCard(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              Edit Card Placement Label
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Code: <span className="font-mono">{editingCard.shortCode}</span>
-            </p>
-
-            <form onSubmit={handleSaveLabel} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Card Placement / Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editLabel}
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  placeholder="e.g. Front Cashier, Table 4"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingCard(null)}
-                  className="flex-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="flex-1 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-sm"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

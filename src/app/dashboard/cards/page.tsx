@@ -45,6 +45,13 @@ export default async function CardsPage() {
     smartGateEnabled: c.smartGateEnabled,
     zomatoUrl: c.zomatoUrl,
     swiggyUrl: c.swiggyUrl,
+    instagramUrl: c.instagramUrl,
+    facebookUrl: c.facebookUrl,
+    youtubeUrl: c.youtubeUrl,
+    deliveryOfferText: c.deliveryOfferText,
+    deliveryPhone: c.deliveryPhone,
+    greetingTitle: c.greetingTitle,
+    greetingSubtitle: c.greetingSubtitle,
   }));
 
   const rawPlan = String(
@@ -72,7 +79,16 @@ export default async function CardsPage() {
         googleReviewUrl: tenant.googleReviewUrl,
         zomatoUrl: tenant.zomatoUrl,
         swiggyUrl: tenant.swiggyUrl,
+        instagramUrl: tenant.instagramUrl,
+        facebookUrl: tenant.facebookUrl,
+        youtubeUrl: tenant.youtubeUrl,
+        deliveryOfferText: tenant.deliveryOfferText,
+        deliveryPhone: tenant.deliveryPhone,
         customRedirectUrl: tenant.customRedirectUrl,
+        customRedirectTitle: tenant.customRedirectTitle,
+        customRedirectDirect: tenant.customRedirectDirect,
+        greetingTitle: tenant.greetingTitle,
+        greetingSubtitle: tenant.greetingSubtitle,
         smartGateEnabled: tenant.smartGateEnabled,
       }}
     />

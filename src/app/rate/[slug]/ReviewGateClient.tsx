@@ -92,7 +92,10 @@ export default function ReviewGateClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  const trackOutcome = (outcome: "REDIRECTED" | "DIRECT_REDIRECT" = "REDIRECTED", rating?: number) => {
+  const trackOutcome = (
+    outcome: "REDIRECTED" | "DIRECT_REDIRECT" | "REVIEW_COPIED" = "REDIRECTED",
+    rating?: number
+  ) => {
     if (tapEventId) {
       fetch("/api/tap/outcome", {
         method: "POST",
@@ -149,7 +152,7 @@ export default function ReviewGateClient({
     if (currentSentence) {
       navigator.clipboard.writeText(currentSentence);
       setIsCopied(true);
-      trackOutcome("REVIEW_COPIED" as any, selectedRating);
+      trackOutcome("REVIEW_COPIED", selectedRating);
       setTimeout(() => {
         if (googleReviewUrl) {
           window.location.href = googleReviewUrl;
@@ -769,6 +772,17 @@ export default function ReviewGateClient({
                   </div>
                   <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-transform" />
                 </button>
+              )}
+
+              {/* Graceful empty state when no delivery channels configured yet */}
+              {!swiggyUrl && !zomatoUrl && !deliveryPhone && (
+                <div className="py-6 px-4 bg-slate-50 border border-slate-200/90 rounded-2xl text-center space-y-1">
+                  <div className="text-2xl mb-1">🛵</div>
+                  <h4 className="text-xs font-bold text-slate-800">Online Ordering Coming Soon</h4>
+                  <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                    Online delivery links are currently being set up for this location.
+                  </p>
+                </div>
               )}
 
               {/* Secondary Google Review */}
