@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest) {
     });
     const isPlanAllowed = planConfig
       ? planConfig.keywordSuggestions
-      : tenant.plan === "PRO" || tenant.plan === "ENTERPRISE";
+      : tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE";
 
     if (!isPlanAllowed && isEnabled) {
       return NextResponse.json(

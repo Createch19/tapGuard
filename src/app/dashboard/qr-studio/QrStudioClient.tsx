@@ -24,7 +24,7 @@ interface CardOption {
 
 interface QrStudioClientProps {
   tenantName: string;
-  tenantPlan: "BASIC" | "PRO" | "ENTERPRISE";
+  tenantPlan: string;
   businessType?: string | null;
   cards: CardOption[];
   defaultUrl: string;
@@ -56,7 +56,7 @@ export default function QrStudioClient({
             </h1>
             <span
               className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                tenantPlan === "PRO" || tenantPlan === "ENTERPRISE"
+                tenantPlan === "GROWTH" || tenantPlan === "BUSINESS" || tenantPlan === "ENTERPRISE"
                   ? "bg-violet-100 text-violet-800 border-violet-200"
                   : "bg-teal-100 text-teal-800 border-teal-200"
               }`}

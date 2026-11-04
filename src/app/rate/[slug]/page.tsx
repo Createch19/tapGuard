@@ -45,7 +45,7 @@ export default async function RatePage({
 
   const planAllowsKeywords = planConfig
     ? planConfig.keywordSuggestions
-    : (tenant.plan === "PRO" || tenant.plan === "ENTERPRISE");
+    : (tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE");
 
   // 2. Only show on gateway if plan allows it AND tenant explicitly turned it on
   const isKeywordsActive = Boolean(planAllowsKeywords && rk && rk.isEnabled);
@@ -171,6 +171,7 @@ export default async function RatePage({
       logoUrl={branding?.logoUrl || null}
       tapEventId={tid || null}
       keywordConfig={keywordConfig}
+      removePoweredBy={Boolean(planConfig?.removePoweredBy)}
     />
   );
 }

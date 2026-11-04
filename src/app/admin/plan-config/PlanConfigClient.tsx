@@ -5,7 +5,7 @@ import { Save, CheckCircle, Copy, Check, Key, AlertCircle } from "lucide-react";
 
 interface PlanConfigItem {
   id: string;
-  plan: "BASIC" | "PRO" | "ENTERPRISE";
+  plan: string;
   displayName: string;
   description?: string | null;
   price: number;
@@ -295,7 +295,7 @@ export default function PlanConfigClient({
                   </div>
 
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                    Order #{config.plan === "BASIC" ? "1" : config.plan === "PRO" ? "2" : "3"}
+                    Plan: {config.plan}
                   </span>
                 </div>
 

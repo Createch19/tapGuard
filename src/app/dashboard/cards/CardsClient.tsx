@@ -83,7 +83,7 @@ export interface TenantDefaults {
 interface CardsClientProps {
   cards: CardItem[];
   tenantName: string;
-  tenantPlan?: "BASIC" | "PRO" | "ENTERPRISE";
+  tenantPlan?: string;
   baseUrl: string;
   maxCards: number;
   tenantDefaults?: TenantDefaults;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import PricingSection, { SerializedPlanConfig } from "@/components/landing/PricingSection";
 
 export const dynamic = "force-dynamic";
 import {
@@ -207,158 +208,35 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Pricing Section (Dynamic from Database PlanConfig) */}
-      <section id="pricing" className="px-4 sm:px-8 py-20 max-w-6xl mx-auto w-full">
-        <div className="text-center mb-12">
-          <span className="text-xs font-bold uppercase tracking-wider text-teal-600 block mb-1">
-            Transparent Pricing
-          </span>
-          <h2 className="text-3xl font-black text-slate-900">
-            Plans for Every Venue Fleet
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            All prices configurable in real-time by Platform Super Admin
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {planConfigs.map((config) => {
-            const isFeatured = config.plan === "PRO";
-
-            return (
-              <div
-                key={config.id}
-                className={`bg-white rounded-3xl p-7 border flex flex-col justify-between transition-all ${
-                  isFeatured
-                    ? "border-teal-500 shadow-xl ring-2 ring-teal-500/20"
-                    : "border-slate-200/90 shadow-2xs"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-lg text-slate-900">
-                      {config.displayName}
-                    </h3>
-                    {isFeatured && (
-                      <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full bg-teal-100 text-teal-800">
-                        Most Popular
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-500 mb-5 h-10">
-                    {config.description}
-                  </p>
-
-                  <div className="mb-6 pb-6 border-b border-slate-100">
-                    {config.price.toNumber() === 0 ? (
-                      <div className="text-3xl font-black text-slate-900">
-                        Custom
-                      </div>
-                    ) : (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black text-slate-900">
-                          ₹{config.price.toString()}
-                        </span>
-                        <span className="text-xs text-slate-400 font-medium">
-                          {config.billingCycle === "LIFETIME"
-                            ? "one-time (lifetime)"
-                            : `/${config.billingCycle.toLowerCase()}`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3 text-xs text-slate-600 mb-8">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-teal-600 shrink-0" />
-                      <span>
-                        Up to{" "}
-                        <strong>
-                          {config.maxCards > 1000
-                            ? "Unlimited"
-                            : config.maxCards}
-                        </strong>{" "}
-                        NFC Cards
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-teal-600 shrink-0" />
-                      <span>Smart Rating Gate Interception</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Check
-                        className={`w-4 h-4 shrink-0 ${
-                          config.customBranding
-                            ? "text-teal-600"
-                            : "text-slate-300"
-                        }`}
-                      />
-                      <span
-                        className={
-                          config.customBranding ? "" : "text-slate-400"
-                        }
-                      >
-                        Custom Venue Branding & Colors
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Check
-                        className={`w-4 h-4 shrink-0 ${
-                          config.webhookAlerts
-                            ? "text-teal-600"
-                            : "text-slate-300"
-                        }`}
-                      />
-                      <span
-                        className={
-                          config.webhookAlerts ? "" : "text-slate-400"
-                        }
-                      >
-                        Webhook & Urgent Bad Review Alerts
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-teal-600 shrink-0" />
-                      <span>{config.qrCodeTier} QR Code Generator</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-teal-600 shrink-0" />
-                      <span>{config.analyticsRetDays} Days Analytics Retention</span>
-                    </div>
-
-                    {config.prioritySupport && (
-                      <div className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-teal-600 shrink-0" />
-                        <span className="font-semibold text-slate-800">
-                          Priority Support & SLA
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Link
-                  href="/login"
-                  className={`w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
-                    isFeatured
-                      ? "bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-600/20"
-                      : "bg-slate-900 hover:bg-slate-800 text-white"
-                  }`}
-                >
-                  <span>Get Started with {config.displayName}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      {/* Interactive 5-Tier Pricing Section */}
+      <PricingSection
+        planConfigs={planConfigs.map((pc) => ({
+          id: pc.id,
+          plan: pc.plan,
+          displayName: pc.displayName,
+          description: pc.description,
+          price: pc.price.toNumber(),
+          yearlyPrice: pc.yearlyPrice ? pc.yearlyPrice.toNumber() : null,
+          currency: pc.currency,
+          billingCycle: pc.billingCycle,
+          maxCards: pc.maxCards,
+          maxLocations: pc.maxLocations,
+          maxCatalogItems: pc.maxCatalogItems,
+          bookingFormEnabled: pc.bookingFormEnabled,
+          removePoweredBy: pc.removePoweredBy,
+          smartGate: pc.smartGate,
+          multiGateTemplates: pc.multiGateTemplates,
+          customBranding: pc.customBranding,
+          webhookAlerts: pc.webhookAlerts,
+          keywordSuggestions: pc.keywordSuggestions,
+          googleHub: pc.googleHub,
+          teamAccess: pc.teamAccess,
+          qrCodeTier: pc.qrCodeTier,
+          analyticsRetDays: pc.analyticsRetDays,
+          prioritySupport: pc.prioritySupport,
+          sortOrder: pc.sortOrder,
+        }))}
+      />
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200/80 px-4 sm:px-8 py-8 text-xs text-slate-500">

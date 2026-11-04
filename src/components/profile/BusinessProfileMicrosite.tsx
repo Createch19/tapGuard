@@ -45,6 +45,7 @@ export interface BusinessProfileMicrositeProps {
   logoUrl?: string | null;
   trackOutcome?: (outcome: "REDIRECTED" | "DIRECT_REDIRECT" | "REVIEW_COPIED", rating?: number) => void;
   isSimulator?: boolean;
+  removePoweredBy?: boolean;
 }
 
 export default function BusinessProfileMicrosite({
@@ -60,6 +61,7 @@ export default function BusinessProfileMicrosite({
   logoUrl,
   trackOutcome,
   isSimulator = false,
+  removePoweredBy = false,
 }: BusinessProfileMicrositeProps) {
   // Merge custom profile with sensible defaults
   const profile: BusinessProfileData = {
@@ -1075,9 +1077,11 @@ export default function BusinessProfileMicrosite({
           {effectiveSectionOrder.map((sectionKey) => renderSection(sectionKey))}
 
           {/* Footer */}
-          <footer className={`text-center py-4 text-[10px] ${subtleTextClass}`}>
-            {t.poweredBy}
-          </footer>
+          {!removePoweredBy && (
+            <footer className={`text-center py-4 text-[10px] ${subtleTextClass}`}>
+              {t.poweredBy}
+            </footer>
+          )}
         </div>
       </div>
 

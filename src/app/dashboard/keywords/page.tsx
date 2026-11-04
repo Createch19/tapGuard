@@ -31,7 +31,7 @@ export default async function KeywordsPage() {
 
   const isPlanAllowed = planConfig
     ? planConfig.keywordSuggestions
-    : tenant.plan === "PRO" || tenant.plan === "ENTERPRISE";
+    : tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE";
 
   const isEnabled = config ? config.isEnabled : false;
   const primaryLanguage = (config?.primaryLanguage as SupportedLanguage) || "EN";

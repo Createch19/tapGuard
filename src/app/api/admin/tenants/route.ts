@@ -74,14 +74,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const assignedPlan = plan || "STARTER";
+    const defaultCards =
+      assignedPlan === "LITE" ? 1 : assignedPlan === "STARTER" ? 3 : assignedPlan === "GROWTH" ? 15 : assignedPlan === "BUSINESS" ? 50 : 9999;
+    const defaultLocations =
+      assignedPlan === "GROWTH" ? 3 : assignedPlan === "BUSINESS" ? 5 : 1;
+    const defaultPrice =
+      assignedPlan === "LITE" ? 499 : assignedPlan === "STARTER" ? 299 : assignedPlan === "GROWTH" ? 699 : assignedPlan === "BUSINESS" ? 1499 : 0;
+
     const tenant = await prisma.tenant.create({
       data: {
         name: String(name).trim(),
         slug: cleanSlug,
-        plan: plan || "BASIC",
+        plan: assignedPlan,
         businessType: businessType ? String(businessType).trim() : "Restaurant & Café",
         googleReviewUrl: googleReviewUrl ? String(googleReviewUrl).trim() : null,
-        maxCards: maxCards ? Number(maxCards) : plan === "PRO" ? 50 : 5,
+        maxCards: maxCards ? Number(maxCards) : defaultCards,
+        maxLocations: defaultLocations,
         isActive: true,
       },
     });
@@ -102,8 +111,8 @@ export async function POST(request: NextRequest) {
         tenantId: tenant.id,
         status: "ACTIVE",
         plan: tenant.plan,
-        billingCycle: tenant.plan === "BASIC" ? "LIFETIME" : "MONTHLY",
-        pricePaid: tenant.plan === "BASIC" ? 999 : tenant.plan === "PRO" ? 499 : 0,
+        billingCycle: tenant.plan === "LITE" ? "LIFETIME" : "MONTHLY",
+        pricePaid: defaultPrice,
         currency: "INR",
         currentPeriodStart: new Date(),
       },

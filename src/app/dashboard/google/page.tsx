@@ -25,7 +25,7 @@ export default async function GoogleHubPage() {
 
   const isPlanAllowed = planConfig
     ? Boolean(planConfig.googleHub)
-    : tenant.plan === "PRO" || tenant.plan === "ENTERPRISE";
+    : tenant.plan !== "LITE";
 
   const initialData = await getTenantGoogleHubData(tenantId);
 

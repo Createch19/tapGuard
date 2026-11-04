@@ -57,23 +57,14 @@ export default async function CardsPage() {
   }));
 
   const rawPlan = String(
-    tenant.subscription?.plan || tenant.plan || "BASIC"
+    tenant.subscription?.plan || tenant.plan || "STARTER"
   ).toUpperCase();
-
-  const effectivePlan: "BASIC" | "PRO" | "ENTERPRISE" =
-    user.role === "SUPER_ADMIN"
-      ? "ENTERPRISE"
-      : rawPlan === "PRO"
-      ? "PRO"
-      : rawPlan === "ENTERPRISE"
-      ? "ENTERPRISE"
-      : "BASIC";
 
   return (
     <CardsClient
       cards={formattedCards}
       tenantName={tenant.name}
-      tenantPlan={effectivePlan}
+      tenantPlan={rawPlan}
       baseUrl={baseUrl}
       maxCards={tenant.maxCards}
       tenantDefaults={{

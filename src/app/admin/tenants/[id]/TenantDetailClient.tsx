@@ -37,7 +37,7 @@ interface TenantDetailProps {
     id: string;
     name: string;
     slug: string;
-    plan: "BASIC" | "PRO" | "ENTERPRISE";
+    plan: string;
     businessType?: string | null;
     isActive: boolean;
     maxCards: number;
@@ -540,14 +540,14 @@ export default function TenantDetailClient({
               </label>
               <select
                 value={plan}
-                onChange={(e) =>
-                  setPlan(e.target.value as "BASIC" | "PRO" | "ENTERPRISE")
-                }
+                onChange={(e) => setPlan(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
               >
-                <option value="BASIC">BASIC (₹999 Lifetime)</option>
-                <option value="PRO">PRO (₹499 / Month)</option>
-                <option value="ENTERPRISE">ENTERPRISE (Custom)</option>
+                <option value="LITE">LITE (₹499 Lifetime - 1 Card, 1 Loc)</option>
+                <option value="STARTER">STARTER (₹299/mo - 3 Cards, 1 Loc)</option>
+                <option value="GROWTH">GROWTH (₹699/mo - 15 Cards, 3 Locs)</option>
+                <option value="BUSINESS">BUSINESS (₹1,499/mo - 50 Cards, 5 Locs)</option>
+                <option value="ENTERPRISE">ENTERPRISE (Custom Volume)</option>
               </select>
             </div>
 

@@ -38,19 +38,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    // Pro-only check for non-default templates
-    const isProOrEnterprise =
-      tenant.plan === "PRO" || tenant.plan === "ENTERPRISE";
-
-    if (
-      gateTemplate &&
-      gateTemplate !== "GOOGLE_REVIEW" &&
-      !isProOrEnterprise
-    ) {
+    // Lite-only restriction: Lite plan only allows BUSINESS_PROFILE
+    if (tenant.plan === "LITE" && gateTemplate && gateTemplate !== "BUSINESS_PROFILE") {
       return NextResponse.json(
         {
           error:
-            "Custom Gate Templates (Social Hub, Delivery Hub, and Custom Menu Redirection) require a Pro or Enterprise subscription.",
+            "The Lite plan includes the Business Branding Gateway only. Upgrade to Starter, Growth, or Business to unlock Google Review Gate and other card modes.",
         },
         { status: 403 }
       );
@@ -62,7 +55,7 @@ export async function PUT(request: NextRequest) {
       data: {
         greetingTitle: greetingTitle ? String(greetingTitle).trim() : undefined,
         greetingSubtitle: greetingSubtitle ? String(greetingSubtitle).trim() : null,
-        gateTemplate: gateTemplate && isProOrEnterprise ? gateTemplate : "GOOGLE_REVIEW",
+        gateTemplate: tenant.plan === "LITE" ? "BUSINESS_PROFILE" : gateTemplate || "GOOGLE_REVIEW",
         googleReviewUrl: googleReviewUrl !== undefined ? (googleReviewUrl ? String(googleReviewUrl).trim() : null) : undefined,
         instagramUrl: instagramUrl !== undefined ? (instagramUrl ? String(instagramUrl).trim() : null) : undefined,
         facebookUrl: facebookUrl !== undefined ? (facebookUrl ? String(facebookUrl).trim() : null) : undefined,

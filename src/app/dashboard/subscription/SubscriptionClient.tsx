@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -18,19 +19,25 @@ import {
 
 interface PlanConfigItem {
   id: string;
-  plan: "BASIC" | "PRO" | "ENTERPRISE";
+  plan: string;
   displayName: string;
   description?: string | null;
   price: number;
+  yearlyPrice?: number | null;
   currency: string;
   billingCycle: string;
   maxCards: number;
+  maxLocations?: number;
+  maxCatalogItems?: number;
+  bookingFormEnabled?: boolean;
+  removePoweredBy?: boolean;
   smartGate: boolean;
   multiGateTemplates?: boolean;
   customBranding: boolean;
   webhookAlerts: boolean;
   keywordSuggestions?: boolean;
   googleHub?: boolean;
+  teamAccess?: boolean;
   qrCodeTier: string;
   analyticsRetDays: number;
   prioritySupport: boolean;
@@ -62,26 +69,27 @@ export default function SubscriptionClient({
   const activeConfig =
     planConfigs.find((pc) => pc.plan === tenant.plan) || {
       id: "default",
-      plan: tenant.plan as "BASIC" | "PRO" | "ENTERPRISE",
-      displayName:
-        tenant.plan === "BASIC"
-          ? "Basic Lifetime Tier"
-          : tenant.plan === "PRO"
-          ? "Pro Business Tier"
-          : "Enterprise Custom Tier",
+      plan: tenant.plan,
+      displayName: `${tenant.plan} Plan`,
       description: "Active business plan and features entitlement",
       price: subscription?.pricePaid || 0,
       currency: subscription?.currency || "INR",
       billingCycle: subscription?.billingCycle || "MONTHLY",
       maxCards: tenant.maxCards,
-      smartGate: true,
-      multiGateTemplates: tenant.plan !== "BASIC",
-      customBranding: tenant.plan !== "BASIC",
-      webhookAlerts: tenant.plan !== "BASIC",
-      keywordSuggestions: tenant.plan !== "BASIC",
-      qrCodeTier: tenant.plan === "ENTERPRISE" ? "White-label" : tenant.plan === "PRO" ? "Branded" : "Basic",
-      analyticsRetDays: tenant.plan === "ENTERPRISE" ? 3650 : tenant.plan === "PRO" ? 365 : 30,
-      prioritySupport: tenant.plan === "ENTERPRISE",
+      maxLocations: tenant.plan === "BUSINESS" ? 5 : tenant.plan === "GROWTH" ? 3 : 1,
+      maxCatalogItems: tenant.plan === "LITE" ? 10 : tenant.plan === "STARTER" ? 25 : -1,
+      bookingFormEnabled: tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE",
+      removePoweredBy: tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE",
+      smartGate: tenant.plan !== "LITE",
+      multiGateTemplates: tenant.plan !== "LITE",
+      customBranding: true,
+      webhookAlerts: tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE",
+      keywordSuggestions: tenant.plan === "GROWTH" || tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE",
+      googleHub: tenant.plan !== "LITE",
+      teamAccess: tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE",
+      qrCodeTier: tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE" ? "White-label" : "Branded",
+      analyticsRetDays: tenant.plan === "ENTERPRISE" ? 3650 : tenant.plan === "BUSINESS" || tenant.plan === "GROWTH" ? 365 : tenant.plan === "STARTER" ? 90 : 30,
+      prioritySupport: tenant.plan === "BUSINESS" || tenant.plan === "ENTERPRISE",
     };
 
   const remainingSlots = Math.max(0, tenant.maxCards - tenant.activeCards);

@@ -39,22 +39,13 @@ export default async function QrStudioPage() {
   const defaultUrl = cards[0]?.fullUrl || `${baseUrl}/rate/${tenant.slug}`;
 
   const rawPlan = String(
-    tenant.subscription?.plan || tenant.plan || "BASIC"
+    tenant.subscription?.plan || tenant.plan || "STARTER"
   ).toUpperCase();
-
-  const effectivePlan: "BASIC" | "PRO" | "ENTERPRISE" =
-    user.role === "SUPER_ADMIN"
-      ? "ENTERPRISE"
-      : rawPlan === "PRO"
-      ? "PRO"
-      : rawPlan === "ENTERPRISE"
-      ? "ENTERPRISE"
-      : "BASIC";
 
   return (
     <QrStudioClient
       tenantName={tenant.name}
-      tenantPlan={effectivePlan}
+      tenantPlan={rawPlan}
       businessType={tenant.businessType}
       cards={cards}
       defaultUrl={defaultUrl}

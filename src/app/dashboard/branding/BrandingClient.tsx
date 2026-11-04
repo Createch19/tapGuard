@@ -68,8 +68,7 @@ export default function BrandingClient({
   tenant,
   branding: initialBranding,
 }: BrandingClientProps) {
-  const isProOrEnterprise =
-    tenant.plan === "PRO" || tenant.plan === "ENTERPRISE";
+  const isLite = tenant.plan === "LITE";
 
   // Gate Template Selection State
   const [gateTemplate, setGateTemplate] = useState<GateTemplateType>(
@@ -284,9 +283,9 @@ export default function BrandingClient({
   ];
 
   const handleSelectTemplate = (template: GateTemplateType) => {
-    if (!isProOrEnterprise && template !== "GOOGLE_REVIEW") {
+    if (isLite && template !== "BUSINESS_PROFILE") {
       setErrorMessage(
-        "Business Profile, Delivery Hub, Social Media Hub, and Custom Menu Redirection require Pro or Enterprise."
+        "The Lite plan includes the Business Branding Gateway only. Upgrade to Starter, Growth, or Business to unlock Google Review Smart Gate and other templates."
       );
       return;
     }
@@ -411,7 +410,18 @@ export default function BrandingClient({
   };
 
   // Catalog item handlers
+  const maxCatalogLimit =
+    tenant.plan === "LITE" ? 10 : tenant.plan === "STARTER" ? 25 : 999999;
+
   const handleAddCatalogItem = () => {
+    const currentCount = (profile.catalogItems || []).length;
+    if (currentCount >= maxCatalogLimit) {
+      setErrorMessage(
+        `Your ${tenant.plan} plan allows up to ${maxCatalogLimit} catalog items. Please upgrade to Growth or Business for unlimited items.`
+      );
+      return;
+    }
+
     const newItem: CatalogItem = {
       id: `item-${Date.now()}`,
       name: "New Service / Item",
@@ -516,7 +526,7 @@ export default function BrandingClient({
 
           <span
             className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
-              isProOrEnterprise
+              !isLite
                 ? "bg-teal-50 text-teal-800 border-teal-200"
                 : "bg-amber-50 text-amber-800 border-amber-200"
             }`}
@@ -526,8 +536,8 @@ export default function BrandingClient({
         </div>
       </div>
 
-      {/* Pro Plan Upsell Notice */}
-      {!isProOrEnterprise && (
+      {/* Lite Plan Upsell Notice */}
+      {isLite && (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 rounded-3xl border border-amber-300/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
@@ -535,10 +545,10 @@ export default function BrandingClient({
             </div>
             <div>
               <strong className="text-sm font-bold text-amber-950 block">
-                Unlock Business Profile & Custom Gates with Pro
+                Unlock Google Review Smart Gate with Starter or Growth
               </strong>
               <p className="text-xs text-amber-800/90 mt-0.5 max-w-2xl">
-                Upgrade to <strong>Pro Monthly</strong> or <strong>Enterprise</strong> to activate the <strong>Business Profile Mini-Website (with UPI payments, catalog & enquiry)</strong>, <strong>Delivery Hub</strong>, and <strong>Social Hub</strong>.
+                The <strong>Lite</strong> plan includes your digital branding microsite with UPI payments. Upgrade to <strong>Starter</strong> or <strong>Growth</strong> to unlock the <strong>Google Review Smart Gate</strong>, <strong>Social Hub</strong>, and <strong>Food Delivery Hub</strong>.
               </p>
             </div>
           </div>
@@ -548,7 +558,7 @@ export default function BrandingClient({
             className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 transition-colors shadow-2xs"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-            <span>View Subscription</span>
+            <span>Upgrade Plan</span>
           </Link>
         </div>
       )}

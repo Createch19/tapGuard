@@ -71,6 +71,7 @@ interface ReviewGateProps {
     enabledLanguages: string[];
     sentenceBundle: Record<string, string[]>;
   } | null;
+  removePoweredBy?: boolean;
 }
 
 const STAR_LABELS = [
@@ -105,6 +106,7 @@ export default function ReviewGateClient({
   logoUrl,
   tapEventId,
   keywordConfig,
+  removePoweredBy = false,
 }: ReviewGateProps) {
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [selectedRating, setSelectedRating] = useState<number>(0);
@@ -246,6 +248,7 @@ export default function ReviewGateClient({
         primaryColor={primaryColor}
         logoUrl={logoUrl}
         trackOutcome={trackOutcome}
+        removePoweredBy={removePoweredBy}
       />
     );
   }
@@ -898,11 +901,13 @@ export default function ReviewGateClient({
       </div>
 
       {/* Footer Branding */}
-      <footer className="text-center py-4 text-xs text-slate-400">
-        Powered by{" "}
-        <span className="font-semibold text-slate-600">TapGenie</span> — Dynamic
-        Review Gate
-      </footer>
+      {!removePoweredBy && (
+        <footer className="text-center py-4 text-xs text-slate-400">
+          Powered by{" "}
+          <span className="font-semibold text-slate-600">TapGenie</span> — Dynamic
+          Review Gate
+        </footer>
+      )}
     </div>
   );
 }

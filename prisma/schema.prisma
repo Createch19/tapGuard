@@ -13,9 +13,13 @@ datasource db {
 // ─── Enums ───────────────────────────────────────────────
 
 enum TenantPlan {
+  LITE
+  STARTER
+  GROWTH
+  BUSINESS
+  ENTERPRISE
   BASIC
   PRO
-  ENTERPRISE
 }
 
 enum BillingCycle {
@@ -115,10 +119,11 @@ model Tenant {
   customRedirectTitle  String?      @default("View Online Menu") @map("custom_redirect_title")
   customRedirectDirect Boolean      @default(false) @map("custom_redirect_direct")
   businessProfile      Json?        @map("business_profile")
-  plan                 TenantPlan   @default(BASIC)
+  plan                 TenantPlan   @default(STARTER)
   businessType         String?      @default("Restaurant & Café") @map("business_type")
   isActive             Boolean      @default(true) @map("is_active")
-  maxCards             Int          @default(5) @map("max_cards")
+  maxCards             Int          @default(3) @map("max_cards")
+  maxLocations         Int          @default(1) @map("max_locations")
   webhookUrl           String?      @map("webhook_url")
   alertEmail           String?      @map("alert_email")
   googleBusinessEmail      String?      @map("google_business_email")
@@ -227,27 +232,33 @@ model VerificationToken {
 // ─── Plan Configuration (Admin-Editable) ─────────────────
 
 model PlanConfig {
-  id               String       @id @default(uuid()) @db.Uuid
-  plan             TenantPlan   @unique
-  displayName      String       @map("display_name")
-  description      String?
-  price            Decimal      @db.Decimal(10, 2)
-  currency         String       @default("INR") @db.VarChar(3)
-  billingCycle     BillingCycle @map("billing_cycle")
+  id                 String       @id @default(uuid()) @db.Uuid
+  plan               TenantPlan   @unique
+  displayName        String       @map("display_name")
+  description        String?
+  price              Decimal      @db.Decimal(10, 2)
+  yearlyPrice        Decimal?     @map("yearly_price") @db.Decimal(10, 2)
+  currency           String       @default("INR") @db.VarChar(3)
+  billingCycle       BillingCycle @map("billing_cycle")
   maxCards           Int          @map("max_cards")
+  maxLocations       Int          @default(1) @map("max_locations")
+  maxCatalogItems    Int          @default(25) @map("max_catalog_items")
+  bookingFormEnabled Boolean      @default(true) @map("booking_form_enabled")
+  removePoweredBy    Boolean      @default(false) @map("remove_powered_by")
   smartGate          Boolean      @default(true) @map("smart_gate")
   multiGateTemplates Boolean      @default(false) @map("multi_gate_templates")
   customBranding     Boolean      @default(false) @map("custom_branding")
-  webhookAlerts    Boolean      @default(false) @map("webhook_alerts")
+  webhookAlerts      Boolean      @default(false) @map("webhook_alerts")
   keywordSuggestions Boolean      @default(false) @map("keyword_suggestions")
-  googleHub        Boolean      @default(false) @map("google_hub")
-  qrCodeTier       String       @default("basic") @map("qr_code_tier")
-  analyticsRetDays Int          @default(30) @map("analytics_ret_days")
-  prioritySupport  Boolean      @default(false) @map("priority_support")
-  isActive         Boolean      @default(true) @map("is_active")
-  sortOrder        Int          @default(0) @map("sort_order")
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
+  googleHub          Boolean      @default(false) @map("google_hub")
+  teamAccess         Boolean      @default(false) @map("team_access")
+  qrCodeTier         String       @default("basic") @map("qr_code_tier")
+  analyticsRetDays   Int          @default(30) @map("analytics_ret_days")
+  prioritySupport    Boolean      @default(false) @map("priority_support")
+  isActive           Boolean      @default(true) @map("is_active")
+  sortOrder          Int          @default(0) @map("sort_order")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
 
   @@map("plan_configs")
 }
@@ -258,8 +269,8 @@ model Subscription {
   id                 String             @id @default(uuid()) @db.Uuid
   tenantId           String             @unique @map("tenant_id") @db.Uuid
   status             SubscriptionStatus @default(ACTIVE)
-  plan               TenantPlan         @default(BASIC)
-  billingCycle       BillingCycle       @default(LIFETIME) @map("billing_cycle")
+  plan               TenantPlan         @default(STARTER)
+  billingCycle       BillingCycle       @default(MONTHLY) @map("billing_cycle")
   pricePaid          Decimal            @default(0) @map("price_paid") @db.Decimal(10, 2)
   currency           String             @default("INR") @db.VarChar(3)
   trialStartDate     DateTime?          @map("trial_start_date")

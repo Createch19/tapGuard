@@ -51,8 +51,9 @@ export async function PATCH(
           tenantId: id,
           plan,
           status: "ACTIVE",
-          billingCycle: plan === "BASIC" ? "LIFETIME" : "MONTHLY",
-          pricePaid: plan === "BASIC" ? 999 : plan === "PRO" ? 499 : 0,
+          billingCycle: plan === "LITE" ? "LIFETIME" : "MONTHLY",
+          pricePaid:
+            plan === "LITE" ? 499 : plan === "STARTER" ? 299 : plan === "GROWTH" ? 699 : plan === "BUSINESS" ? 1499 : 0,
           currency: "INR",
         },
       });

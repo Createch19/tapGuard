@@ -60,13 +60,13 @@ export default function TenantsClient({
   // New tenant form state
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [plan, setPlan] = useState<"BASIC" | "PRO" | "ENTERPRISE">("BASIC");
+  const [plan, setPlan] = useState<string>("STARTER");
   const [businessType, setBusinessType] = useState(
     initialBusinessTypes[0]?.name || "Restaurant & Café"
   );
   const [isCustomTypeMode, setIsCustomTypeMode] = useState(false);
   const [customTypeInput, setCustomTypeInput] = useState("");
-  const [maxCards, setMaxCards] = useState(5);
+  const [maxCards, setMaxCards] = useState(3);
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
 
   // Owner account state
@@ -507,15 +507,19 @@ export default function TenantsClient({
                   <select
                     value={plan}
                     onChange={(e) => {
-                      const newPlan = e.target.value as "BASIC" | "PRO" | "ENTERPRISE";
+                      const newPlan = e.target.value;
                       setPlan(newPlan);
-                      setMaxCards(newPlan === "BASIC" ? 5 : newPlan === "PRO" ? 50 : 999999);
+                      setMaxCards(
+                        newPlan === "LITE" ? 1 : newPlan === "STARTER" ? 3 : newPlan === "GROWTH" ? 15 : newPlan === "BUSINESS" ? 50 : 9999
+                      );
                     }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                   >
-                    <option value="BASIC">BASIC (₹999 Lifetime)</option>
-                    <option value="PRO">PRO (₹499 / Month)</option>
-                    <option value="ENTERPRISE">ENTERPRISE (Custom)</option>
+                    <option value="LITE">LITE (₹499 Lifetime - 1 Card, 1 Loc)</option>
+                    <option value="STARTER">STARTER (₹299/mo - 3 Cards, 1 Loc)</option>
+                    <option value="GROWTH">GROWTH (₹699/mo - 15 Cards, 3 Locs)</option>
+                    <option value="BUSINESS">BUSINESS (₹1,499/mo - 50 Cards, 5 Locs)</option>
+                    <option value="ENTERPRISE">ENTERPRISE (Custom Volume)</option>
                   </select>
                 </div>
 
