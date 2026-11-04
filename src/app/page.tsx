@@ -26,7 +26,7 @@ export default async function HomePage() {
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <img src="/brand/tapgenie-icon.jpg" alt="TapGenie Logo" className="w-8 h-8 rounded-xl object-cover shadow-xs border border-slate-900/10" />
+            <img src="/brand/tapgenie-icon.png" alt="TapGenie Logo" className="w-8 h-8 object-contain" />
             <span className="font-black text-lg tracking-tight text-slate-900">
               TapGenie
             </span>
@@ -364,7 +364,7 @@ export default async function HomePage() {
       <footer className="bg-white border-t border-slate-200/80 px-4 sm:px-8 py-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-bold text-slate-800">
-            <img src="/brand/tapgenie-icon.jpg" alt="TapGenie Logo" className="w-6 h-6 rounded-lg object-cover shadow-xs border border-slate-900/10" />
+            <img src="/brand/tapgenie-icon.png" alt="TapGenie Logo" className="w-6 h-6 object-contain" />
             <span>TapGenie</span>
             <span className="text-slate-400 font-normal">
               — Smart NFC Business Profile & Review SaaS

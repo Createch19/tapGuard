@@ -105,7 +105,7 @@ export default function ClaimClient({
       {/* Top Navbar */}
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-2">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-slate-900">
-          <img src="/brand/tapgenie-icon.jpg" alt="TapGenie Logo" className="w-8 h-8 rounded-lg object-cover shadow-xs border border-slate-900/10" />
+          <img src="/brand/tapgenie-icon.png" alt="TapGenie Logo" className="w-8 h-8 object-contain" />
           <span>TapGenie</span>
         </Link>
         {user ? (

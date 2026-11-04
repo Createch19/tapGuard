@@ -13,11 +13,11 @@ export const metadata: Metadata = {
     "B2B SaaS platform for managing NFC and QR-code-based Google Review cards and Smart Business Profiles with TapGenie Smart Rating Gate, private feedback interception, and multi-tenant analytics.",
   icons: {
     icon: [
-      { url: "/brand/tapgenie-icon.jpg" },
-      { url: "/brand/tapgenie-icon.jpg", sizes: "192x192", type: "image/jpeg" },
+      { url: "/icon.png" },
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/brand/tapgenie-icon.jpg",
-    apple: "/brand/tapgenie-icon.jpg",
+    shortcut: "/icon.png",
+    apple: "/apple-icon.png",
   },
 };
 
