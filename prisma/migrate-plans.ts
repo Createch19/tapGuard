@@ -87,6 +87,40 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
     `);
     log("✅ Checked and created required columns on tenants, cards, and plan_configs.");
 
+    // Baseline _prisma_migrations so "prisma migrate deploy" never throws P3005
+    log("🛠️ Step 2b: Checking Prisma baseline migration status...");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "_prisma_migrations" (
+        "id" VARCHAR(36) PRIMARY KEY,
+        "checksum" VARCHAR(64) NOT NULL,
+        "finished_at" TIMESTAMPTZ,
+        "migration_name" VARCHAR(255) NOT NULL,
+        "logs" TEXT,
+        "rolled_back_at" TIMESTAMPTZ,
+        "started_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "applied_steps_count" INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+    const checkApplied = await client.query(`
+      SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '0_init' AND finished_at IS NOT NULL;
+    `);
+    if (checkApplied.rowCount === 0) {
+      await client.query(`
+        INSERT INTO "_prisma_migrations" (id, checksum, migration_name, started_at, finished_at, applied_steps_count)
+        VALUES (
+          gen_random_uuid()::text,
+          '48f3a4242525647e736c46ab8f07b83f9a4ffafb96e3e5473a5c9149f69ce2b0',
+          '0_init',
+          now(),
+          now(),
+          0
+        );
+      `);
+      log("✅ Baselined Prisma migration 0_init in _prisma_migrations table.");
+    } else {
+      log("✅ Prisma migration 0_init already marked as applied.");
+    }
+
     // 3. Migrate legacy plan records
     log("🛠️ Step 3: Migrating legacy tenant plans...");
     const checkTenants = await client.query(`
