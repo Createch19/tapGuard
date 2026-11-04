@@ -28,6 +28,8 @@ import {
   PROFILE_TRANSLATIONS,
   DEFAULT_BUSINESS_PROFILE,
   CatalogItem,
+  ProfileSectionKey,
+  DEFAULT_SECTION_ORDER,
 } from "@/lib/business-profile";
 
 export interface BusinessProfileMicrositeProps {
@@ -112,7 +114,7 @@ export default function BusinessProfileMicrosite({
   const handleNav = (url: string) => {
     trackOutcome?.("REDIRECTED");
     if (!isSimulator) {
-      window.location.href = url;
+      window.location.assign(url);
     }
   };
 
@@ -165,6 +167,565 @@ export default function BusinessProfileMicrosite({
   const filteredItems: CatalogItem[] = (profile.catalogItems || []).filter(
     (item) => activeCategory === "All" || item.category === activeCategory
   );
+
+  const rawOrder = profile.sectionOrder || DEFAULT_SECTION_ORDER;
+  const effectiveSectionOrder: ProfileSectionKey[] = [
+    ...rawOrder.filter((k) => DEFAULT_SECTION_ORDER.includes(k)),
+    ...DEFAULT_SECTION_ORDER.filter((k) => !rawOrder.includes(k)),
+  ];
+
+  const renderSection = (sectionKey: ProfileSectionKey) => {
+    // Check if section is toggled OFF
+    if (profile.sections?.[sectionKey] === false) {
+      return null;
+    }
+
+    switch (sectionKey) {
+      case "quickActions": {
+        const title = profile.sectionTitles?.quickActions;
+        return (
+          <div key="quickActions" className="space-y-1.5">
+            {title && (
+              <h3 className="font-bold text-xs px-1 text-slate-800 dark:text-slate-200">
+                {title}
+              </h3>
+            )}
+            <div className="grid grid-cols-4 gap-2">
+              {/* Call */}
+              {phone ? (
+                <button
+                  type="button"
+                  onClick={() => handleNav(`tel:${phone}`)}
+                  className={`p-3 rounded-2xl ${cardClass} hover:border-teal-500 transition-all text-center group cursor-pointer`}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl mx-auto flex items-center justify-center text-white mb-1.5 shadow-2xs group-hover:scale-105 transition-transform"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-bold block leading-tight">
+                    {t.callUs}
+                  </span>
+                </button>
+              ) : null}
+
+              {/* WhatsApp */}
+              {whatsapp ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const clean = whatsapp.replace(/[^0-9]/g, "");
+                    const msg = encodeURIComponent(
+                      profile.whatsappGreeting ||
+                        `Hi ${tenantName}, I am reaching out from your Business Card!`
+                    );
+                    handleNav(
+                      `https://wa.me/${
+                        clean.length === 10 ? `91${clean}` : clean
+                      }?text=${msg}`
+                    );
+                  }}
+                  className={`p-3 rounded-2xl ${cardClass} hover:border-emerald-500 transition-all text-center group cursor-pointer`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-[#25D366] text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-bold block leading-tight">
+                    {t.whatsapp}
+                  </span>
+                </button>
+              ) : null}
+
+              {/* Directions */}
+              {mapsUrl ? (
+                <button
+                  type="button"
+                  onClick={() => handleNav(mapsUrl)}
+                  className={`p-3 rounded-2xl ${cardClass} hover:border-blue-500 transition-all text-center group cursor-pointer`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-bold block leading-tight">
+                    {t.directions}
+                  </span>
+                </button>
+              ) : null}
+
+              {/* Save vCard Contact */}
+              {profile.enableVCard !== false && (
+                <button
+                  type="button"
+                  onClick={() => handleNav(`/api/vcard/${cardSlug}`)}
+                  className={`p-3 rounded-2xl ${cardClass} hover:border-indigo-500 transition-all text-center group cursor-pointer`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
+                    <Download className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-bold block leading-tight">
+                    {t.saveContact}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      case "upi": {
+        if (!profile.enableUpi || !upiId) return null;
+        const title = profile.sectionTitles?.upi || t.upiTitle;
+        const subtitle = profile.sectionSubtitles?.upi || t.upiSubtitle;
+        return (
+          <div
+            key="upi"
+            className={`p-4 sm:p-5 rounded-3xl ${cardClass} border border-amber-300/80 dark:border-amber-800/80 relative overflow-hidden`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs sm:text-sm">{title}</h3>
+                  <p className={`text-[10px] ${subtleTextClass}`}>{subtitle}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200">
+                  BHIM • UPI
+                </span>
+              </div>
+            </div>
+
+            {/* UPI ID Badge with Copy */}
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 mb-3 text-xs">
+              <div className="font-mono font-bold text-slate-800 dark:text-slate-200 truncate pr-2">
+                {upiId}
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyUpi}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+              >
+                {copiedUpi ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    <span>{t.copied}</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>{t.copyUpi}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Pay Now Button & QR Toggle */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a
+                href={upiUri}
+                onClick={() => trackOutcome?.("REDIRECTED")}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold rounded-2xl text-xs shadow-sm transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                <span>{t.payNow}</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowQrModal(!showQrModal)}
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold rounded-2xl text-xs transition-colors cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>{showQrModal ? t.hideQr : t.scanQr}</span>
+              </button>
+            </div>
+
+            {/* Expandable UPI QR Code Card */}
+            {showQrModal && (
+              <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800 text-center animate-in fade-in zoom-in-95">
+                <div className="bg-white p-3 rounded-2xl inline-block shadow-md border border-slate-200 mx-auto">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                      upiUri
+                    )}`}
+                    alt="UPI QR Code"
+                    className="w-44 h-44 mx-auto"
+                  />
+                </div>
+                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mt-2">
+                  Scan with Google Pay, PhonePe, or Paytm
+                </p>
+                <p className="text-[10px] text-slate-400 font-mono">
+                  Payee: {upiPayee}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      case "catalog": {
+        if (filteredItems.length === 0) return null;
+        const title = profile.sectionTitles?.catalog || t.catalogTitle;
+        const subtitle = profile.sectionSubtitles?.catalog || t.catalogSubtitle;
+        return (
+          <div
+            key="catalog"
+            className={`p-4 sm:p-5 rounded-3xl ${cardClass} space-y-3.5`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-xs sm:text-sm">{title}</h3>
+                <p className={`text-[10px] ${subtleTextClass}`}>{subtitle}</p>
+              </div>
+              <Utensils className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            </div>
+
+            {/* Category Filter Pills */}
+            {categories.length > 1 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      activeCategory === cat
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                        : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
+                    {cat === "All" ? t.allCategories : cat}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Items List */}
+            <div className="space-y-2.5">
+              {filteredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-850/60 border border-slate-200/70 dark:border-slate-800 flex items-start gap-3 hover:border-slate-300 transition-colors"
+                >
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-100"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 leading-snug">
+                        {item.name}
+                      </h4>
+                      {item.price && (
+                        <span
+                          className="font-black text-xs px-2 py-0.5 rounded-lg text-white shrink-0 shadow-2xs"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {item.price}
+                        </span>
+                      )}
+                    </div>
+
+                    {item.description && (
+                      <p
+                        className={`text-[11px] ${subtleTextClass} leading-relaxed mt-0.5 line-clamp-2`}
+                      >
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-slate-200/40 dark:border-slate-800 text-[10px]">
+                      {item.badge ? (
+                        <span className="font-bold text-amber-600 dark:text-amber-400">
+                          ★ {item.badge}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+
+                      {whatsapp && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const clean = whatsapp.replace(/[^0-9]/g, "");
+                            const msg = encodeURIComponent(
+                              `Hi ${tenantName}, I am interested in "${
+                                item.name
+                              }" (${item.price || ""}). Could you share more details?`
+                            );
+                            handleNav(
+                              `https://wa.me/${
+                                clean.length === 10 ? `91${clean}` : clean
+                              }?text=${msg}`
+                            );
+                          }}
+                          className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                        >
+                          <span>{t.enquireItem}</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case "enquiry": {
+        if (!profile.enableEnquiryForm) return null;
+        const title = profile.sectionTitles?.enquiry || t.enquiryTitle;
+        const subtitle = profile.sectionSubtitles?.enquiry || t.enquirySubtitle;
+        return (
+          <div
+            key="enquiry"
+            className={`p-4 sm:p-5 rounded-3xl ${cardClass} space-y-3.5`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold shadow-2xs"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xs sm:text-sm">{title}</h3>
+                <p className={`text-[10px] ${subtleTextClass}`}>{subtitle}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSendEnquiry} className="space-y-2.5 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
+                    {t.nameLabel}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={enquiryName}
+                    onChange={(e) => setEnquiryName(e.target.value)}
+                    placeholder={t.namePlaceholder}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
+                    {t.phoneLabel}
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={enquiryPhone}
+                    onChange={(e) => setEnquiryPhone(e.target.value)}
+                    placeholder={t.phonePlaceholder}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
+                  {t.timeLabel}
+                </label>
+                <input
+                  type="text"
+                  value={enquiryTime}
+                  onChange={(e) => setEnquiryTime(e.target.value)}
+                  placeholder={t.timePlaceholder}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
+                  {t.msgLabel}
+                </label>
+                <textarea
+                  rows={2}
+                  value={enquiryMessage}
+                  onChange={(e) => setEnquiryMessage(e.target.value)}
+                  placeholder={t.msgPlaceholder}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold rounded-2xl text-xs shadow-sm transition-all cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{t.sendEnquiry}</span>
+              </button>
+            </form>
+          </div>
+        );
+      }
+
+      case "about": {
+        if (!profile.bio) return null;
+        const title = profile.sectionTitles?.about || t.aboutUs;
+        return (
+          <div
+            key="about"
+            className={`p-4 sm:p-5 rounded-3xl ${cardClass} space-y-2`}
+          >
+            <h3 className="font-bold text-xs sm:text-sm">{title}</h3>
+            <p className={`text-xs ${subtleTextClass} leading-relaxed`}>
+              {profile.bio}
+            </p>
+          </div>
+        );
+      }
+
+      case "hours": {
+        if (!profile.businessHoursText) return null;
+        const title = profile.sectionTitles?.hours || t.hoursTitle;
+        return (
+          <div
+            key="hours"
+            className={`p-4 rounded-2xl ${cardClass} flex items-start gap-3`}
+          >
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
+                {title}
+              </h4>
+              <p
+                className={`text-xs ${subtleTextClass} leading-relaxed font-mono`}
+              >
+                {profile.businessHoursText}
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      case "map": {
+        if (!address) return null;
+        const title = profile.sectionTitles?.map || t.locationTitle;
+        return (
+          <div key="map" className={`p-4 rounded-2xl ${cardClass} space-y-2.5`}>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
+                  {title}
+                </h4>
+                <p className={`text-xs ${subtleTextClass} leading-relaxed`}>
+                  {address}
+                </p>
+              </div>
+            </div>
+
+            {mapsUrl && (
+              <button
+                type="button"
+                onClick={() => handleNav(mapsUrl)}
+                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>{t.openMaps}</span>
+              </button>
+            )}
+          </div>
+        );
+      }
+
+      case "reviews": {
+        if (!googleReviewUrl) return null;
+        const title = profile.sectionTitles?.reviews || t.reviewsTitle;
+        return (
+          <button
+            key="reviews"
+            type="button"
+            onClick={() => handleNav(googleReviewUrl)}
+            className={`w-full p-3.5 rounded-2xl ${cardClass} hover:border-amber-400 transition-all flex items-center justify-between group cursor-pointer text-left`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                  {title}
+                </h4>
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                  {t.rateUs}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+          </button>
+        );
+      }
+
+      case "social": {
+        if (!instagramUrl && !facebookUrl && !youtubeUrl) return null;
+        const title = profile.sectionTitles?.social || t.socialTitle;
+        return (
+          <div
+            key="social"
+            className={`p-4 rounded-2xl ${cardClass} text-center space-y-2.5`}
+          >
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+              {title}
+            </span>
+            <div className="flex items-center justify-center gap-2">
+              {instagramUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleNav(instagramUrl)}
+                  className="p-2.5 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
+                  title="Instagram"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+              )}
+              {facebookUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleNav(facebookUrl)}
+                  className="p-2.5 rounded-xl bg-[#1877F2] text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
+                  title="Facebook"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+              )}
+              {youtubeUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleNav(youtubeUrl)}
+                  className="p-2.5 rounded-xl bg-[#FF0000] text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
+                  title="YouTube"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div
@@ -283,482 +844,7 @@ export default function BusinessProfileMicrosite({
         </div>
 
         <div className="px-4 sm:px-6 space-y-4">
-          {/* Quick Connect Action Hub (4-Button Grid) */}
-          {profile.sections?.quickActions !== false && (
-            <div className="grid grid-cols-4 gap-2">
-              {/* Call */}
-              {phone ? (
-                <button
-                  type="button"
-                  onClick={() => handleNav(`tel:${phone}`)}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-teal-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl mx-auto flex items-center justify-center text-white mb-1.5 shadow-2xs group-hover:scale-105 transition-transform"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.callUs}
-                  </span>
-                </button>
-              ) : null}
-
-              {/* WhatsApp */}
-              {whatsapp ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const clean = whatsapp.replace(/[^0-9]/g, "");
-                    const msg = encodeURIComponent(profile.whatsappGreeting || `Hi ${tenantName}, I am reaching out from your Business Card!`);
-                    handleNav(`https://wa.me/${clean.length === 10 ? `91${clean}` : clean}?text=${msg}`);
-                  }}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-emerald-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[#25D366] text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.whatsapp}
-                  </span>
-                </button>
-              ) : null}
-
-              {/* Directions */}
-              {mapsUrl ? (
-                <button
-                  type="button"
-                  onClick={() => handleNav(mapsUrl)}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-blue-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.directions}
-                  </span>
-                </button>
-              ) : null}
-
-              {/* Save vCard Contact */}
-              {profile.enableVCard !== false && (
-                <button
-                  type="button"
-                  onClick={() => handleNav(`/api/vcard/${cardSlug}`)}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-indigo-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                    <Download className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.saveContact}
-                  </span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* 1. UPI Direct Pay & QR Code Card */}
-          {profile.enableUpi && upiId && profile.sections?.upi !== false && (
-            <div className={`p-4 sm:p-5 rounded-3xl ${cardClass} border border-amber-300/80 dark:border-amber-800/80 relative overflow-hidden`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm">
-                      {t.upiTitle}
-                    </h3>
-                    <p className={`text-[10px] ${subtleTextClass}`}>
-                      {t.upiSubtitle}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200">
-                    BHIM • UPI
-                  </span>
-                </div>
-              </div>
-
-              {/* UPI ID Badge with Copy */}
-              <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 mb-3 text-xs">
-                <div className="font-mono font-bold text-slate-800 dark:text-slate-200 truncate pr-2">
-                  {upiId}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyUpi}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
-                >
-                  {copiedUpi ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-600" />
-                      <span>{t.copied}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span>{t.copyUpi}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Pay Now Button & QR Toggle */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <a
-                  href={upiUri}
-                  onClick={() => trackOutcome?.("REDIRECTED")}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold rounded-2xl text-xs shadow-sm transition-all"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                  <span>{t.payNow}</span>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => setShowQrModal(!showQrModal)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold rounded-2xl text-xs transition-colors cursor-pointer"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>{showQrModal ? t.hideQr : t.scanQr}</span>
-                </button>
-              </div>
-
-              {/* Expandable UPI QR Code Card */}
-              {showQrModal && (
-                <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800 text-center animate-in fade-in zoom-in-95">
-                  <div className="bg-white p-3 rounded-2xl inline-block shadow-md border border-slate-200 mx-auto">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`}
-                      alt="UPI QR Code"
-                      className="w-44 h-44 mx-auto"
-                    />
-                  </div>
-                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mt-2">
-                    Scan with Google Pay, PhonePe, or Paytm
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-mono">
-                    Payee: {upiPayee}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 2. Menu or Product / Service Catalog */}
-          {profile.sections?.catalog !== false && filteredItems.length > 0 && (
-            <div className={`p-4 sm:p-5 rounded-3xl ${cardClass} space-y-3.5`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm">
-                    {t.catalogTitle}
-                  </h3>
-                  <p className={`text-[10px] ${subtleTextClass}`}>
-                    {t.catalogSubtitle}
-                  </p>
-                </div>
-                <Utensils className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              </div>
-
-              {/* Category Filter Pills */}
-              {categories.length > 1 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setActiveCategory(cat)}
-                      className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-                        activeCategory === cat
-                          ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
-                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                      }`}
-                    >
-                      {cat === "All" ? t.allCategories : cat}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Items List */}
-              <div className="space-y-2.5">
-                {filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-850/60 border border-slate-200/70 dark:border-slate-800 flex items-start gap-3 hover:border-slate-300 transition-colors"
-                  >
-                    {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-100"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 leading-snug">
-                          {item.name}
-                        </h4>
-                        {item.price && (
-                          <span
-                            className="font-black text-xs px-2 py-0.5 rounded-lg text-white shrink-0 shadow-2xs"
-                            style={{ backgroundColor: primaryColor }}
-                          >
-                            {item.price}
-                          </span>
-                        )}
-                      </div>
-
-                      {item.description && (
-                        <p className={`text-[11px] ${subtleTextClass} leading-relaxed mt-0.5 line-clamp-2`}>
-                          {item.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-slate-200/40 dark:border-slate-800 text-[10px]">
-                        {item.badge ? (
-                          <span className="font-bold text-amber-600 dark:text-amber-400">
-                            ★ {item.badge}
-                          </span>
-                        ) : <span />}
-
-                        {whatsapp && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const clean = whatsapp.replace(/[^0-9]/g, "");
-                              const msg = encodeURIComponent(`Hi ${tenantName}, I am interested in "${item.name}" (${item.price || ""}). Could you share more details?`);
-                              handleNav(`https://wa.me/${clean.length === 10 ? `91${clean}` : clean}?text=${msg}`);
-                            }}
-                            className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                          >
-                            <span>{t.enquireItem}</span>
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 3. Appointment & Enquiry Form */}
-          {profile.enableEnquiryForm && profile.sections?.enquiry !== false && (
-            <div className={`p-4 sm:p-5 rounded-3xl ${cardClass} space-y-3.5`}>
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold shadow-2xs"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm">
-                    {t.enquiryTitle}
-                  </h3>
-                  <p className={`text-[10px] ${subtleTextClass}`}>
-                    {t.enquirySubtitle}
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSendEnquiry} className="space-y-2.5 pt-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
-                      {t.nameLabel}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={enquiryName}
-                      onChange={(e) => setEnquiryName(e.target.value)}
-                      placeholder={t.namePlaceholder}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
-                      {t.phoneLabel}
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={enquiryPhone}
-                      onChange={(e) => setEnquiryPhone(e.target.value)}
-                      placeholder={t.phonePlaceholder}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
-                    {t.timeLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={enquiryTime}
-                    onChange={(e) => setEnquiryTime(e.target.value)}
-                    placeholder={t.timePlaceholder}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-slate-700 dark:text-slate-300">
-                    {t.msgLabel}
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={enquiryMessage}
-                    onChange={(e) => setEnquiryMessage(e.target.value)}
-                    placeholder={t.msgPlaceholder}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold rounded-2xl text-xs shadow-sm transition-all cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{t.sendEnquiry}</span>
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* 4. About Us & Bio */}
-          {profile.bio && profile.sections?.about !== false && (
-            <div className={`p-4 sm:p-5 rounded-3xl ${cardClass} space-y-2`}>
-              <h3 className="font-bold text-xs sm:text-sm">
-                {t.aboutUs}
-              </h3>
-              <p className={`text-xs ${subtleTextClass} leading-relaxed`}>
-                {profile.bio}
-              </p>
-            </div>
-          )}
-
-          {/* 5. Business Working Hours */}
-          {profile.businessHoursText && profile.sections?.hours !== false && (
-            <div className={`p-4 rounded-2xl ${cardClass} flex items-start gap-3`}>
-              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
-                  {t.hoursTitle}
-                </h4>
-                <p className={`text-xs ${subtleTextClass} leading-relaxed font-mono`}>
-                  {profile.businessHoursText}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* 6. Physical Location & Map */}
-          {address && profile.sections?.map !== false && (
-            <div className={`p-4 rounded-2xl ${cardClass} space-y-2.5`}>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
-                    {t.locationTitle}
-                  </h4>
-                  <p className={`text-xs ${subtleTextClass} leading-relaxed`}>
-                    {address}
-                  </p>
-                </div>
-              </div>
-
-              {mapsUrl && (
-                <button
-                  type="button"
-                  onClick={() => handleNav(mapsUrl)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>{t.openMaps}</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* 7. Google Reviews Secondary Button */}
-          {googleReviewUrl && profile.sections?.reviews !== false && (
-            <button
-              type="button"
-              onClick={() => handleNav(googleReviewUrl)}
-              className={`w-full p-3.5 rounded-2xl ${cardClass} hover:border-amber-400 transition-all flex items-center justify-between group cursor-pointer text-left`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">
-                    {t.reviewsTitle}
-                  </h4>
-                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                    {t.rateUs}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-            </button>
-          )}
-
-          {/* 8. Social Channels */}
-          {(instagramUrl || facebookUrl || youtubeUrl) && profile.sections?.social !== false && (
-            <div className={`p-4 rounded-2xl ${cardClass} text-center space-y-2.5`}>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                {t.socialTitle}
-              </span>
-              <div className="flex items-center justify-center gap-2">
-                {instagramUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleNav(instagramUrl)}
-                    className="p-2.5 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                    title="Instagram"
-                  >
-                    <Globe className="w-4 h-4" />
-                  </button>
-                )}
-                {facebookUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleNav(facebookUrl)}
-                    className="p-2.5 rounded-xl bg-[#1877F2] text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                    title="Facebook"
-                  >
-                    <Globe className="w-4 h-4" />
-                  </button>
-                )}
-                {youtubeUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleNav(youtubeUrl)}
-                    className="p-2.5 rounded-xl bg-[#FF0000] text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                    title="YouTube"
-                  >
-                    <Globe className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          {effectiveSectionOrder.map((sectionKey) => renderSection(sectionKey))}
 
           {/* Footer */}
           <footer className={`text-center py-4 text-[10px] ${subtleTextClass}`}>

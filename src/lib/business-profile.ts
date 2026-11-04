@@ -1,6 +1,89 @@
 export type ProfileLanguage = "EN" | "TA" | "HI";
 export type ProfileThemeStyle = "EXECUTIVE" | "LUXE_DARK" | "MINIMAL" | "VIBRANT";
 
+export type ProfileSectionKey =
+  | "quickActions"
+  | "upi"
+  | "catalog"
+  | "enquiry"
+  | "about"
+  | "hours"
+  | "map"
+  | "reviews"
+  | "social";
+
+export const DEFAULT_SECTION_ORDER: ProfileSectionKey[] = [
+  "quickActions",
+  "upi",
+  "catalog",
+  "enquiry",
+  "about",
+  "hours",
+  "map",
+  "reviews",
+  "social",
+];
+
+export const SECTION_METADATA: Record<
+  ProfileSectionKey,
+  { defaultTitle: string; defaultSubtitle: string; icon: string; description: string }
+> = {
+  quickActions: {
+    defaultTitle: "Quick Connect",
+    defaultSubtitle: "Call, WhatsApp, Maps & Contact",
+    icon: "⚡",
+    description: "4-action button bar for immediate customer contact & directions",
+  },
+  upi: {
+    defaultTitle: "Instant UPI Payment",
+    defaultSubtitle: "Google Pay, PhonePe, Paytm & CRED",
+    icon: "💳",
+    description: "1-tap mobile payment checkout & scan-and-pay QR code",
+  },
+  catalog: {
+    defaultTitle: "Menu & Catalog",
+    defaultSubtitle: "Explore our offerings & prices",
+    icon: "🍱",
+    description: "Categorized products/services with prices, photos & WhatsApp enquiry",
+  },
+  enquiry: {
+    defaultTitle: "Appointment & Enquiry",
+    defaultSubtitle: "Book a slot or send a query",
+    icon: "📅",
+    description: "Customer booking & lead form sent directly to your WhatsApp",
+  },
+  about: {
+    defaultTitle: "About Us",
+    defaultSubtitle: "Our story & background",
+    icon: "📖",
+    description: "Business background, description, and bio",
+  },
+  hours: {
+    defaultTitle: "Operating Hours",
+    defaultSubtitle: "When we are open",
+    icon: "🕒",
+    description: "Store or clinic working days and hours",
+  },
+  map: {
+    defaultTitle: "Store Location & Directions",
+    defaultSubtitle: "Find us in person",
+    icon: "📍",
+    description: "Physical address with 1-tap Google Maps directions",
+  },
+  reviews: {
+    defaultTitle: "Google Reviews & Ratings",
+    defaultSubtitle: "See what customers say",
+    icon: "⭐",
+    description: "5-Star rating link to your Google Business Profile",
+  },
+  social: {
+    defaultTitle: "Social Channels",
+    defaultSubtitle: "Follow us online",
+    icon: "🌐",
+    description: "Instagram, Facebook, and YouTube social channels",
+  },
+};
+
 export interface CatalogItem {
   id: string;
   name: string;
@@ -46,6 +129,13 @@ export interface BusinessProfileData {
   enableEnquiryForm?: boolean;
   enquiryTargetWhatsapp?: string;
 
+  // Ordered sections sequence
+  sectionOrder?: ProfileSectionKey[];
+
+  // Custom section titles & subtitles (allows merchant to rename any tile)
+  sectionTitles?: Partial<Record<ProfileSectionKey, string>>;
+  sectionSubtitles?: Partial<Record<ProfileSectionKey, string>>;
+
   // Section visibility toggles
   sections?: {
     upi?: boolean;
@@ -71,6 +161,9 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfileData = {
   enableVCard: true,
   enableEnquiryForm: true,
   businessHoursText: "Mon - Sat: 9:00 AM - 9:00 PM | Sun: 10:00 AM - 2:00 PM",
+  sectionOrder: DEFAULT_SECTION_ORDER,
+  sectionTitles: {},
+  sectionSubtitles: {},
   catalogCategories: ["Featured Services", "Consultation"],
   catalogItems: [
     {

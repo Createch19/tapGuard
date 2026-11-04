@@ -12,6 +12,10 @@ import {
   ArrowRight,
   Plus,
   Trash2,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import BusinessProfileMicrosite from "@/components/profile/BusinessProfileMicrosite";
 import {
@@ -19,6 +23,9 @@ import {
   DEFAULT_BUSINESS_PROFILE,
   CatalogItem,
   ProfileThemeStyle,
+  ProfileSectionKey,
+  DEFAULT_SECTION_ORDER,
+  SECTION_METADATA,
 } from "@/lib/business-profile";
 
 type GateTemplateType =
@@ -115,18 +122,37 @@ export default function BrandingClient({
   );
 
   // Business Profile Mini-Website State
-  const [profile, setProfile] = useState<BusinessProfileData>({
-    ...DEFAULT_BUSINESS_PROFILE,
-    ...(tenant.businessProfile || {}),
-    contactPhone: tenant.businessProfile?.contactPhone || tenant.deliveryPhone || "",
-    whatsappNumber: tenant.businessProfile?.whatsappNumber || tenant.deliveryPhone || "",
-    upiPayeeName: tenant.businessProfile?.upiPayeeName || tenant.name,
+  const [profile, setProfile] = useState<BusinessProfileData>(() => {
+    const rawOrder = tenant.businessProfile?.sectionOrder || DEFAULT_SECTION_ORDER;
+    const initialOrder: ProfileSectionKey[] = [
+      ...rawOrder.filter((k) => DEFAULT_SECTION_ORDER.includes(k)),
+      ...DEFAULT_SECTION_ORDER.filter((k) => !rawOrder.includes(k)),
+    ];
+
+    return {
+      ...DEFAULT_BUSINESS_PROFILE,
+      ...(tenant.businessProfile || {}),
+      sectionOrder: initialOrder,
+      sections: {
+        ...DEFAULT_BUSINESS_PROFILE.sections,
+        ...(tenant.businessProfile?.sections || {}),
+      },
+      sectionTitles: {
+        ...(tenant.businessProfile?.sectionTitles || {}),
+      },
+      sectionSubtitles: {
+        ...(tenant.businessProfile?.sectionSubtitles || {}),
+      },
+      contactPhone: tenant.businessProfile?.contactPhone || tenant.deliveryPhone || "",
+      whatsappNumber: tenant.businessProfile?.whatsappNumber || tenant.deliveryPhone || "",
+      upiPayeeName: tenant.businessProfile?.upiPayeeName || tenant.name,
+    };
   });
 
-  // Active accordion tab inside Business Profile customizer
+  // Active tab inside Business Profile customizer
   const [activeProfileTab, setActiveProfileTab] = useState<
-    "theme" | "upi" | "catalog" | "enquiry" | "contact"
-  >("theme");
+    "tiles" | "theme" | "upi" | "catalog" | "enquiry" | "contact"
+  >("tiles");
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -159,6 +185,112 @@ export default function BrandingClient({
     setProfile((prev) => ({
       ...prev,
       [field]: value,
+    }));
+  };
+
+  // Dynamic Tile Layout & Reordering Handlers
+  const currentOrder: ProfileSectionKey[] = (() => {
+    const raw = profile.sectionOrder || DEFAULT_SECTION_ORDER;
+    return [
+      ...raw.filter((k) => DEFAULT_SECTION_ORDER.includes(k)),
+      ...DEFAULT_SECTION_ORDER.filter((k) => !raw.includes(k)),
+    ];
+  })();
+
+  const handleMoveSection = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentOrder.length) return;
+
+    const newOrder = [...currentOrder];
+    const [moved] = newOrder.splice(index, 1);
+    newOrder.splice(targetIndex, 0, moved);
+
+    setProfile((prev) => ({
+      ...prev,
+      sectionOrder: newOrder,
+    }));
+  };
+
+  const handleToggleSection = (key: ProfileSectionKey) => {
+    setProfile((prev) => {
+      const currentVal = prev.sections?.[key] !== false;
+      return {
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [key]: !currentVal,
+        },
+      };
+    });
+  };
+
+  const handleUpdateSectionTitle = (key: ProfileSectionKey, title: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      sectionTitles: {
+        ...prev.sectionTitles,
+        [key]: title,
+      },
+    }));
+  };
+
+  const handleUpdateSectionSubtitle = (key: ProfileSectionKey, subtitle: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      sectionSubtitles: {
+        ...prev.sectionSubtitles,
+        [key]: subtitle,
+      },
+    }));
+  };
+
+  const handleApplyPreset = (
+    preset: "RESTAURANT" | "CLINIC" | "RETAIL" | "DEFAULT"
+  ) => {
+    let newOrder: ProfileSectionKey[];
+    if (preset === "RESTAURANT") {
+      newOrder = [
+        "catalog",
+        "quickActions",
+        "upi",
+        "hours",
+        "map",
+        "reviews",
+        "about",
+        "social",
+        "enquiry",
+      ];
+    } else if (preset === "CLINIC") {
+      newOrder = [
+        "enquiry",
+        "quickActions",
+        "about",
+        "catalog",
+        "hours",
+        "map",
+        "reviews",
+        "upi",
+        "social",
+      ];
+    } else if (preset === "RETAIL") {
+      newOrder = [
+        "upi",
+        "quickActions",
+        "catalog",
+        "reviews",
+        "hours",
+        "map",
+        "about",
+        "social",
+        "enquiry",
+      ];
+    } else {
+      newOrder = [...DEFAULT_SECTION_ORDER];
+    }
+
+    setProfile((prev) => ({
+      ...prev,
+      sectionOrder: newOrder,
     }));
   };
 
@@ -481,6 +613,7 @@ export default function BrandingClient({
               {/* Studio Tabs */}
               <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl overflow-x-auto scrollbar-none">
                 {([
+                  { id: "tiles", label: "🧱 Tiles & Layout" },
                   { id: "theme", label: "🎨 Theme & Cover" },
                   { id: "upi", label: "💳 UPI Payment" },
                   { id: "catalog", label: "🍱 Menu & Catalog" },
@@ -501,6 +634,250 @@ export default function BrandingClient({
                   </button>
                 ))}
               </div>
+
+              {/* TAB 0: Dynamic Tiles & Placement Layout */}
+              {activeProfileTab === "tiles" && (
+                <div className="space-y-4 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 animate-in fade-in">
+                  {/* Banner notice */}
+                  <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-xl space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-teal-900">
+                      <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                      <span>Banner & Profile Fixed at Top</span>
+                    </div>
+                    <p className="text-[11px] text-teal-800 leading-relaxed">
+                      Your hero banner, cover photo, logo, language switcher, and tagline stay anchored at the top. Below the banner, you can <strong>turn each tile ON or OFF</strong>, <strong>rearrange their sequence</strong>, and <strong>rename each tile</strong>.
+                    </p>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div>
+                    <span className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      1-Click Layout Presets
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset("RESTAURANT")}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50/50 text-left transition-all cursor-pointer group"
+                      >
+                        <span className="text-base block mb-0.5">🍕</span>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-teal-700">
+                          Restaurant & Café
+                        </span>
+                        <span className="text-[10px] text-slate-500 block leading-tight">
+                          Menu ➔ Connect ➔ UPI
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset("CLINIC")}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50/50 text-left transition-all cursor-pointer group"
+                      >
+                        <span className="text-base block mb-0.5">🩺</span>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-teal-700">
+                          Doctor & Clinic
+                        </span>
+                        <span className="text-[10px] text-slate-500 block leading-tight">
+                          Booking ➔ Services ➔ Bio
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset("RETAIL")}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50/50 text-left transition-all cursor-pointer group"
+                      >
+                        <span className="text-base block mb-0.5">🛍️</span>
+                        <span className="text-xs font-bold text-slate-900 block group-hover:text-teal-700">
+                          Retail & Counter
+                        </span>
+                        <span className="text-[10px] text-slate-500 block leading-tight">
+                          UPI Pay ➔ Catalog ➔ Reviews
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset("DEFAULT")}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-400 text-left transition-all cursor-pointer group"
+                      >
+                        <span className="text-base block mb-0.5">🔄</span>
+                        <span className="text-xs font-bold text-slate-900 block">
+                          Reset Order
+                        </span>
+                        <span className="text-[10px] text-slate-500 block leading-tight">
+                          Standard Default
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Re-orderable Tiles List */}
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      <span>Tile Blocks Order ({currentOrder.length} Tiles)</span>
+                      <span className="text-slate-400 font-normal">Use ⬆️ ⬇️ to rearrange order</span>
+                    </div>
+
+                    {currentOrder.map((sectionKey, index) => {
+                      const meta = SECTION_METADATA[sectionKey];
+                      const isEnabled = profile.sections?.[sectionKey] !== false;
+                      const customTitle = profile.sectionTitles?.[sectionKey] || "";
+                      const customSubtitle = profile.sectionSubtitles?.[sectionKey] || "";
+                      const isFirst = index === 0;
+                      const isLast = index === currentOrder.length - 1;
+
+                      return (
+                        <div
+                          key={sectionKey}
+                          className={`p-3 sm:p-3.5 rounded-2xl border transition-all ${
+                            isEnabled
+                              ? "bg-white border-slate-200 shadow-2xs hover:border-slate-300"
+                              : "bg-slate-100/70 border-dashed border-slate-300 opacity-60"
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            {/* Left: Position badge, Icon, Tile Title */}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Reorder Buttons */}
+                              <div className="flex flex-col gap-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  disabled={isFirst}
+                                  onClick={() => handleMoveSection(index, "up")}
+                                  className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-20 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
+                                  title="Move Tile Up"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isLast}
+                                  onClick={() => handleMoveSection(index, "down")}
+                                  className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-20 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
+                                  title="Move Tile Down"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Position Index Badge */}
+                              <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">
+                                {index + 1}
+                              </span>
+
+                              {/* Section Icon & Info */}
+                              <div className="text-xl shrink-0">{meta.icon}</div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-slate-900 truncate">
+                                    {customTitle ? customTitle : meta.defaultTitle}
+                                  </span>
+                                  {customTitle && (
+                                    <span className="text-[10px] text-teal-600 bg-teal-50 border border-teal-200 px-1.5 py-0.2 rounded font-semibold shrink-0">
+                                      Renamed
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-500 block truncate">
+                                  {meta.description}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Right: Toggle Switch & Config shortcut */}
+                            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                              {/* Quick tab link if relevant */}
+                              {sectionKey === "catalog" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveProfileTab("catalog")}
+                                  className="text-[11px] font-semibold text-teal-700 hover:underline cursor-pointer mr-1"
+                                >
+                                  Edit Items ➔
+                                </button>
+                              )}
+                              {sectionKey === "upi" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveProfileTab("upi")}
+                                  className="text-[11px] font-semibold text-teal-700 hover:underline cursor-pointer mr-1"
+                                >
+                                  Set UPI ID ➔
+                                </button>
+                              )}
+                              {sectionKey === "enquiry" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveProfileTab("enquiry")}
+                                  className="text-[11px] font-semibold text-teal-700 hover:underline cursor-pointer mr-1"
+                                >
+                                  Settings ➔
+                                </button>
+                              )}
+
+                              {/* Visibility Toggle Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSection(sectionKey)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  isEnabled
+                                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
+                                    : "bg-slate-200 text-slate-600 border border-slate-300 hover:bg-slate-300"
+                                }`}
+                              >
+                                {isEnabled ? (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>ON</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>OFF</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Editable Tile Heading & Subtitle */}
+                          {isEnabled && (
+                            <div className="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                                  Tile Heading (Default: &quot;{meta.defaultTitle}&quot;)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={customTitle}
+                                  onChange={(e) => handleUpdateSectionTitle(sectionKey, e.target.value)}
+                                  placeholder={meta.defaultTitle}
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:bg-white focus:ring-1 focus:ring-teal-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                                  Tile Subtitle (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={customSubtitle}
+                                  onChange={(e) => handleUpdateSectionSubtitle(sectionKey, e.target.value)}
+                                  placeholder={meta.defaultSubtitle}
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:bg-white focus:ring-1 focus:ring-teal-500"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* TAB 1: Theme & Cover */}
               {activeProfileTab === "theme" && (
