@@ -1,0 +1,2 @@
+[variables]
+NIXPACKS_PRISMA_MIGRATE_CMD = "npm run db:deploy"

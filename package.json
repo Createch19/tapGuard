@@ -7,6 +7,8 @@
     "build": "prisma generate && next build",
     "db:sync": "prisma db push && tsx prisma/prod-sync.ts",
     "db:deploy": "tsx prisma/migrate-plans.ts",
+    "db:migrate": "tsx prisma/migrate-plans.ts",
+    "migrate": "tsx prisma/migrate-plans.ts",
     "start": "tsx prisma/migrate-plans.ts && next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts"
