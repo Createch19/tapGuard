@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import CardsClient from "./CardsClient";
+import { BusinessProfileData } from "@/lib/business-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function CardsPage() {
     deliveryPhone: c.deliveryPhone,
     greetingTitle: c.greetingTitle,
     greetingSubtitle: c.greetingSubtitle,
+    businessProfile: (c.businessProfile as unknown as BusinessProfileData) || null,
   }));
 
   const rawPlan = String(
@@ -90,6 +92,7 @@ export default async function CardsPage() {
         greetingTitle: tenant.greetingTitle,
         greetingSubtitle: tenant.greetingSubtitle,
         smartGateEnabled: tenant.smartGateEnabled,
+        businessProfile: (tenant.businessProfile as unknown as BusinessProfileData) || null,
       }}
     />
   );

@@ -44,6 +44,7 @@ enum GateTemplate {
   SOCIAL_HUB
   DELIVERY_DINING
   CUSTOM_REDIRECT
+  BUSINESS_PROFILE
 }
 
 enum TapOutcome {
@@ -113,6 +114,7 @@ model Tenant {
   customRedirectUrl    String?      @map("custom_redirect_url")
   customRedirectTitle  String?      @default("View Online Menu") @map("custom_redirect_title")
   customRedirectDirect Boolean      @default(false) @map("custom_redirect_direct")
+  businessProfile      Json?        @map("business_profile")
   plan                 TenantPlan   @default(BASIC)
   businessType         String?      @default("Restaurant & Café") @map("business_type")
   isActive             Boolean      @default(true) @map("is_active")
@@ -344,6 +346,7 @@ model Card {
   deliveryPhone        String?       @map("delivery_phone")
   greetingTitle        String?       @map("greeting_title")
   greetingSubtitle     String?       @map("greeting_subtitle")
+  businessProfile      Json?         @map("business_profile")
 
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")

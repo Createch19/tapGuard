@@ -1,6 +1,7 @@
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import BrandingClient from "./BrandingClient";
+import { BusinessProfileData } from "@/lib/business-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function BrandingPage() {
         customRedirectDirect: tenant.customRedirectDirect || false,
         greetingTitle: tenant.greetingTitle,
         greetingSubtitle: tenant.greetingSubtitle,
+        businessProfile: (tenant.businessProfile as unknown as BusinessProfileData) || null,
       }}
       branding={{
         primaryColor: tenant.branding?.primaryColor || "#0D9488",

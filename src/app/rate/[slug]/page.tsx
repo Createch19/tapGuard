@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReviewGateClient from "./ReviewGateClient";
 import { generateMultiLanguageSentenceBundle } from "@/lib/sentence-generator";
+import { BusinessProfileData } from "@/lib/business-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -105,8 +106,14 @@ export default async function RatePage({
   const effectiveDeliveryPhone = isOverridden && card.deliveryPhone ? card.deliveryPhone : tenant.deliveryPhone;
   const effectiveCustomRedirectUrl = isOverridden && card.customRedirectUrl ? card.customRedirectUrl : tenant.customRedirectUrl;
   const effectiveCustomRedirectTitle = isOverridden && card.customRedirectTitle ? card.customRedirectTitle : (tenant.customRedirectTitle || "View Online Menu");
+
+  const rawBusinessProfile =
+    ((isOverridden && card.businessProfile ? card.businessProfile : tenant.businessProfile) as BusinessProfileData | null) || null;
+
   const defaultGreeting =
-    effectiveGateTemplate === "DELIVERY_DINING"
+    effectiveGateTemplate === "BUSINESS_PROFILE"
+      ? (rawBusinessProfile?.tagline || tenant.name)
+      : effectiveGateTemplate === "DELIVERY_DINING"
       ? "Order Online & Delivery"
       : effectiveGateTemplate === "SOCIAL_HUB"
       ? "Connect With Us"
@@ -115,7 +122,9 @@ export default async function RatePage({
       : "How was your experience?";
 
   const defaultSubtitle =
-    effectiveGateTemplate === "DELIVERY_DINING"
+    effectiveGateTemplate === "BUSINESS_PROFILE"
+      ? (rawBusinessProfile?.category || tenant.businessType || "Official Storefront & Services")
+      : effectiveGateTemplate === "DELIVERY_DINING"
       ? "Select your favorite food platform or call us directly for takeaway."
       : effectiveGateTemplate === "SOCIAL_HUB"
       ? "Follow our official channels for latest updates, events & offers."
@@ -143,6 +152,7 @@ export default async function RatePage({
       tenantId={tenant.id}
       tenantName={tenant.name}
       gateTemplate={effectiveGateTemplate}
+      businessProfile={rawBusinessProfile}
       googleReviewUrl={effectiveGoogleReviewUrl}
       instagramUrl={effectiveInstagramUrl}
       facebookUrl={effectiveFacebookUrl}

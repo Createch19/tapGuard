@@ -19,6 +19,7 @@ export async function PUT(request: NextRequest) {
       customRedirectUrl,
       customRedirectTitle,
       customRedirectDirect,
+      businessProfile,
       greetingTitle,
       greetingSubtitle,
       primaryColor,
@@ -73,6 +74,7 @@ export async function PUT(request: NextRequest) {
         customRedirectUrl: customRedirectUrl !== undefined ? (customRedirectUrl ? String(customRedirectUrl).trim() : null) : undefined,
         customRedirectTitle: customRedirectTitle !== undefined ? (customRedirectTitle ? String(customRedirectTitle).trim() : "View Online Menu") : undefined,
         customRedirectDirect: customRedirectDirect !== undefined ? Boolean(customRedirectDirect) : undefined,
+        businessProfile: businessProfile !== undefined ? businessProfile : undefined,
       },
     });
 

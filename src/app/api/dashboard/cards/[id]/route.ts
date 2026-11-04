@@ -29,6 +29,7 @@ export async function PATCH(
       deliveryPhone,
       greetingTitle,
       greetingSubtitle,
+      businessProfile,
     } = body;
 
     // Verify card belongs to tenant
@@ -62,6 +63,7 @@ export async function PATCH(
         deliveryPhone: deliveryPhone !== undefined ? deliveryPhone : undefined,
         greetingTitle: greetingTitle !== undefined ? greetingTitle : undefined,
         greetingSubtitle: greetingSubtitle !== undefined ? greetingSubtitle : undefined,
+        businessProfile: businessProfile !== undefined ? businessProfile : undefined,
       },
     });
 

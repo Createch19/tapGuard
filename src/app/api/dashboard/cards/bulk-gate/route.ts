@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       deliveryPhone,
       greetingTitle,
       greetingSubtitle,
+      businessProfile,
     } = body;
 
     // 1. One-Click Reset All Cards to Business Default (Inherited Gate)
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
       if (customRedirectDirect !== undefined) updateData.customRedirectDirect = Boolean(customRedirectDirect);
       if (greetingTitle !== undefined) updateData.greetingTitle = greetingTitle;
       if (greetingSubtitle !== undefined) updateData.greetingSubtitle = greetingSubtitle;
+      if (businessProfile !== undefined) updateData.businessProfile = businessProfile;
 
       const result = await prisma.card.updateMany({
         where: whereClause,

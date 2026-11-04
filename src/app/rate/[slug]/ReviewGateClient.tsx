@@ -10,7 +10,30 @@ import {
   Copy,
   RefreshCw,
   Sparkles,
+  Phone,
+  MessageSquare,
+  MapPin,
+  QrCode,
+  Globe,
+  Calendar,
+  Clock,
+  CreditCard,
+  Share2,
+  Download,
+  Check,
+  ShieldCheck,
+  Utensils,
+  Layers,
+  X,
+  ExternalLink,
 } from "lucide-react";
+import {
+  BusinessProfileData,
+  ProfileLanguage,
+  PROFILE_TRANSLATIONS,
+  DEFAULT_BUSINESS_PROFILE,
+} from "@/lib/business-profile";
+import BusinessProfileMicrosite from "@/components/profile/BusinessProfileMicrosite";
 
 interface ReviewGateProps {
   cardId: string;
@@ -18,7 +41,13 @@ interface ReviewGateProps {
   cardLabel?: string | null;
   tenantId: string;
   tenantName: string;
-  gateTemplate?: "GOOGLE_REVIEW" | "SOCIAL_HUB" | "DELIVERY_DINING" | "CUSTOM_REDIRECT";
+  gateTemplate?:
+    | "GOOGLE_REVIEW"
+    | "SOCIAL_HUB"
+    | "DELIVERY_DINING"
+    | "CUSTOM_REDIRECT"
+    | "BUSINESS_PROFILE";
+  businessProfile?: BusinessProfileData | null;
   googleReviewUrl: string;
   instagramUrl?: string | null;
   facebookUrl?: string | null;
@@ -55,9 +84,11 @@ const STAR_LABELS = [
 
 export default function ReviewGateClient({
   cardId,
+  cardSlug,
   tenantId,
   tenantName,
   gateTemplate = "GOOGLE_REVIEW",
+  businessProfile,
   googleReviewUrl,
   instagramUrl,
   facebookUrl,
@@ -200,6 +231,23 @@ export default function ReviewGateClient({
       setIsSubmitting(false);
     }
   };
+
+  if (gateTemplate === "BUSINESS_PROFILE") {
+    return (
+      <BusinessProfileMicrosite
+        cardSlug={cardSlug}
+        tenantName={tenantName}
+        businessProfile={businessProfile}
+        googleReviewUrl={googleReviewUrl}
+        instagramUrl={instagramUrl}
+        facebookUrl={facebookUrl}
+        youtubeUrl={youtubeUrl}
+        primaryColor={primaryColor}
+        logoUrl={logoUrl}
+        trackOutcome={trackOutcome}
+      />
+    );
+  }
 
   return (
     <div

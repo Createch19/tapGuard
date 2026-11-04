@@ -10,18 +10,23 @@ import {
   Lock,
   Sparkles,
   ArrowRight,
-  Palette,
-  ExternalLink,
-  Flame,
-  Phone,
-  HelpCircle,
+  Plus,
+  Trash2,
 } from "lucide-react";
+import BusinessProfileMicrosite from "@/components/profile/BusinessProfileMicrosite";
+import {
+  BusinessProfileData,
+  DEFAULT_BUSINESS_PROFILE,
+  CatalogItem,
+  ProfileThemeStyle,
+} from "@/lib/business-profile";
 
 type GateTemplateType =
   | "GOOGLE_REVIEW"
   | "SOCIAL_HUB"
   | "DELIVERY_DINING"
-  | "CUSTOM_REDIRECT";
+  | "CUSTOM_REDIRECT"
+  | "BUSINESS_PROFILE";
 
 interface BrandingClientProps {
   tenant: {
@@ -29,6 +34,7 @@ interface BrandingClientProps {
     name: string;
     plan: string;
     gateTemplate?: GateTemplateType;
+    businessProfile?: BusinessProfileData | null;
     googleReviewUrl?: string | null;
     instagramUrl?: string | null;
     facebookUrl?: string | null;
@@ -75,7 +81,7 @@ export default function BrandingClient({
   );
   const [logoUrl, setLogoUrl] = useState(initialBranding.logoUrl || "");
 
-  // Template Specific States
+  // Legacy & General Template States
   const [googleReviewUrl, setGoogleReviewUrl] = useState(
     tenant.googleReviewUrl || ""
   );
@@ -108,6 +114,20 @@ export default function BrandingClient({
     tenant.customRedirectDirect || false
   );
 
+  // Business Profile Mini-Website State
+  const [profile, setProfile] = useState<BusinessProfileData>({
+    ...DEFAULT_BUSINESS_PROFILE,
+    ...(tenant.businessProfile || {}),
+    contactPhone: tenant.businessProfile?.contactPhone || tenant.deliveryPhone || "",
+    whatsappNumber: tenant.businessProfile?.whatsappNumber || tenant.deliveryPhone || "",
+    upiPayeeName: tenant.businessProfile?.upiPayeeName || tenant.name,
+  });
+
+  // Active accordion tab inside Business Profile customizer
+  const [activeProfileTab, setActiveProfileTab] = useState<
+    "theme" | "upi" | "catalog" | "enquiry" | "contact"
+  >("theme");
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -124,12 +144,58 @@ export default function BrandingClient({
   const handleSelectTemplate = (template: GateTemplateType) => {
     if (!isProOrEnterprise && template !== "GOOGLE_REVIEW") {
       setErrorMessage(
-        "Social Media Hub, Delivery Hub, and Custom Menu Redirection are Pro & Enterprise features."
+        "Business Profile, Delivery Hub, Social Media Hub, and Custom Menu Redirection require Pro or Enterprise."
       );
       return;
     }
     setErrorMessage("");
     setGateTemplate(template);
+  };
+
+  const updateProfileField = <K extends keyof BusinessProfileData>(
+    field: K,
+    value: BusinessProfileData[K]
+  ) => {
+    setProfile((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Catalog item handlers
+  const handleAddCatalogItem = () => {
+    const newItem: CatalogItem = {
+      id: `item-${Date.now()}`,
+      name: "New Service / Item",
+      category: profile.catalogCategories?.[0] || "General",
+      price: "₹499",
+      description: "Brief service summary or item description.",
+      badge: "Popular",
+    };
+    setProfile((prev) => ({
+      ...prev,
+      catalogItems: [...(prev.catalogItems || []), newItem],
+    }));
+  };
+
+  const handleUpdateCatalogItem = (
+    id: string,
+    field: keyof CatalogItem,
+    value: string
+  ) => {
+    setProfile((prev) => ({
+      ...prev,
+      catalogItems: (prev.catalogItems || []).map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const handleDeleteCatalogItem = (id: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      catalogItems: (prev.catalogItems || []).filter((item) => item.id !== id),
+    }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -159,37 +225,36 @@ export default function BrandingClient({
           customRedirectUrl,
           customRedirectTitle,
           customRedirectDirect,
+          businessProfile: profile,
         }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to save branding settings");
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update branding gate settings");
       }
 
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3500);
+      setTimeout(() => setSaveSuccess(false), 4000);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage("Error saving branding settings.");
-      }
+      setErrorMessage(
+        err instanceof Error ? err.message : "Something went wrong"
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-2xs">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Dynamic Gate Templates & Design
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Dynamic Gate Design & Website Builder</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Choose what customers see upon tapping your cards and customize colors, typography & actions
+            Configure your active gate template (Business Profile, Google Review, Delivery, Social Hub) with live real-time simulation
           </p>
         </div>
 
@@ -213,7 +278,7 @@ export default function BrandingClient({
         </div>
       </div>
 
-      {/* Pro Plan Upsell Notice (Only shown on BASIC plan) */}
+      {/* Pro Plan Upsell Notice */}
       {!isProOrEnterprise && (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 rounded-3xl border border-amber-300/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
@@ -222,10 +287,10 @@ export default function BrandingClient({
             </div>
             <div>
               <strong className="text-sm font-bold text-amber-950 block">
-                Unlock 4 Dynamic Gate Templates with Pro
+                Unlock Business Profile & Custom Gates with Pro
               </strong>
               <p className="text-xs text-amber-800/90 mt-0.5 max-w-2xl">
-                Your current Basic plan supports the <strong>Google Review Smart Gate</strong>. Upgrade to <strong>Pro Monthly</strong> or <strong>Enterprise</strong> to activate the <strong>Social Media Hub</strong>, <strong>Swiggy & Zomato Delivery Hub</strong>, and <strong>Direct Online Menu Redirection</strong>.
+                Upgrade to <strong>Pro Monthly</strong> or <strong>Enterprise</strong> to activate the <strong>Business Profile Mini-Website (with UPI payments, catalog & enquiry)</strong>, <strong>Delivery Hub</strong>, and <strong>Social Hub</strong>.
               </p>
             </div>
           </div>
@@ -253,7 +318,7 @@ export default function BrandingClient({
           onSubmit={handleSave}
           className="lg:col-span-7 bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-2xs space-y-6"
         >
-          {/* Section 1: Template Selection (4 Modes) */}
+          {/* Section 1: Template Selection (5 Modes) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -261,145 +326,133 @@ export default function BrandingClient({
                   Select Active Gate Template
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Choose the destination experience when customers tap your NFC card.
+                  Choose the destination experience when customers tap your NFC cards.
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Template 0: Business Profile Mini-Website */}
+              <button
+                type="button"
+                onClick={() => handleSelectTemplate("BUSINESS_PROFILE")}
+                className={`p-4 rounded-2xl border text-left transition-all relative col-span-1 sm:col-span-2 cursor-pointer ${
+                  gateTemplate === "BUSINESS_PROFILE"
+                    ? "border-teal-600 bg-gradient-to-r from-teal-50/80 via-emerald-50/50 to-white ring-2 ring-teal-400/40 shadow-xs"
+                    : "border-slate-200 hover:border-slate-300 bg-white"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🏢</span>
+                    <div>
+                      <strong className="text-sm font-black text-slate-900 block leading-tight">
+                        Business Profile (Customized Mini-Website)
+                      </strong>
+                      <span className="text-[10px] font-bold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                        UPI Pay • Catalog • Enquiry • EN/TA/HI
+                      </span>
+                    </div>
+                  </div>
+                  {gateTemplate === "BUSINESS_PROFILE" && (
+                    <CheckCircle className="w-5 h-5 text-teal-600 shrink-0" />
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  A high-converting mobile microsite with direct UPI payments, product catalog, appointment WhatsApp leads, and 1-tap contact saving.
+                </p>
+              </button>
+
               {/* Template 1: Google Review */}
               <button
                 type="button"
                 onClick={() => handleSelectTemplate("GOOGLE_REVIEW")}
-                className={`p-4 rounded-2xl border text-left transition-all ${
+                className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
                   gateTemplate === "GOOGLE_REVIEW"
-                    ? "border-teal-500 bg-teal-50/50 ring-2 ring-teal-500/20 shadow-2xs"
+                    ? "border-amber-500 bg-amber-50/60 ring-2 ring-amber-300/40"
                     : "border-slate-200 hover:border-slate-300 bg-white"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center font-bold">
-                    ⭐
-                  </div>
+                  <span className="text-xl">⭐</span>
                   {gateTemplate === "GOOGLE_REVIEW" && (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-600 text-white">
-                      Active
-                    </span>
+                    <CheckCircle className="w-4 h-4 text-amber-600" />
                   )}
                 </div>
                 <strong className="text-xs font-bold text-slate-900 block">
-                  Google Review Smart Gate & Keywords
+                  Google Review Smart Gate
                 </strong>
                 <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Smart Rating Shield + Keyword SEO Review Suggestions (English, Tanglish & Regional). 4-5★ provides 1-click copyable reviews with your target keywords.
+                  4-5★ routes to Google Review with AI suggestions; 1-3★ opens private manager feedback form.
                 </p>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-700 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-md mt-2">
-                  <Sparkles className="w-2.5 h-2.5 text-teal-600" /> SEO Keywords Active
-                </span>
               </button>
 
-              {/* Template 2: Social Media Hub */}
+              {/* Template 2: Food Delivery & Dining */}
+              <button
+                type="button"
+                onClick={() => handleSelectTemplate("DELIVERY_DINING")}
+                className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
+                  gateTemplate === "DELIVERY_DINING"
+                    ? "border-rose-500 bg-rose-50/60 ring-2 ring-rose-300/40"
+                    : "border-slate-200 hover:border-slate-300 bg-white"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xl">🛵</span>
+                  {gateTemplate === "DELIVERY_DINING" && (
+                    <CheckCircle className="w-4 h-4 text-rose-600" />
+                  )}
+                </div>
+                <strong className="text-xs font-bold text-slate-900 block">
+                  Swiggy & Zomato Delivery Hub
+                </strong>
+                <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                  Showcase Swiggy, Zomato, phone takeaway orders, and special promo offers.
+                </p>
+              </button>
+
+              {/* Template 3: Social Media Hub */}
               <button
                 type="button"
                 onClick={() => handleSelectTemplate("SOCIAL_HUB")}
-                className={`p-4 rounded-2xl border text-left transition-all relative ${
+                className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
                   gateTemplate === "SOCIAL_HUB"
-                    ? "border-teal-500 bg-teal-50/50 ring-2 ring-teal-500/20 shadow-2xs"
+                    ? "border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-300/40"
                     : "border-slate-200 hover:border-slate-300 bg-white"
-                } ${!isProOrEnterprise ? "opacity-80" : ""}`}
+                }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white flex items-center justify-center font-bold text-xs">
-                    📸
-                  </div>
-                  {gateTemplate === "SOCIAL_HUB" ? (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-600 text-white">
-                      Active
-                    </span>
-                  ) : !isProOrEnterprise ? (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 inline-flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> PRO
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-50 text-teal-700">
-                      Pro
-                    </span>
+                  <span className="text-xl">📱</span>
+                  {gateTemplate === "SOCIAL_HUB" && (
+                    <CheckCircle className="w-4 h-4 text-indigo-600" />
                   )}
                 </div>
                 <strong className="text-xs font-bold text-slate-900 block">
                   Social Media Hub
                 </strong>
                 <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Direct followers to Instagram, Facebook & YouTube to grow your social channels.
+                  Grow your followers on Instagram, Facebook, and YouTube with 1-tap links.
                 </p>
               </button>
 
-              {/* Template 3: Food Delivery & Dining */}
-              <button
-                type="button"
-                onClick={() => handleSelectTemplate("DELIVERY_DINING")}
-                className={`p-4 rounded-2xl border text-left transition-all relative ${
-                  gateTemplate === "DELIVERY_DINING"
-                    ? "border-teal-500 bg-teal-50/50 ring-2 ring-teal-500/20 shadow-2xs"
-                    : "border-slate-200 hover:border-slate-300 bg-white"
-                } ${!isProOrEnterprise ? "opacity-80" : ""}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-xs">
-                    🍽️
-                  </div>
-                  {gateTemplate === "DELIVERY_DINING" ? (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-600 text-white">
-                      Active
-                    </span>
-                  ) : !isProOrEnterprise ? (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 inline-flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> PRO
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-50 text-teal-700">
-                      Pro
-                    </span>
-                  )}
-                </div>
-                <strong className="text-xs font-bold text-slate-900 block">
-                  Swiggy & Zomato Delivery
-                </strong>
-                <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                  Direct action cards for Swiggy, Zomato, special deals, and direct table calls.
-                </p>
-              </button>
-
-              {/* Template 4: Custom URL Redirection */}
+              {/* Template 4: Custom URL / Menu */}
               <button
                 type="button"
                 onClick={() => handleSelectTemplate("CUSTOM_REDIRECT")}
-                className={`p-4 rounded-2xl border text-left transition-all relative ${
+                className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
                   gateTemplate === "CUSTOM_REDIRECT"
-                    ? "border-teal-500 bg-teal-50/50 ring-2 ring-teal-500/20 shadow-2xs"
+                    ? "border-purple-500 bg-purple-50/60 ring-2 ring-purple-300/40"
                     : "border-slate-200 hover:border-slate-300 bg-white"
-                } ${!isProOrEnterprise ? "opacity-80" : ""}`}
+                }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-xs">
-                    🔗
-                  </div>
-                  {gateTemplate === "CUSTOM_REDIRECT" ? (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-600 text-white">
-                      Active
-                    </span>
-                  ) : !isProOrEnterprise ? (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 inline-flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> PRO
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-teal-50 text-teal-700">
-                      Pro
-                    </span>
+                  <span className="text-xl">📖</span>
+                  {gateTemplate === "CUSTOM_REDIRECT" && (
+                    <CheckCircle className="w-4 h-4 text-purple-600" />
                   )}
                 </div>
                 <strong className="text-xs font-bold text-slate-900 block">
-                  Online Menu / Custom URL
+                  Online Menu / Custom Link
                 </strong>
                 <p className="text-[11px] text-slate-500 mt-1 leading-snug">
                   Redirect customers to your digital PDF menu, website catalog, or table ordering URL.
@@ -410,235 +463,520 @@ export default function BrandingClient({
 
           <hr className="border-slate-100" />
 
-          {/* Section 2: Dynamic Template Fields */}
-          <div className="space-y-4">
-            {gateTemplate === "GOOGLE_REVIEW" && (
-              <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                  Google Review Settings
-                </span>
-
+          {/* Section 2: BUSINESS PROFILE CUSTOMIZER (MODULAR TABS) */}
+          {gateTemplate === "BUSINESS_PROFILE" && (
+            <div className="space-y-4 pt-1 animate-in fade-in">
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Google Review Direct Place URL *
-                  </label>
-                  <input
-                    type="url"
-                    value={googleReviewUrl}
-                    onChange={(e) => setGoogleReviewUrl(e.target.value)}
-                    placeholder="https://search.google.com/local/writereview?placeid=..."
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    Where 4-star and 5-star positive customers are redirected to submit public reviews.
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-teal-600" />
+                    <span>Business Profile Microsite Studio</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Customize every section of your mini-website with instant live preview.
+                  </p>
+                </div>
+              </div>
+
+              {/* Studio Tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl overflow-x-auto scrollbar-none">
+                {([
+                  { id: "theme", label: "🎨 Theme & Cover" },
+                  { id: "upi", label: "💳 UPI Payment" },
+                  { id: "catalog", label: "🍱 Menu & Catalog" },
+                  { id: "enquiry", label: "📅 Enquiry Form" },
+                  { id: "contact", label: "📍 Contact & Hours" },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveProfileTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      activeProfileTab === tab.id
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* TAB 1: Theme & Cover */}
+              {activeProfileTab === "theme" && (
+                <div className="space-y-3.5 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 animate-in fade-in">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Microsite Design Theme
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: "EXECUTIVE", name: "Executive Slate", icon: "🏛️" },
+                        { id: "LUXE_DARK", name: "Luxe Obsidian", icon: "✨" },
+                        { id: "MINIMAL", name: "Nordic Minimal", icon: "🌿" },
+                        { id: "VIBRANT", name: "Vibrant Brand", icon: "🎨" },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => updateProfileField("themeStyle", t.id as ProfileThemeStyle)}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            (profile.themeStyle || "EXECUTIVE") === t.id
+                              ? "border-teal-600 bg-teal-50/80 font-bold text-teal-900 ring-2 ring-teal-200"
+                              : "border-slate-200 bg-white text-slate-700"
+                          }`}
+                        >
+                          <span className="block text-base">{t.icon}</span>
+                          <span className="text-[11px] block mt-0.5">{t.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Hero Cover Photo Image URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={profile.coverImageUrl || ""}
+                      onChange={(e) => updateProfileField("coverImageUrl", e.target.value)}
+                      placeholder="https://images.unsplash.com/... or your banner photo"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Tagline / Catchphrase
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.tagline || ""}
+                        onChange={(e) => updateProfileField("tagline", e.target.value)}
+                        placeholder="e.g. Award-Winning Dental & Aesthetic Care"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Category Pill
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.category || ""}
+                        onChange={(e) => updateProfileField("category", e.target.value)}
+                        placeholder="e.g. Multi-Specialty Clinic"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      About Us & Story Bio
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={profile.bio || ""}
+                      onChange={(e) => updateProfileField("bio", e.target.value)}
+                      placeholder="Describe your clinic, salon, store, or agency..."
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: UPI Payment */}
+              {activeProfileTab === "upi" && (
+                <div className="space-y-3.5 p-4 bg-amber-50/60 rounded-2xl border border-amber-200 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                        Direct UPI Pay & QR Code
+                      </h4>
+                      <p className="text-[11px] text-amber-800">
+                        Customers can tap & pay straight to your bank via GPay, PhonePe, or Paytm.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={profile.enableUpi ?? true}
+                        onChange={(e) => updateProfileField("enableUpi", e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600" />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Merchant / Shop UPI ID *
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.upiId || ""}
+                        onChange={(e) => updateProfileField("upiId", e.target.value.trim())}
+                        placeholder="e.g. apexclinic@okaxis or 9876543210@paytm"
+                        className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Payee Display Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.upiPayeeName || ""}
+                        onChange={(e) => updateProfileField("upiPayeeName", e.target.value)}
+                        placeholder="e.g. Apex Health Clinic"
+                        className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-medium text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: Menu & Product Catalog */}
+              {activeProfileTab === "catalog" && (
+                <div className="space-y-3.5 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Menu / Product Catalog Items
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Add items, consultations, dishes, or packages with prices and photos.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddCatalogItem}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Item</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                    {(profile.catalogItems || []).map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3 bg-white border border-slate-200 rounded-2xl space-y-2 relative shadow-2xs"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCatalogItem(item.id)}
+                          className="absolute top-2.5 right-2.5 p-1 text-slate-300 hover:text-rose-600 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                          title="Remove item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pr-6">
+                          <div className="sm:col-span-2">
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(e) => handleUpdateCatalogItem(item.id, "name", e.target.value)}
+                              placeholder="Item / Service Name"
+                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              value={item.price || ""}
+                              onChange={(e) => handleUpdateCatalogItem(item.id, "price", e.target.value)}
+                              placeholder="Price e.g. ₹999"
+                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-teal-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={item.category || ""}
+                            onChange={(e) => handleUpdateCatalogItem(item.id, "category", e.target.value)}
+                            placeholder="Category e.g. Treatments, Desserts"
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-700"
+                          />
+                          <input
+                            type="text"
+                            value={item.badge || ""}
+                            onChange={(e) => handleUpdateCatalogItem(item.id, "badge", e.target.value)}
+                            placeholder="Badge e.g. Bestseller, Special"
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-amber-700"
+                          />
+                        </div>
+
+                        <input
+                          type="text"
+                          value={item.description || ""}
+                          onChange={(e) => handleUpdateCatalogItem(item.id, "description", e.target.value)}
+                          placeholder="Short description or benefits..."
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: Appointment / Enquiry */}
+              {activeProfileTab === "enquiry" && (
+                <div className="space-y-3.5 p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                        WhatsApp Appointment & Enquiry Form
+                      </h4>
+                      <p className="text-[11px] text-emerald-800">
+                        Sends structured customer bookings and leads directly to your WhatsApp.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={profile.enableEnquiryForm ?? true}
+                        onChange={(e) => updateProfileField("enableEnquiryForm", e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Recipient WhatsApp Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={profile.enquiryTargetWhatsapp || profile.whatsappNumber || ""}
+                      onChange={(e) => updateProfileField("enquiryTargetWhatsapp", e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-medium text-slate-900"
+                    />
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      When a customer taps &quot;Send Enquiry&quot;, it opens a WhatsApp chat with their name, phone, and time pre-filled.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: Contact & Hours */}
+              {activeProfileTab === "contact" && (
+                <div className="space-y-3.5 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 animate-in fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Direct Phone *
+                      </label>
+                      <input
+                        type="tel"
+                        value={profile.contactPhone || ""}
+                        onChange={(e) => updateProfileField("contactPhone", e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        WhatsApp Number *
+                      </label>
+                      <input
+                        type="tel"
+                        value={profile.whatsappNumber || ""}
+                        onChange={(e) => updateProfileField("whatsappNumber", e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Physical Store Address
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.address || ""}
+                      onChange={(e) => updateProfileField("address", e.target.value)}
+                      placeholder="e.g. 124 Anna Salai, Teynampet, Chennai"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Operating Hours Summary
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.businessHoursText || ""}
+                      onChange={(e) => updateProfileField("businessHoursText", e.target.value)}
+                      placeholder="Mon - Sat: 9:00 AM - 9:00 PM | Sun: 10:00 AM - 2:00 PM"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section 2 (Other templates): Dynamic Template Fields */}
+          {gateTemplate !== "BUSINESS_PROFILE" && (
+            <div className="space-y-4">
+              {gateTemplate === "GOOGLE_REVIEW" && (
+                <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                    Google Review Settings
                   </span>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Google Review Direct Place URL *
+                    </label>
+                    <input
+                      type="url"
+                      value={googleReviewUrl}
+                      onChange={(e) => setGoogleReviewUrl(e.target.value)}
+                      placeholder="https://search.google.com/local/writereview?placeid=..."
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {gateTemplate === "SOCIAL_HUB" && (
-              <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                  Social Media Links
-                </span>
+              {gateTemplate === "SOCIAL_HUB" && (
+                <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                    Social Media Links
+                  </span>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Instagram Profile URL *
-                  </label>
-                  <input
-                    type="url"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    placeholder="https://instagram.com/your_handle"
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Instagram Profile URL *
+                    </label>
+                    <input
+                      type="url"
+                      value={instagramUrl}
+                      onChange={(e) => setInstagramUrl(e.target.value)}
+                      placeholder="https://instagram.com/your_handle"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Facebook Page URL
+                    </label>
+                    <input
+                      type="url"
+                      value={facebookUrl}
+                      onChange={(e) => setFacebookUrl(e.target.value)}
+                      placeholder="https://facebook.com/your_page"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      YouTube Channel URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder="https://youtube.com/@channel"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Facebook Page URL
-                  </label>
-                  <input
-                    type="url"
-                    value={facebookUrl}
-                    onChange={(e) => setFacebookUrl(e.target.value)}
-                    placeholder="https://facebook.com/your_page"
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
+              {gateTemplate === "DELIVERY_DINING" && (
+                <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                    Food Delivery & Takeaway Links
+                  </span>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Swiggy Restaurant URL
+                    </label>
+                    <input
+                      type="url"
+                      value={swiggyUrl}
+                      onChange={(e) => setSwiggyUrl(e.target.value)}
+                      placeholder="https://www.swiggy.com/restaurants/..."
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Zomato Restaurant URL
+                    </label>
+                    <input
+                      type="url"
+                      value={zomatoUrl}
+                      onChange={(e) => setZomatoUrl(e.target.value)}
+                      placeholder="https://www.zomato.com/restaurant-slug"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Direct Order / Takeaway Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={deliveryPhone}
+                      onChange={(e) => setDeliveryPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    YouTube Channel URL (Optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    placeholder="https://youtube.com/@channel"
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
+              {gateTemplate === "CUSTOM_REDIRECT" && (
+                <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                    Online Menu & Redirection
+                  </span>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      Target Destination URL *
+                    </label>
+                    <input
+                      type="url"
+                      value={customRedirectUrl}
+                      onChange={(e) => setCustomRedirectUrl(e.target.value)}
+                      placeholder="https://yourbrand.com/menu.pdf"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {gateTemplate === "DELIVERY_DINING" && (
-              <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                  Food Delivery & Takeaway Links
-                </span>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Swiggy Restaurant URL
-                  </label>
-                  <input
-                    type="url"
-                    value={swiggyUrl}
-                    onChange={(e) => setSwiggyUrl(e.target.value)}
-                    placeholder="https://www.swiggy.com/restaurants/..."
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Zomato Restaurant URL
-                  </label>
-                  <input
-                    type="url"
-                    value={zomatoUrl}
-                    onChange={(e) => setZomatoUrl(e.target.value)}
-                    placeholder="https://www.zomato.com/restaurant-slug"
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Promo Offer Banner Text (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={deliveryOfferText}
-                    onChange={(e) => setDeliveryOfferText(e.target.value)}
-                    placeholder="e.g. Flat 15% OFF on direct takeaway orders! Call ahead."
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Direct Order / Reservation Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={deliveryPhone}
-                    onChange={(e) => setDeliveryPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-              </div>
-            )}
-
-            {gateTemplate === "CUSTOM_REDIRECT" && (
-              <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                  Online Menu & Redirection
-                </span>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Destination URL (Online Menu / Website) *
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    value={customRedirectUrl}
-                    onChange={(e) => setCustomRedirectUrl(e.target.value)}
-                    placeholder="https://menu.artisanbakery.com or Google Drive PDF link"
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Button Action Title
-                  </label>
-                  <input
-                    type="text"
-                    value={customRedirectTitle}
-                    onChange={(e) => setCustomRedirectTitle(e.target.value)}
-                    placeholder="e.g. View Online Menu or Browse Catalog"
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="checkbox"
-                    id="instantRedirect"
-                    checked={customRedirectDirect}
-                    onChange={(e) => setCustomRedirectDirect(e.target.checked)}
-                    className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500"
-                  />
-                  <label htmlFor="instantRedirect" className="text-xs font-medium text-slate-700 cursor-pointer">
-                    Instant 307 Direct Forwarding (Skip landing card, open link immediately on tap)
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <hr className="border-slate-100" />
-
-          {/* Section 3: Greetings & Copy */}
-          <div className="space-y-3.5">
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 mb-1">
-                Header Greetings & Subtitle
-              </h2>
-              <p className="text-xs text-slate-400">
-                Shown at the top of the mobile screen for this template.
-              </p>
+              )}
             </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Main Greeting Title *
-              </label>
-              <input
-                type="text"
-                required
-                value={greetingTitle}
-                onChange={(e) => setGreetingTitle(e.target.value)}
-                placeholder="e.g. How was your visit? or Welcome to our Bakery!"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Greeting Subtitle (Optional)
-              </label>
-              <input
-                type="text"
-                value={greetingSubtitle}
-                onChange={(e) => setGreetingSubtitle(e.target.value)}
-                placeholder="e.g. Follow us on Instagram or order delivery on Swiggy!"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900"
-              />
-            </div>
-          </div>
+          )}
 
           <hr className="border-slate-100" />
 
           {/* Section 4: Brand Colors & Logo */}
           <div className="space-y-4">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-              Brand Colors & Aesthetics
+              Brand Colors & Logo
             </h2>
 
             <div>
@@ -667,7 +1005,7 @@ export default function BrandingClient({
                     key={color.hex}
                     type="button"
                     onClick={() => setPrimaryColor(color.hex)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                   >
                     <span
                       className="w-3 h-3 rounded-full shrink-0 shadow-xs"
@@ -697,10 +1035,10 @@ export default function BrandingClient({
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-70 text-white font-bold rounded-2xl text-sm shadow-sm transition-all"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-70 text-white font-bold rounded-2xl text-sm shadow-sm transition-all cursor-pointer"
             >
               <Save className="w-4 h-4 text-teal-400" />
-              <span>{isSaving ? "Saving Template & Design..." : "Publish Gate Design Live"}</span>
+              <span>{isSaving ? "Saving Live..." : "Publish Gate Design Live"}</span>
             </button>
           </div>
         </form>
@@ -710,15 +1048,15 @@ export default function BrandingClient({
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
               <Smartphone className="w-4 h-4 text-teal-600" />
-              <span>Real-Time Mobile Preview</span>
+              <span>Real-Time Mobile Simulator</span>
             </div>
             <span className="text-[11px] font-semibold text-slate-400">
-              NFC Tap Simulation
+              Live Tap View
             </span>
           </div>
 
           {/* Smartphone Shell Frame */}
-          <div className="w-full max-w-[340px] mx-auto bg-slate-950 rounded-[44px] p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-700">
+          <div className="w-full max-w-[360px] mx-auto bg-slate-950 rounded-[44px] p-2.5 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-700">
             {/* Dynamic Island Notch */}
             <div className="w-24 h-4 bg-slate-900 rounded-full mx-auto mb-2 flex items-center justify-center">
               <div className="w-2.5 h-2.5 rounded-full bg-slate-800 mr-2" />
@@ -726,192 +1064,146 @@ export default function BrandingClient({
             </div>
 
             {/* Screen Inner Content */}
-            <div className="bg-[#F8F9FA] rounded-[34px] p-4 text-center overflow-hidden min-h-[520px] flex flex-col justify-between border border-slate-200/40">
-              <div>
-                {/* Brand Logo / Avatar */}
-                <div className="mb-4 pt-2">
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt={tenant.name}
-                      className="w-12 h-12 rounded-2xl mx-auto mb-2 object-cover shadow-2xs border border-slate-100"
-                    />
-                  ) : (
-                    <div
-                      className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-2 font-bold text-base text-white shadow-2xs"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      {tenant.name.slice(0, 1)}
-                    </div>
-                  )}
-
-                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-200/70 text-slate-700 rounded-full text-[10px] font-bold mb-1">
-                    <span>{tenant.name}</span>
-                    <CheckCircle className="w-3 h-3 text-teal-600" />
-                  </div>
-
-                  <h3 className="text-base font-extrabold text-slate-900 leading-tight">
-                    {greetingTitle || "How was your experience?"}
-                  </h3>
-
-                  {greetingSubtitle && (
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                      {greetingSubtitle}
-                    </p>
-                  )}
-                </div>
-
-                {/* TEMPLATE 1 PREVIEW: GOOGLE REVIEW */}
-                {gateTemplate === "GOOGLE_REVIEW" && (
-                  <div className="py-2 bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
-                    <div className="flex items-center justify-center gap-1.5 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className="w-7 h-7 fill-amber-400 text-amber-400 drop-shadow-xs"
+            <div className="bg-[#F8F9FA] rounded-[34px] overflow-hidden min-h-[580px] max-h-[660px] overflow-y-auto border border-slate-200/40 scrollbar-none">
+              {gateTemplate === "BUSINESS_PROFILE" ? (
+                <BusinessProfileMicrosite
+                  cardSlug="preview"
+                  tenantName={tenant.name}
+                  businessProfile={{
+                    ...profile,
+                    contactPhone: profile.contactPhone || deliveryPhone || "",
+                    whatsappNumber: profile.whatsappNumber || deliveryPhone || "",
+                  }}
+                  googleReviewUrl={googleReviewUrl}
+                  instagramUrl={instagramUrl}
+                  facebookUrl={facebookUrl}
+                  youtubeUrl={youtubeUrl}
+                  primaryColor={primaryColor}
+                  logoUrl={logoUrl}
+                  isSimulator={true}
+                />
+              ) : (
+                <div className="p-4 text-center min-h-[540px] flex flex-col justify-between">
+                  <div>
+                    <div className="mb-4 pt-2">
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt={tenant.name}
+                          className="w-12 h-12 rounded-2xl mx-auto mb-2 object-cover shadow-2xs border border-slate-100"
                         />
-                      ))}
-                    </div>
-                    <span className="text-xs font-bold text-slate-700 block">
-                      Outstanding!
-                    </span>
-                    <div
-                      className="mt-3 w-full py-2 px-3 rounded-xl text-white text-xs font-bold inline-flex items-center justify-center gap-1 shadow-2xs"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      <span>Post Review on Google</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </div>
-                  </div>
-                )}
+                      ) : (
+                        <div
+                          className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-2 font-bold text-base text-white shadow-2xs"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {tenant.name.slice(0, 1)}
+                        </div>
+                      )}
 
-                {/* TEMPLATE 2 PREVIEW: SOCIAL MEDIA HUB */}
-                {gateTemplate === "SOCIAL_HUB" && (
-                  <div className="space-y-2 py-1">
-                    <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-[#833ab4]/10 via-[#fd1d1d]/10 to-[#fcb045]/10 border border-rose-200/80 text-left">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white text-xs">
-                          📸
-                        </div>
-                        <div>
-                          <strong className="text-[11px] font-bold text-slate-900 block leading-tight">
-                            Follow on Instagram
-                          </strong>
-                          <span className="text-[9px] text-rose-600 font-medium">
-                            Stories & Reels
-                          </span>
-                        </div>
+                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-200/70 text-slate-700 rounded-full text-[10px] font-bold mb-1">
+                        <span>{tenant.name}</span>
+                        <CheckCircle className="w-3 h-3 text-teal-600" />
                       </div>
-                      <ArrowRight className="w-3 h-3 text-rose-600" />
+
+                      <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                        {greetingTitle || "How was your experience?"}
+                      </h3>
+
+                      {greetingSubtitle && (
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                          {greetingSubtitle}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-blue-50 border border-blue-200/80 text-left">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#1877F2] flex items-center justify-center text-white text-xs font-bold">
-                          f
+                    {/* TEMPLATE 1 PREVIEW: GOOGLE REVIEW */}
+                    {gateTemplate === "GOOGLE_REVIEW" && (
+                      <div className="space-y-3 py-2">
+                        <div className="flex justify-center gap-1.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className="w-7 h-7 fill-amber-400 text-amber-400"
+                            />
+                          ))}
                         </div>
-                        <div>
-                          <strong className="text-[11px] font-bold text-slate-900 block leading-tight">
-                            Like on Facebook
-                          </strong>
-                          <span className="text-[9px] text-blue-700 font-medium">
-                            Community Page
-                          </span>
+                        <p className="text-[11px] text-slate-400">
+                          Tap a star to rate experience
+                        </p>
+                        <div className="p-2.5 rounded-xl bg-teal-50/80 border border-teal-100 text-[10px] text-teal-800 font-medium">
+                          ✨ 4–5★ unlocks 1-click Google Review with ready sentences
                         </div>
-                      </div>
-                      <ArrowRight className="w-3 h-3 text-blue-600" />
-                    </div>
-
-                    <div className="w-full p-2 bg-white rounded-xl border border-slate-200 text-center">
-                      <span className="text-[10px] font-semibold text-slate-600">
-                        ⭐ Also Rate Us on Google
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* TEMPLATE 3 PREVIEW: DELIVERY & DINING */}
-                {gateTemplate === "DELIVERY_DINING" && (
-                  <div className="space-y-2 py-1">
-                    {deliveryOfferText && (
-                      <div className="p-1.5 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold text-amber-900">
-                        🔥 {deliveryOfferText}
                       </div>
                     )}
 
-                    <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-orange-50 border border-orange-200 text-left">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#FC8019] flex items-center justify-center text-white text-xs font-black">
-                          S
+                    {/* TEMPLATE 2 PREVIEW: SOCIAL HUB */}
+                    {gateTemplate === "SOCIAL_HUB" && (
+                      <div className="space-y-2 py-1">
+                        <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-200/80 text-left">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                              IG
+                            </div>
+                            <div>
+                              <strong className="text-[11px] font-bold text-slate-900 block leading-tight">
+                                Follow on Instagram
+                              </strong>
+                              <span className="text-[9px] text-rose-600 font-medium">
+                                Stories & Reels
+                              </span>
+                            </div>
+                          </div>
+                          <ArrowRight className="w-3 h-3 text-rose-600" />
                         </div>
-                        <div>
-                          <strong className="text-[11px] font-bold text-slate-900 block leading-tight">
+                      </div>
+                    )}
+
+                    {/* TEMPLATE 3 PREVIEW: DELIVERY & DINING */}
+                    {gateTemplate === "DELIVERY_DINING" && (
+                      <div className="space-y-2 py-1">
+                        {deliveryOfferText && (
+                          <div className="p-1.5 bg-amber-50 border border-amber-300 rounded-lg text-[10px] font-bold text-amber-900">
+                            🔥 {deliveryOfferText}
+                          </div>
+                        )}
+                        <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-orange-50 border border-orange-200 text-left">
+                          <strong className="text-[11px] font-bold text-slate-900">
                             Order on Swiggy
                           </strong>
-                          <span className="text-[9px] text-orange-700 font-medium">
-                            Doorstep delivery
-                          </span>
+                          <ArrowRight className="w-3 h-3 text-orange-600" />
                         </div>
-                      </div>
-                      <ArrowRight className="w-3 h-3 text-orange-600" />
-                    </div>
-
-                    <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-left">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#E23744] flex items-center justify-center text-white text-xs font-bold italic">
-                          z
-                        </div>
-                        <div>
-                          <strong className="text-[11px] font-bold text-slate-900 block leading-tight">
+                        <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-left">
+                          <strong className="text-[11px] font-bold text-slate-900">
                             Order on Zomato
                           </strong>
-                          <span className="text-[9px] text-rose-700 font-medium">
-                            Menu & ratings
-                          </span>
+                          <ArrowRight className="w-3 h-3 text-rose-600" />
                         </div>
                       </div>
-                      <ArrowRight className="w-3 h-3 text-rose-600" />
-                    </div>
+                    )}
 
-                    {deliveryPhone && (
-                      <div className="w-full p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-                        <span className="text-[10px] font-bold text-emerald-800">
-                          📞 Direct Call: {deliveryPhone}
-                        </span>
+                    {/* TEMPLATE 4 PREVIEW: CUSTOM REDIRECT */}
+                    {gateTemplate === "CUSTOM_REDIRECT" && (
+                      <div className="py-2 bg-white rounded-2xl p-4 border border-slate-200 text-center space-y-2">
+                        <strong className="text-xs font-bold text-slate-900 block">
+                          {customRedirectTitle || "Digital Online Menu"}
+                        </strong>
+                        <div
+                          className="w-full py-2 rounded-xl text-white text-[11px] font-bold shadow-2xs"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {customRedirectTitle || "Open Online Menu"} →
+                        </div>
                       </div>
                     )}
                   </div>
-                )}
 
-                {/* TEMPLATE 4 PREVIEW: CUSTOM REDIRECT */}
-                {gateTemplate === "CUSTOM_REDIRECT" && (
-                  <div className="py-2 bg-white rounded-2xl p-4 border border-slate-200 text-center space-y-2">
-                    <div
-                      className="w-10 h-10 rounded-xl mx-auto flex items-center justify-center text-white text-lg shadow-2xs"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      📖
-                    </div>
-                    <strong className="text-xs font-bold text-slate-900 block">
-                      {customRedirectTitle || "Digital Online Menu"}
-                    </strong>
-                    <p className="text-[10px] text-slate-500">
-                      Tap below to browse our live digital menu.
-                    </p>
-                    <div
-                      className="w-full py-2 rounded-xl text-white text-[11px] font-bold shadow-2xs"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      {customRedirectTitle || "Open Online Menu"} →
-                    </div>
+                  {/* Preview Footer */}
+                  <div className="pt-2 text-[9px] text-slate-400 border-t border-slate-200/50">
+                    Powered by <strong>TapGate</strong>
                   </div>
-                )}
-              </div>
-
-              {/* Preview Footer */}
-              <div className="pt-2 text-[9px] text-slate-400 border-t border-slate-200/50">
-                Powered by <strong>TapGate</strong>
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

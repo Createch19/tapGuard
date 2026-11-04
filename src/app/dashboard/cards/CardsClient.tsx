@@ -25,12 +25,14 @@ import {
   Square,
 } from "lucide-react";
 import ThematicQrGenerator from "@/components/qr/ThematicQrGenerator";
+import { BusinessProfileData } from "@/lib/business-profile";
 
 export type GateTemplateType =
   | "GOOGLE_REVIEW"
   | "SOCIAL_HUB"
   | "DELIVERY_DINING"
-  | "CUSTOM_REDIRECT";
+  | "CUSTOM_REDIRECT"
+  | "BUSINESS_PROFILE";
 
 export interface CardItem {
   id: string;
@@ -56,6 +58,7 @@ export interface CardItem {
   deliveryPhone?: string | null;
   greetingTitle?: string | null;
   greetingSubtitle?: string | null;
+  businessProfile?: BusinessProfileData | null;
 }
 
 export interface TenantDefaults {
@@ -74,6 +77,7 @@ export interface TenantDefaults {
   greetingTitle?: string | null;
   greetingSubtitle?: string | null;
   smartGateEnabled?: boolean;
+  businessProfile?: BusinessProfileData | null;
 }
 
 interface CardsClientProps {
@@ -117,6 +121,14 @@ const TEMPLATE_PRESETS = [
     description: "Display an interactive menu card, PDF catalog, or direct instant redirect",
     icon: "📖",
     borderActive: "border-purple-500 bg-purple-50/70 ring-2 ring-purple-300",
+  },
+  {
+    id: "BUSINESS_PROFILE" as GateTemplateType,
+    name: "Business Profile (Mini-Website)",
+    badge: "Full Microsite",
+    description: "Customized mobile website with UPI payments, product catalog, enquiry & languages",
+    icon: "🏢",
+    borderActive: "border-teal-500 bg-teal-50/70 ring-2 ring-teal-300",
   },
 ];
 
@@ -280,6 +292,8 @@ export default function CardsClient({
           payload.customRedirectUrl = formCustomUrl || null;
           payload.customRedirectTitle = formCustomTitle || "View Online Menu";
           payload.customRedirectDirect = formDirectRedirect;
+        } else if (formGateTemplate === "BUSINESS_PROFILE") {
+          payload.customRedirectDirect = false;
         }
         payload.greetingTitle = formGreetingTitle ? formGreetingTitle.trim() : null;
       }
@@ -381,6 +395,8 @@ export default function CardsClient({
           updateData.customRedirectUrl = bulkCustomUrl || null;
           updateData.customRedirectTitle = bulkCustomTitle || "View Online Menu";
           updateData.customRedirectDirect = bulkDirect;
+        } else if (bulkTemplate === "BUSINESS_PROFILE") {
+          updateData.customRedirectDirect = false;
         }
 
         const res = await fetch("/api/dashboard/cards/bulk-gate", {
@@ -436,6 +452,8 @@ export default function CardsClient({
           ? "Social Media Hub"
           : tenantDefaults.gateTemplate === "CUSTOM_REDIRECT"
           ? "Digital Menu"
+          : tenantDefaults.gateTemplate === "BUSINESS_PROFILE"
+          ? "Business Profile Microsite"
           : "Google Review";
 
       return (
@@ -447,6 +465,15 @@ export default function CardsClient({
     }
 
     const t = card.gateTemplate || "GOOGLE_REVIEW";
+
+    if (t === "BUSINESS_PROFILE") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-800 border border-teal-200">
+          <Sparkles className="w-3 h-3 text-teal-600" />
+          <span>🏢 Business Profile Microsite</span>
+        </span>
+      );
+    }
 
     if (t === "DELIVERY_DINING") {
       return (
@@ -1240,6 +1267,32 @@ export default function CardsClient({
                     </div>
                   )}
 
+                  {/* 5. BUSINESS PROFILE MINI-WEBSITE INFO */}
+                  {formGateTemplate === "BUSINESS_PROFILE" && (
+                    <div className="p-4 bg-teal-50/60 border border-teal-200 rounded-2xl space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-2 text-teal-950 font-bold text-xs">
+                        <Sparkles className="w-4 h-4 text-teal-600" />
+                        <span>Business Profile Mini-Website Active</span>
+                      </div>
+                      <p className="text-xs text-teal-900 leading-relaxed">
+                        This card presents a complete mobile microsite featuring 1-tap UPI payments & QR, your full categorized product/service catalog, instant WhatsApp appointments/enquiries, and multi-language support (English, Tamil, Hindi).
+                      </p>
+                      <div className="pt-1 flex items-center justify-between">
+                        <span className="text-[11px] text-teal-700 font-medium">
+                          Customize products, UPI ID, themes & photos:
+                        </span>
+                        <Link
+                          href="/dashboard/branding"
+                          target="_blank"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900 underline"
+                        >
+                          <span>Open Studio</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Optional Greeting Title */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -1352,18 +1405,18 @@ export default function CardsClient({
 
             <form onSubmit={handleBulkSubmit} className="space-y-4">
               {/* Template selection */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setBulkTemplate("DELIVERY_DINING")}
+                  onClick={() => setBulkTemplate("BUSINESS_PROFILE")}
                   className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
-                    bulkTemplate === "DELIVERY_DINING"
-                      ? "border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-200"
+                    bulkTemplate === "BUSINESS_PROFILE"
+                      ? "border-teal-500 bg-teal-50 text-teal-900 ring-2 ring-teal-200"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  <span className="block text-sm">🛵</span>
-                  <span className="block mt-0.5">Swiggy & Zomato</span>
+                  <span className="block text-sm">🏢</span>
+                  <span className="block mt-0.5">Business Profile</span>
                 </button>
 
                 <button
@@ -1376,7 +1429,20 @@ export default function CardsClient({
                   }`}
                 >
                   <span className="block text-sm">⭐</span>
-                  <span className="block mt-0.5">Google Review Gate</span>
+                  <span className="block mt-0.5">Google Review</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkTemplate("DELIVERY_DINING")}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                    bulkTemplate === "DELIVERY_DINING"
+                      ? "border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-200"
+                      : "border-slate-200 text-slate-700"
+                  }`}
+                >
+                  <span className="block text-sm">🛵</span>
+                  <span className="block mt-0.5">Swiggy / Zomato</span>
                 </button>
 
                 <button
@@ -1389,22 +1455,34 @@ export default function CardsClient({
                   }`}
                 >
                   <span className="block text-sm">📖</span>
-                  <span className="block mt-0.5">Digital Menu / URL</span>
+                  <span className="block mt-0.5">Digital Menu</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setBulkTemplate("DEFAULT")}
-                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all col-span-2 sm:col-span-1 ${
                     bulkTemplate === "DEFAULT"
-                      ? "border-teal-500 bg-teal-50 text-teal-900 ring-2 ring-teal-200"
+                      ? "border-slate-800 bg-slate-900 text-white ring-2 ring-slate-400"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  <span className="block text-sm">🏢</span>
+                  <span className="block text-sm">✨</span>
                   <span className="block mt-0.5">Company Default</span>
                 </button>
               </div>
+
+              {bulkTemplate === "BUSINESS_PROFILE" && (
+                <div className="space-y-2 p-3.5 bg-teal-50/60 border border-teal-200 rounded-2xl">
+                  <div className="flex items-center gap-2 text-teal-900 font-bold text-xs">
+                    <Sparkles className="w-4 h-4 text-teal-600" />
+                    <span>Business Profile Mini-Website</span>
+                  </div>
+                  <p className="text-xs text-teal-800 leading-relaxed">
+                    Targeted cards will load your complete customized business website with UPI payments, product catalog, appointment forms & multi-language support.
+                  </p>
+                </div>
+              )}
 
               {/* Template specific fields */}
               {bulkTemplate === "DELIVERY_DINING" && (
