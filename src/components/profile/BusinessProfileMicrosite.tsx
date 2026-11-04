@@ -92,21 +92,17 @@ export default function BusinessProfileMicrosite({
   const upiPayee = profile.upiPayeeName || tenantName;
   const upiUri = upiId ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiPayee)}&cu=INR` : "";
 
-  // Theming definitions
-  const theme = profile.themeStyle || "EXECUTIVE";
-  const isDark = theme === "LUXE_DARK";
+  // Theming definitions (Light Mode vs Dark Mode)
+  const theme = profile.themeStyle || "LIGHT";
+  const isDark = theme === "DARK" || theme === "LUXE_DARK";
 
   const bgClass = isDark
-    ? "bg-slate-950 text-slate-100"
-    : theme === "MINIMAL"
-    ? "bg-[#FDFCFB] text-slate-900"
+    ? "dark bg-slate-950 text-slate-100"
     : "bg-slate-50 text-slate-900";
 
   const cardClass = isDark
-    ? "bg-slate-900/90 border-slate-800 shadow-lg text-slate-100"
-    : theme === "MINIMAL"
-    ? "bg-white border-zinc-200/70 shadow-2xs text-slate-900"
-    : "bg-white border-slate-200/80 shadow-2xs text-slate-900";
+    ? "bg-slate-900 border-slate-800 shadow-md text-slate-100"
+    : "bg-white border-slate-200/90 shadow-2xs text-slate-900";
 
   const subtleTextClass = isDark ? "text-slate-400" : "text-slate-500";
 

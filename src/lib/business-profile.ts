@@ -1,5 +1,5 @@
 export type ProfileLanguage = "EN" | "TA" | "HI";
-export type ProfileThemeStyle = "EXECUTIVE" | "LUXE_DARK" | "MINIMAL" | "VIBRANT";
+export type ProfileThemeStyle = "LIGHT" | "DARK" | "EXECUTIVE" | "LUXE_DARK" | "MINIMAL" | "VIBRANT";
 
 export type ProfileSectionKey =
   | "quickActions"
@@ -152,7 +152,7 @@ export interface BusinessProfileData {
 }
 
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfileData = {
-  themeStyle: "EXECUTIVE",
+  themeStyle: "LIGHT",
   coverImageUrl: "",
   tagline: "Professional Excellence & Personal Care",
   category: "Business & Services",

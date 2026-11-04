@@ -22,7 +22,6 @@ import {
   BusinessProfileData,
   DEFAULT_BUSINESS_PROFILE,
   CatalogItem,
-  ProfileThemeStyle,
   ProfileSectionKey,
   DEFAULT_SECTION_ORDER,
   SECTION_METADATA,
@@ -883,30 +882,87 @@ export default function BrandingClient({
               {activeProfileTab === "theme" && (
                 <div className="space-y-3.5 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 animate-in fade-in">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Microsite Design Theme
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Microsite Theme Mode
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { id: "EXECUTIVE", name: "Executive Slate", icon: "🏛️" },
-                        { id: "LUXE_DARK", name: "Luxe Obsidian", icon: "✨" },
-                        { id: "MINIMAL", name: "Nordic Minimal", icon: "🌿" },
-                        { id: "VIBRANT", name: "Vibrant Brand", icon: "🎨" },
-                      ].map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => updateProfileField("themeStyle", t.id as ProfileThemeStyle)}
-                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                            (profile.themeStyle || "EXECUTIVE") === t.id
-                              ? "border-teal-600 bg-teal-50/80 font-bold text-teal-900 ring-2 ring-teal-200"
-                              : "border-slate-200 bg-white text-slate-700"
-                          }`}
-                        >
-                          <span className="block text-base">{t.icon}</span>
-                          <span className="text-[11px] block mt-0.5">{t.name}</span>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Light Mode Card */}
+                      <button
+                        type="button"
+                        onClick={() => updateProfileField("themeStyle", "LIGHT")}
+                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                          (profile.themeStyle || "LIGHT") === "LIGHT" ||
+                          profile.themeStyle === "EXECUTIVE" ||
+                          profile.themeStyle === "MINIMAL" ||
+                          profile.themeStyle === "VIBRANT"
+                            ? "border-teal-600 bg-teal-50/70 ring-2 ring-teal-300 shadow-xs"
+                            : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
+                            ☀️
+                          </div>
+                          <div>
+                            <span className="font-bold text-xs text-slate-900 block">
+                              Light Mode
+                            </span>
+                            <span className="text-[11px] text-slate-500 block leading-tight mt-0.5">
+                              Clean, bright & ultra-crisp modern look
+                            </span>
+                          </div>
+                        </div>
+                        {((profile.themeStyle || "LIGHT") === "LIGHT" ||
+                          profile.themeStyle === "EXECUTIVE" ||
+                          profile.themeStyle === "MINIMAL" ||
+                          profile.themeStyle === "VIBRANT") && (
+                          <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </button>
+
+                      {/* Dark Mode Card */}
+                      <button
+                        type="button"
+                        onClick={() => updateProfileField("themeStyle", "DARK")}
+                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                          profile.themeStyle === "DARK" || profile.themeStyle === "LUXE_DARK"
+                            ? "border-teal-500 bg-slate-900 text-white ring-2 ring-teal-400 shadow-md"
+                            : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 text-indigo-300 flex items-center justify-center text-xl shrink-0">
+                            🌙
+                          </div>
+                          <div>
+                            <span
+                              className={`font-bold text-xs block ${
+                                profile.themeStyle === "DARK" || profile.themeStyle === "LUXE_DARK"
+                                  ? "text-white"
+                                  : "text-slate-900"
+                              }`}
+                            >
+                              Dark Mode
+                            </span>
+                            <span
+                              className={`text-[11px] block leading-tight mt-0.5 ${
+                                profile.themeStyle === "DARK" || profile.themeStyle === "LUXE_DARK"
+                                  ? "text-slate-300"
+                                  : "text-slate-500"
+                              }`}
+                            >
+                              Sleek, deep obsidian luxury aesthetic
+                            </span>
+                          </div>
+                        </div>
+                        {(profile.themeStyle === "DARK" || profile.themeStyle === "LUXE_DARK") && (
+                          <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </button>
                     </div>
                   </div>
 
