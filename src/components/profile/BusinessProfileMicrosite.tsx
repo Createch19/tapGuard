@@ -1032,9 +1032,9 @@ export default function BusinessProfileMicrosite({
 
         {/* Brand Profile Header */}
         <div className="px-4 sm:px-6 relative -mt-14 mb-5 text-center">
-          {logoUrl ? (
+          {(profile.logoUrl || logoUrl) ? (
             <img
-              src={logoUrl}
+              src={profile.logoUrl || logoUrl || ""}
               alt={tenantName}
               className="w-24 h-24 rounded-3xl mx-auto object-cover shadow-xl border-4 border-white dark:border-slate-900 bg-white"
             />

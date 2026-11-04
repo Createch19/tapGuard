@@ -97,6 +97,7 @@ export interface CatalogItem {
 export interface BusinessProfileData {
   themeStyle?: ProfileThemeStyle;
   coverImageUrl?: string;
+  logoUrl?: string;
   tagline?: string;
   category?: string;
   bio?: string;
@@ -161,6 +162,7 @@ export interface BusinessProfileData {
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfileData = {
   themeStyle: "LIGHT",
   coverImageUrl: "",
+  logoUrl: "",
   tagline: "Professional Excellence & Personal Care",
   category: "Business & Services",
   bio: "Welcome to our official page. Explore our services, get in touch, or make quick payments directly.",

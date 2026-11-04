@@ -16,6 +16,7 @@ import {
   ArrowDown,
   Eye,
   EyeOff,
+  Upload,
 } from "lucide-react";
 import BusinessProfileMicrosite from "@/components/profile/BusinessProfileMicrosite";
 import {
@@ -200,6 +201,73 @@ export default function BrandingClient({
       ...prev,
       [platform]: val,
     }));
+  };
+
+  // Image compression & file upload handler
+  const compressImage = (
+    file: File,
+    maxWidth: number,
+    maxHeight: number,
+    callback: (dataUrl: string) => void
+  ) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          callback(canvas.toDataURL("image/jpeg", 0.88));
+        } else {
+          callback(e.target?.result as string);
+        }
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      compressImage(file, 400, 400, (dataUrl) => {
+        setLogoUrl(dataUrl);
+        setProfile((prev) => ({ ...prev, logoUrl: dataUrl }));
+      });
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl("");
+    setProfile((prev) => ({ ...prev, logoUrl: "" }));
+  };
+
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      compressImage(file, 1200, 600, (dataUrl) => {
+        setProfile((prev) => ({ ...prev, coverImageUrl: dataUrl }));
+      });
+    }
+  };
+
+  const handleRemoveCover = () => {
+    setProfile((prev) => ({ ...prev, coverImageUrl: "" }));
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -662,7 +730,7 @@ export default function BrandingClient({
               <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl overflow-x-auto scrollbar-none">
                 {([
                   { id: "tiles", label: "🧱 Tiles & Layout" },
-                  { id: "theme", label: "🎨 Theme & Cover" },
+                  { id: "theme", label: "🎨 Theme, Banner & Logo" },
                   { id: "upi", label: "💳 UPI Payment" },
                   { id: "catalog", label: "🍱 Menu & Catalog" },
                   { id: "enquiry", label: "📅 Enquiry Form" },
@@ -1210,17 +1278,140 @@ export default function BrandingClient({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                      Hero Cover Photo Image URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={profile.coverImageUrl || ""}
-                      onChange={(e) => updateProfileField("coverImageUrl", e.target.value)}
-                      placeholder="https://images.unsplash.com/... or your banner photo"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
-                    />
+                  {/* Brand Profile Logo */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-slate-200/90 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🏷️</span>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            Business Profile Logo / Avatar
+                          </label>
+                          <p className="text-[11px] text-slate-500">
+                            Square logo displayed at the center of your profile banner.
+                          </p>
+                        </div>
+                      </div>
+                      {(logoUrl || profile.logoUrl) && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove Logo</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      {/* Logo Thumbnail Preview */}
+                      <div className="relative shrink-0">
+                        {(logoUrl || profile.logoUrl) ? (
+                          <img
+                            src={logoUrl || profile.logoUrl}
+                            alt="Logo preview"
+                            className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm bg-white"
+                          />
+                        ) : (
+                          <div
+                            className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-black text-white shadow-sm border-2 border-slate-200"
+                            style={{ backgroundColor: primaryColor }}
+                          >
+                            {tenant.name.slice(0, 1)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Upload & URL options */}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-800 text-xs font-bold transition-all cursor-pointer shadow-2xs">
+                            <Upload className="w-3.5 h-3.5 text-teal-600" />
+                            <span>Upload Logo Photo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <span className="text-[11px] text-slate-400">or paste image URL:</span>
+                        </div>
+
+                        <input
+                          type="url"
+                          value={logoUrl || profile.logoUrl || ""}
+                          onChange={(e) => {
+                            setLogoUrl(e.target.value);
+                            setProfile((prev) => ({ ...prev, logoUrl: e.target.value }));
+                          }}
+                          placeholder="https://example.com/logo.png"
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:bg-white focus:ring-1 focus:ring-teal-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hero Cover Banner */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-slate-200/90 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🖼️</span>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            Hero Cover Banner
+                          </label>
+                          <p className="text-[11px] text-slate-500">
+                            Landscape photo banner displayed across the top of your microsite.
+                          </p>
+                        </div>
+                      </div>
+                      {profile.coverImageUrl && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCover}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove Banner</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {profile.coverImageUrl && (
+                      <div className="relative w-full h-24 rounded-xl overflow-hidden border border-slate-200 shadow-2xs">
+                        <img
+                          src={profile.coverImageUrl}
+                          alt="Cover banner preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-800 text-xs font-bold transition-all cursor-pointer shadow-2xs">
+                          <Upload className="w-3.5 h-3.5 text-teal-600" />
+                          <span>Upload Banner Photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCoverUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-[11px] text-slate-400">or paste banner image URL:</span>
+                      </div>
+
+                      <input
+                        type="url"
+                        value={profile.coverImageUrl || ""}
+                        onChange={(e) => updateProfileField("coverImageUrl", e.target.value)}
+                        placeholder="https://images.unsplash.com/... or your banner photo URL"
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:bg-white focus:ring-1 focus:ring-teal-500"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1729,13 +1920,40 @@ export default function BrandingClient({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Business Logo Image URL (Optional)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Business Logo (Image URL or File Upload)
+                </label>
+                {(logoUrl || profile.logoUrl) && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+                  >
+                    Remove Logo
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-800 text-xs font-bold transition-all cursor-pointer shadow-2xs">
+                  <Upload className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Upload Logo File</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+                <span className="text-[11px] text-slate-400">or paste hosted logo URL:</span>
+              </div>
               <input
                 type="url"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
+                value={logoUrl || profile.logoUrl || ""}
+                onChange={(e) => {
+                  setLogoUrl(e.target.value);
+                  setProfile((prev) => ({ ...prev, logoUrl: e.target.value }));
+                }}
                 placeholder="https://example.com/logo.png"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-slate-900"
               />
@@ -1791,7 +2009,7 @@ export default function BrandingClient({
                   youtubeUrl={youtubeUrl || profile.youtubeUrl || ""}
                   twitterUrl={twitterUrl || profile.twitterUrl || ""}
                   primaryColor={primaryColor}
-                  logoUrl={logoUrl}
+                  logoUrl={logoUrl || profile.logoUrl || ""}
                   isSimulator={true}
                 />
               ) : (
