@@ -817,25 +817,13 @@ export default function BusinessProfileMicrosite({
               </p>
             )}
 
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-              {profile.category && (
+            {profile.category && (
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                   {profile.category}
                 </span>
-              )}
-
-              {googleReviewUrl && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                  <span>4.9 (180+ Reviews)</span>
-                </span>
-              )}
-
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{t.openNow}</span>
-              </span>
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
