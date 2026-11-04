@@ -116,6 +116,12 @@ export interface BusinessProfileData {
   googleMapsUrl?: string;
   enableVCard?: boolean;
 
+  // Social Channels
+  instagramUrl?: string;
+  facebookUrl?: string;
+  youtubeUrl?: string;
+  twitterUrl?: string;
+
   // Operating Hours
   businessHoursText?: string;
 
@@ -161,6 +167,10 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfileData = {
   enableUpi: true,
   enableVCard: true,
   contactName: "",
+  instagramUrl: "",
+  facebookUrl: "",
+  youtubeUrl: "",
+  twitterUrl: "",
   enableEnquiryForm: true,
   businessHoursText: "Mon - Sat: 9:00 AM - 9:00 PM | Sun: 10:00 AM - 2:00 PM",
   sectionOrder: DEFAULT_SECTION_ORDER,

@@ -92,12 +92,17 @@ export default function BrandingClient({
     tenant.googleReviewUrl || ""
   );
   const [instagramUrl, setInstagramUrl] = useState(
-    tenant.instagramUrl || "https://instagram.com/"
+    tenant.instagramUrl || tenant.businessProfile?.instagramUrl || ""
   );
   const [facebookUrl, setFacebookUrl] = useState(
-    tenant.facebookUrl || "https://facebook.com/"
+    tenant.facebookUrl || tenant.businessProfile?.facebookUrl || ""
   );
-  const [youtubeUrl, setYoutubeUrl] = useState(tenant.youtubeUrl || "");
+  const [youtubeUrl, setYoutubeUrl] = useState(
+    tenant.youtubeUrl || tenant.businessProfile?.youtubeUrl || ""
+  );
+  const [twitterUrl, setTwitterUrl] = useState(
+    tenant.businessProfile?.twitterUrl || ""
+  );
   const [swiggyUrl, setSwiggyUrl] = useState(
     tenant.swiggyUrl || "https://www.swiggy.com/restaurants/"
   );
@@ -145,6 +150,10 @@ export default function BrandingClient({
       contactPhone: tenant.businessProfile?.contactPhone || tenant.deliveryPhone || "",
       whatsappNumber: tenant.businessProfile?.whatsappNumber || tenant.deliveryPhone || "",
       upiPayeeName: tenant.businessProfile?.upiPayeeName || tenant.name,
+      instagramUrl: tenant.businessProfile?.instagramUrl || tenant.instagramUrl || "",
+      facebookUrl: tenant.businessProfile?.facebookUrl || tenant.facebookUrl || "",
+      youtubeUrl: tenant.businessProfile?.youtubeUrl || tenant.youtubeUrl || "",
+      twitterUrl: tenant.businessProfile?.twitterUrl || "",
     };
   });
 
@@ -177,6 +186,20 @@ export default function BrandingClient({
         whatsappNumber: prev.contactPhone || "",
       }));
     }
+  };
+
+  const handleUpdateSocialLink = (
+    platform: "instagramUrl" | "twitterUrl" | "facebookUrl" | "youtubeUrl",
+    val: string
+  ) => {
+    if (platform === "instagramUrl") setInstagramUrl(val);
+    if (platform === "twitterUrl") setTwitterUrl(val);
+    if (platform === "facebookUrl") setFacebookUrl(val);
+    if (platform === "youtubeUrl") setYoutubeUrl(val);
+    setProfile((prev) => ({
+      ...prev,
+      [platform]: val,
+    }));
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -954,6 +977,114 @@ export default function BrandingClient({
                                   </div>
                                 </div>
                               </div>
+                            ) : sectionKey === "social" ? (
+                              <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+                                {/* Title and Subtitle */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                      Tile Heading (Default: &quot;{meta.defaultTitle}&quot;)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customTitle}
+                                      onChange={(e) => handleUpdateSectionTitle(sectionKey, e.target.value)}
+                                      placeholder={meta.defaultTitle}
+                                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-teal-500 shadow-2xs"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                      Tile Subtitle (Optional)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customSubtitle}
+                                      onChange={(e) => handleUpdateSectionSubtitle(sectionKey, e.target.value)}
+                                      placeholder={meta.defaultSubtitle}
+                                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-teal-500 shadow-2xs"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Social Links Setup */}
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/90 space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                      <span>🌐</span> Social Channel Links
+                                    </span>
+                                    <span className="text-[10px] text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                                      Only filled links appear on card
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {/* Instagram */}
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                                        Instagram Profile URL / @handle
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={profile.instagramUrl || instagramUrl || ""}
+                                        onChange={(e) => handleUpdateSocialLink("instagramUrl", e.target.value)}
+                                        placeholder="e.g. @yourbrand or https://instagram.com/..."
+                                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-teal-500 shadow-2xs"
+                                      />
+                                    </div>
+
+                                    {/* X (Twitter) */}
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-black"></span>
+                                        X (Twitter) URL / @handle
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={profile.twitterUrl || twitterUrl || ""}
+                                        onChange={(e) => handleUpdateSocialLink("twitterUrl", e.target.value)}
+                                        placeholder="e.g. @yourbrand or https://x.com/..."
+                                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-teal-500 shadow-2xs"
+                                      />
+                                    </div>
+
+                                    {/* Facebook */}
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                                        Facebook Page URL
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={profile.facebookUrl || facebookUrl || ""}
+                                        onChange={(e) => handleUpdateSocialLink("facebookUrl", e.target.value)}
+                                        placeholder="e.g. https://facebook.com/yourpage"
+                                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-teal-500 shadow-2xs"
+                                      />
+                                    </div>
+
+                                    {/* YouTube */}
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                                        YouTube Channel URL
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={profile.youtubeUrl || youtubeUrl || ""}
+                                        onChange={(e) => handleUpdateSocialLink("youtubeUrl", e.target.value)}
+                                        placeholder="e.g. https://youtube.com/@yourchannel"
+                                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-teal-500 shadow-2xs"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <p className="text-[10px] text-slate-500 mt-1">
+                                    💡 <strong>Smart Icon Visibility:</strong> Only channels with links entered above will show on your profile. Any platform left empty will have its icon automatically hidden.
+                                  </p>
+                                </div>
+                              </div>
                             ) : (
                               <div className="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div>
@@ -1434,8 +1565,21 @@ export default function BrandingClient({
                     <input
                       type="url"
                       value={instagramUrl}
-                      onChange={(e) => setInstagramUrl(e.target.value)}
+                      onChange={(e) => handleUpdateSocialLink("instagramUrl", e.target.value)}
                       placeholder="https://instagram.com/your_handle"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                      X (Twitter) Profile URL
+                    </label>
+                    <input
+                      type="url"
+                      value={twitterUrl}
+                      onChange={(e) => handleUpdateSocialLink("twitterUrl", e.target.value)}
+                      placeholder="https://x.com/your_handle"
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
                     />
                   </div>
@@ -1447,7 +1591,7 @@ export default function BrandingClient({
                     <input
                       type="url"
                       value={facebookUrl}
-                      onChange={(e) => setFacebookUrl(e.target.value)}
+                      onChange={(e) => handleUpdateSocialLink("facebookUrl", e.target.value)}
                       placeholder="https://facebook.com/your_page"
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
                     />
@@ -1460,7 +1604,7 @@ export default function BrandingClient({
                     <input
                       type="url"
                       value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      onChange={(e) => handleUpdateSocialLink("youtubeUrl", e.target.value)}
                       placeholder="https://youtube.com/@channel"
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
                     />
@@ -1642,9 +1786,10 @@ export default function BrandingClient({
                     whatsappNumber: profile.whatsappNumber || deliveryPhone || "",
                   }}
                   googleReviewUrl={googleReviewUrl}
-                  instagramUrl={instagramUrl}
-                  facebookUrl={facebookUrl}
-                  youtubeUrl={youtubeUrl}
+                  instagramUrl={instagramUrl || profile.instagramUrl || ""}
+                  facebookUrl={facebookUrl || profile.facebookUrl || ""}
+                  youtubeUrl={youtubeUrl || profile.youtubeUrl || ""}
+                  twitterUrl={twitterUrl || profile.twitterUrl || ""}
                   primaryColor={primaryColor}
                   logoUrl={logoUrl}
                   isSimulator={true}

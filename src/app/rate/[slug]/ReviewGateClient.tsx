@@ -242,6 +242,7 @@ export default function ReviewGateClient({
         instagramUrl={instagramUrl}
         facebookUrl={facebookUrl}
         youtubeUrl={youtubeUrl}
+        twitterUrl={businessProfile?.twitterUrl || null}
         primaryColor={primaryColor}
         logoUrl={logoUrl}
         trackOutcome={trackOutcome}

@@ -40,6 +40,7 @@ export interface BusinessProfileMicrositeProps {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   youtubeUrl?: string | null;
+  twitterUrl?: string | null;
   primaryColor?: string;
   logoUrl?: string | null;
   trackOutcome?: (outcome: "REDIRECTED" | "DIRECT_REDIRECT" | "REVIEW_COPIED", rating?: number) => void;
@@ -54,6 +55,7 @@ export default function BusinessProfileMicrosite({
   instagramUrl,
   facebookUrl,
   youtubeUrl,
+  twitterUrl,
   primaryColor = "#0D9488",
   logoUrl,
   trackOutcome,
@@ -114,6 +116,55 @@ export default function BusinessProfileMicrosite({
 
   const subtleTextClass = isDark ? "text-slate-400" : "text-slate-500";
 
+  // Social links sanitization & detection (only shows if merchant entered their link)
+  const sanitizeSocialLink = (
+    val?: string | null,
+    platform?: "instagram" | "facebook" | "youtube" | "twitter"
+  ): string | null => {
+    if (!val) return null;
+    const trimmed = val.trim();
+    if (!trimmed || trimmed === "https://" || trimmed === "http://") return null;
+
+    // Check if it's only a dummy placeholder domain
+    const lower = trimmed.toLowerCase().replace(/\/+$/, "");
+    const genericDomains = [
+      "https://instagram.com",
+      "http://instagram.com",
+      "instagram.com",
+      "https://facebook.com",
+      "http://facebook.com",
+      "facebook.com",
+      "https://youtube.com",
+      "http://youtube.com",
+      "youtube.com",
+      "https://x.com",
+      "http://x.com",
+      "x.com",
+      "https://twitter.com",
+      "http://twitter.com",
+      "twitter.com",
+    ];
+    if (genericDomains.includes(lower)) return null;
+
+    // Auto-prefix handles or incomplete URLs
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+      const cleanHandle = trimmed.replace(/^@/, "");
+      if (!cleanHandle) return null;
+      if (platform === "instagram") return `https://instagram.com/${cleanHandle}`;
+      if (platform === "twitter") return `https://x.com/${cleanHandle}`;
+      if (platform === "facebook") return `https://facebook.com/${cleanHandle}`;
+      if (platform === "youtube") return `https://youtube.com/@${cleanHandle}`;
+      return `https://${trimmed}`;
+    }
+
+    return trimmed;
+  };
+
+  const activeInstagram = sanitizeSocialLink(profile.instagramUrl || instagramUrl, "instagram");
+  const activeTwitter = sanitizeSocialLink(profile.twitterUrl || twitterUrl, "twitter");
+  const activeFacebook = sanitizeSocialLink(profile.facebookUrl || facebookUrl, "facebook");
+  const activeYoutube = sanitizeSocialLink(profile.youtubeUrl || youtubeUrl, "youtube");
+
   // Handlers
   const handleNav = (url: string) => {
     trackOutcome?.("REDIRECTED");
@@ -122,6 +173,14 @@ export default function BusinessProfileMicrosite({
     } else {
       showActionToast(`Redirecting to: ${url}`, "🔗");
     }
+  };
+
+  const handleSocialClick = (url: string, platformName: string) => {
+    trackOutcome?.("REDIRECTED");
+    if (isSimulator) {
+      showActionToast(`Opening ${platformName}...`, "🌐");
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleQuickCall = () => {
@@ -779,45 +838,123 @@ export default function BusinessProfileMicrosite({
       }
 
       case "social": {
-        if (!instagramUrl && !facebookUrl && !youtubeUrl) return null;
+        const hasAnySocial = Boolean(
+          activeInstagram || activeTwitter || activeFacebook || activeYoutube
+        );
+
         const title = profile.sectionTitles?.social || t.socialTitle;
+        const subtitle = profile.sectionSubtitles?.social;
+
+        if (!hasAnySocial) {
+          // In simulator mode, show a helpful dashed card so the user knows where to configure links
+          if (isSimulator) {
+            return (
+              <div
+                key="social"
+                className={`p-4 rounded-2xl ${cardClass} text-center space-y-1.5 border border-dashed border-slate-300 dark:border-slate-700`}
+              >
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <Globe className="w-4 h-4 text-teal-600" />
+                  <span>{title}</span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  No social links added yet. Enter your Instagram, X, Facebook, or YouTube link in settings to display icons here.
+                </p>
+              </div>
+            );
+          }
+          // In live customer view: do not render empty tile
+          return null;
+        }
+
         return (
           <div
             key="social"
-            className={`p-4 rounded-2xl ${cardClass} text-center space-y-2.5`}
+            className={`p-4 sm:p-5 rounded-3xl ${cardClass} text-center space-y-3 relative overflow-hidden`}
           >
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-              {title}
-            </span>
-            <div className="flex items-center justify-center gap-2">
-              {instagramUrl && (
+            <div>
+              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 block">
+                {title}
+              </span>
+              {subtitle && (
+                <p className={`text-[11px] ${subtleTextClass} mt-0.5`}>{subtitle}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center flex-wrap gap-3 pt-1">
+              {/* Instagram: ONLY if user provided Instagram link */}
+              {activeInstagram && (
                 <button
                   type="button"
-                  onClick={() => handleNav(instagramUrl)}
-                  className="p-2.5 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                  title="Instagram"
+                  onClick={() => handleSocialClick(activeInstagram, "Instagram")}
+                  className="group flex flex-col items-center gap-1 cursor-pointer"
+                  title="Follow on Instagram"
                 >
-                  <Globe className="w-4 h-4" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white flex items-center justify-center shadow-sm shadow-pink-500/20 group-hover:scale-110 active:scale-95 transition-all duration-200">
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                    Instagram
+                  </span>
                 </button>
               )}
-              {facebookUrl && (
+
+              {/* X (formerly Twitter): ONLY if user provided X link */}
+              {activeTwitter && (
                 <button
                   type="button"
-                  onClick={() => handleNav(facebookUrl)}
-                  className="p-2.5 rounded-xl bg-[#1877F2] text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                  title="Facebook"
+                  onClick={() => handleSocialClick(activeTwitter, "X (Twitter)")}
+                  className="group flex flex-col items-center gap-1 cursor-pointer"
+                  title="Follow on X"
                 >
-                  <Globe className="w-4 h-4" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-black dark:bg-slate-800 text-white border border-slate-700/50 flex items-center justify-center shadow-sm shadow-slate-900/20 group-hover:scale-110 active:scale-95 transition-all duration-200">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                    X
+                  </span>
                 </button>
               )}
-              {youtubeUrl && (
+
+              {/* Facebook: ONLY if user provided Facebook link */}
+              {activeFacebook && (
                 <button
                   type="button"
-                  onClick={() => handleNav(youtubeUrl)}
-                  className="p-2.5 rounded-xl bg-[#FF0000] text-white shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                  title="YouTube"
+                  onClick={() => handleSocialClick(activeFacebook, "Facebook")}
+                  className="group flex flex-col items-center gap-1 cursor-pointer"
+                  title="Like on Facebook"
                 >
-                  <Globe className="w-4 h-4" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#1877F2] text-white flex items-center justify-center shadow-sm shadow-blue-500/20 group-hover:scale-110 active:scale-95 transition-all duration-200">
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.5 5 15.5 5H18V0h-3.808C10.597 0 9 1.583 9 4.615V8z" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                    Facebook
+                  </span>
+                </button>
+              )}
+
+              {/* YouTube: ONLY if user provided YouTube link */}
+              {activeYoutube && (
+                <button
+                  type="button"
+                  onClick={() => handleSocialClick(activeYoutube, "YouTube")}
+                  className="group flex flex-col items-center gap-1 cursor-pointer"
+                  title="Subscribe on YouTube"
+                >
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#FF0000] text-white flex items-center justify-center shadow-sm shadow-red-500/20 group-hover:scale-110 active:scale-95 transition-all duration-200">
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                    YouTube
+                  </span>
                 </button>
               )}
             </div>
