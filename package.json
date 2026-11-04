@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "db:sync": "prisma db push && tsx prisma/prod-sync.ts",
-    "db:deploy": "tsx prisma/migrate-plans.ts && prisma db push && tsx prisma/seed.ts",
-    "start": "next start",
+    "db:deploy": "tsx prisma/migrate-plans.ts",
+    "start": "tsx prisma/migrate-plans.ts && next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts"
   },
@@ -45,6 +45,7 @@
     "recharts": "^3.10.1",
     "resend": "^6.33.0",
     "tailwind-merge": "^3.7.0",
+    "tsx": "^4.23.15",
     "uuid": "^14.0.3"
   },
   "devDependencies": {
@@ -58,7 +59,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
-    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
