@@ -2,15 +2,15 @@
 
 import React, { useState } from "react";
 import {
-  Phone,
-  MessageSquare,
+  PhoneCall,
+  MessageCircle,
   MapPin,
   QrCode,
   Globe,
   Clock,
   CreditCard,
   Share2,
-  Download,
+  UserPlus,
   Check,
   ShieldCheck,
   Star,
@@ -74,6 +74,14 @@ export default function BusinessProfileMicrosite({
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
   const [copiedShare, setCopiedShare] = useState<boolean>(false);
+  const [actionToast, setActionToast] = useState<{ message: string; icon?: string } | null>(null);
+
+  const showActionToast = (message: string, icon?: string) => {
+    setActionToast({ message, icon });
+    setTimeout(() => {
+      setActionToast(null);
+    }, 3200);
+  };
 
   // Enquiry form state
   const [enquiryName, setEnquiryName] = useState("");
@@ -111,6 +119,107 @@ export default function BusinessProfileMicrosite({
     trackOutcome?.("REDIRECTED");
     if (!isSimulator) {
       window.location.assign(url);
+    } else {
+      showActionToast(`Redirecting to: ${url}`, "🔗");
+    }
+  };
+
+  const handleQuickCall = () => {
+    trackOutcome?.("REDIRECTED");
+    const targetPhone = phone || whatsapp;
+    if (!targetPhone) {
+      showActionToast("Please set your phone number in Quick Connect settings.", "📞");
+      return;
+    }
+    if (isSimulator) {
+      showActionToast(`Calling ${targetPhone} (In live tap, opens phone dialer)`, "📞");
+    } else {
+      window.location.assign(`tel:${targetPhone.replace(/\s+/g, "")}`);
+    }
+  };
+
+  const handleQuickWhatsapp = () => {
+    trackOutcome?.("REDIRECTED");
+    const targetWhatsapp = whatsapp || phone;
+    if (!targetWhatsapp) {
+      showActionToast("Please set your WhatsApp number in Quick Connect settings.", "💬");
+      return;
+    }
+    const clean = targetWhatsapp.replace(/[^0-9]/g, "");
+    const msg = encodeURIComponent(
+      profile.whatsappGreeting ||
+        `Hi ${tenantName}, I am reaching out from your Business Profile!`
+    );
+    const waUrl = `https://wa.me/${clean.length === 10 ? `91${clean}` : clean}?text=${msg}`;
+
+    if (isSimulator) {
+      showActionToast(`Opening WhatsApp chat with ${targetWhatsapp}...`, "💬");
+    } else {
+      window.location.assign(waUrl);
+    }
+  };
+
+  const handleQuickDirections = () => {
+    trackOutcome?.("REDIRECTED");
+    const targetMapsUrl =
+      mapsUrl ||
+      (address
+        ? `https://maps.google.com/?q=${encodeURIComponent(`${tenantName} ${address}`)}`
+        : `https://maps.google.com/?q=${encodeURIComponent(tenantName)}`);
+
+    if (isSimulator) {
+      showActionToast(`Opening Google Maps directions for "${tenantName}"...`, "📍");
+    } else {
+      window.location.assign(targetMapsUrl);
+    }
+  };
+
+  const handleQuickSaveContact = () => {
+    trackOutcome?.("REDIRECTED");
+    const vcardName = (profile.contactName || tenantName).trim();
+    const contactNumber = phone || whatsapp || "";
+    const vcard = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${vcardName.replace(/[;\n]/g, " ")}`,
+      `ORG:${tenantName.replace(/[;\n]/g, " ")}`,
+      `TITLE:${(profile.category || "Business").replace(/[;\n]/g, " ")}`,
+      contactNumber ? `TEL;TYPE=CELL,VOICE:${contactNumber}` : "",
+      whatsapp && whatsapp !== contactNumber ? `TEL;TYPE=WORK,VOICE:${whatsapp}` : "",
+      profile.contactEmail ? `EMAIL;TYPE=PREF,INTERNET:${profile.contactEmail}` : "",
+      profile.address ? `ADR;TYPE=WORK:;;${profile.address.replace(/[;\n]/g, ", ")};;;;` : "",
+      "PRODID:-//TapGate//Smart NFC Business Card//EN",
+      "END:VCARD",
+    ]
+      .filter(Boolean)
+      .join("\r\n");
+
+    try {
+      const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.setAttribute(
+        "download",
+        `${vcardName.replace(/[^a-zA-Z0-9_-]/g, "_") || "Contact"}.vcf`
+      );
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+
+      showActionToast(`Downloaded contact card for "${vcardName}"!`, "📇");
+    } catch {
+      if (!isSimulator && cardSlug) {
+        const fallbackLink = document.createElement("a");
+        fallbackLink.href = `/api/vcard/${cardSlug}`;
+        fallbackLink.setAttribute("download", `${vcardName}.vcf`);
+        document.body.appendChild(fallbackLink);
+        fallbackLink.click();
+        document.body.removeChild(fallbackLink);
+      } else {
+        showActionToast(`Saved contact for "${vcardName}"!`, "📇");
+      }
     }
   };
 
@@ -178,93 +287,91 @@ export default function BusinessProfileMicrosite({
 
     switch (sectionKey) {
       case "quickActions": {
-        const title = profile.sectionTitles?.quickActions;
         return (
-          <div key="quickActions" className="space-y-1.5">
-            {title && (
-              <h3 className="font-bold text-xs px-1 text-slate-800 dark:text-slate-200">
-                {title}
-              </h3>
-            )}
-            <div className="grid grid-cols-4 gap-2">
-              {/* Call */}
-              {phone ? (
-                <button
-                  type="button"
-                  onClick={() => handleNav(`tel:${phone}`)}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-teal-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl mx-auto flex items-center justify-center text-white mb-1.5 shadow-2xs group-hover:scale-105 transition-transform"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.callUs}
-                  </span>
-                </button>
-              ) : null}
+          <div key="quickActions" className="grid grid-cols-4 gap-2 sm:gap-2.5">
+            {/* 1. Call */}
+            <button
+              type="button"
+              onClick={handleQuickCall}
+              className={`group relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 cursor-pointer ${
+                isDark
+                  ? "bg-slate-900 border border-slate-800 shadow-md hover:border-emerald-500/60 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                  : "bg-white border border-slate-200/90 shadow-2xs hover:border-emerald-500/60 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
+              }`}
+            >
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-sm shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-200 mb-1.5">
+                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold leading-tight truncate w-full text-center text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                {t.callUs}
+              </span>
+              <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 uppercase tracking-wider scale-95">
+                Call
+              </span>
+            </button>
 
-              {/* WhatsApp */}
-              {whatsapp ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const clean = whatsapp.replace(/[^0-9]/g, "");
-                    const msg = encodeURIComponent(
-                      profile.whatsappGreeting ||
-                        `Hi ${tenantName}, I am reaching out from your Business Card!`
-                    );
-                    handleNav(
-                      `https://wa.me/${
-                        clean.length === 10 ? `91${clean}` : clean
-                      }?text=${msg}`
-                    );
-                  }}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-emerald-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[#25D366] text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.whatsapp}
-                  </span>
-                </button>
-              ) : null}
+            {/* 2. WhatsApp */}
+            <button
+              type="button"
+              onClick={handleQuickWhatsapp}
+              className={`group relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 cursor-pointer ${
+                isDark
+                  ? "bg-slate-900 border border-slate-800 shadow-md hover:border-green-500/60 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                  : "bg-white border border-slate-200/90 shadow-2xs hover:border-green-500/60 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
+              }`}
+            >
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-[#25D366] to-[#1ebe5d] text-white flex items-center justify-center shadow-sm shadow-green-500/20 group-hover:scale-110 transition-transform duration-200 mb-1.5">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold leading-tight truncate w-full text-center text-slate-800 dark:text-slate-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                {t.whatsapp}
+              </span>
+              <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 uppercase tracking-wider scale-95">
+                Chat
+              </span>
+            </button>
 
-              {/* Directions */}
-              {mapsUrl ? (
-                <button
-                  type="button"
-                  onClick={() => handleNav(mapsUrl)}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-blue-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.directions}
-                  </span>
-                </button>
-              ) : null}
+            {/* 3. Directions */}
+            <button
+              type="button"
+              onClick={handleQuickDirections}
+              className={`group relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 cursor-pointer ${
+                isDark
+                  ? "bg-slate-900 border border-slate-800 shadow-md hover:border-blue-500/60 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                  : "bg-white border border-slate-200/90 shadow-2xs hover:border-blue-500/60 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
+              }`}
+            >
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-sm shadow-blue-500/20 group-hover:scale-110 transition-transform duration-200 mb-1.5">
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold leading-tight truncate w-full text-center text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {t.directions}
+              </span>
+              <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 uppercase tracking-wider scale-95">
+                Map
+              </span>
+            </button>
 
-              {/* Save vCard Contact */}
-              {profile.enableVCard !== false && (
-                <button
-                  type="button"
-                  onClick={() => handleNav(`/api/vcard/${cardSlug}`)}
-                  className={`p-3 rounded-2xl ${cardClass} hover:border-indigo-500 transition-all text-center group cursor-pointer`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                    <Download className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold block leading-tight">
-                    {t.saveContact}
-                  </span>
-                </button>
-              )}
-            </div>
+            {/* 4. Save Contact */}
+            <button
+              type="button"
+              onClick={handleQuickSaveContact}
+              className={`group relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 cursor-pointer ${
+                isDark
+                  ? "bg-slate-900 border border-slate-800 shadow-md hover:border-violet-500/60 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                  : "bg-white border border-slate-200/90 shadow-2xs hover:border-violet-500/60 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
+              }`}
+            >
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white flex items-center justify-center shadow-sm shadow-violet-500/20 group-hover:scale-110 transition-transform duration-200 mb-1.5">
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold leading-tight truncate w-full text-center text-slate-800 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                {t.saveContact}
+              </span>
+              <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 uppercase tracking-wider scale-95">
+                Save
+              </span>
+            </button>
           </div>
         );
       }
@@ -836,6 +943,14 @@ export default function BusinessProfileMicrosite({
           </footer>
         </div>
       </div>
+
+      {/* Floating Interactive Toast Feedback */}
+      {actionToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[90%] bg-slate-900/95 dark:bg-slate-800/95 text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none">
+          <span className="text-xl shrink-0">{actionToast.icon || "⚡"}</span>
+          <p className="text-xs font-semibold leading-snug flex-1">{actionToast.message}</p>
+        </div>
+      )}
     </div>
   );
 }

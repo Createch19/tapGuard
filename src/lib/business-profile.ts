@@ -111,6 +111,7 @@ export interface BusinessProfileData {
   whatsappGreeting?: string;
   contactPhone?: string;
   contactEmail?: string;
+  contactName?: string;
   address?: string;
   googleMapsUrl?: string;
   enableVCard?: boolean;
@@ -159,6 +160,7 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfileData = {
   bio: "Welcome to our official page. Explore our services, get in touch, or make quick payments directly.",
   enableUpi: true,
   enableVCard: true,
+  contactName: "",
   enableEnquiryForm: true,
   businessHoursText: "Mon - Sat: 9:00 AM - 9:00 PM | Sun: 10:00 AM - 2:00 PM",
   sectionOrder: DEFAULT_SECTION_ORDER,
