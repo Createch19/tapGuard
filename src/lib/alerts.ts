@@ -20,7 +20,7 @@ export async function dispatchFeedbackAlerts(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          event: "tapgate.feedback.captured",
+          event: "tapgenie.feedback.captured",
           timestamp: new Date().toISOString(),
           data: {
             tenant: payload.tenantName,
@@ -47,12 +47,12 @@ export async function dispatchFeedbackAlerts(
         const { Resend } = await import("resend");
         const resend = new Resend(resendApiKey);
         await resend.emails.send({
-          from: "alerts@tapgate.io",
+          from: "alerts@tapgenie.io",
           to: alertEmail,
           subject: `⚠️ Urgent: ${payload.rating}★ Review Intercepted for ${payload.tenantName}`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; color: #1e293b;">
-              <h2 style="color: #0d9488;">TapGate Smart Gate Alert</h2>
+              <h2 style="color: #0d9488;">TapGenie Smart Gate Alert</h2>
               <p>A customer just left a <strong>${payload.rating}-star</strong> rating that was safely intercepted before reaching Google.</p>
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px;">
                 <p><strong>Customer:</strong> ${payload.customerName || "Anonymous"}</p>
@@ -61,7 +61,7 @@ export async function dispatchFeedbackAlerts(
                 <p><strong>Feedback:</strong></p>
                 <blockquote style="font-style: italic; color: #475569;">"${payload.feedbackText || "No comment"}"</blockquote>
               </div>
-              <p style="margin-top: 20px;">Log in to your TapGate Dashboard to respond and mark as resolved.</p>
+              <p style="margin-top: 20px;">Log in to your TapGenie Dashboard to respond and mark as resolved.</p>
             </div>
           `,
         });

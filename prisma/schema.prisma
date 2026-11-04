@@ -1,4 +1,4 @@
-// TapGate — Full Database Schema
+// TapGenie — Full Database Schema
 // Prisma 7 with PostgreSQL (Supabase)
 
 generator client {

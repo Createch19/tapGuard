@@ -50,7 +50,7 @@ export async function GET(
     address ? `ADR;TYPE=WORK:;;${address.replace(/[;\n]/g, ", ")};;;;` : "",
     website ? `URL:${website}` : "",
     bio ? `NOTE:${bio.replace(/[;\n]/g, " ")}` : "",
-    "PRODID:-//TapGate//Smart NFC Business Card//EN",
+    "PRODID:-//TapGenie//Smart NFC Business Card//EN",
     "END:VCARD",
   ]
     .filter(Boolean)

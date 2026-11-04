@@ -247,7 +247,7 @@ export default function BusinessProfileMicrosite({
       whatsapp && whatsapp !== contactNumber ? `TEL;TYPE=WORK,VOICE:${whatsapp}` : "",
       profile.contactEmail ? `EMAIL;TYPE=PREF,INTERNET:${profile.contactEmail}` : "",
       profile.address ? `ADR;TYPE=WORK:;;${profile.address.replace(/[;\n]/g, ", ")};;;;` : "",
-      "PRODID:-//TapGate//Smart NFC Business Card//EN",
+      "PRODID:-//TapGenie//Smart NFC Business Card//EN",
       "END:VCARD",
     ]
       .filter(Boolean)
@@ -308,7 +308,7 @@ export default function BusinessProfileMicrosite({
     const target = profile.enquiryTargetWhatsapp || profile.whatsappNumber || "";
     const cleanTarget = target.replace(/[^0-9]/g, "");
 
-    const text = `🌟 *New Enquiry from TapGate Business Profile*\n👤 *Name:* ${enquiryName}\n📞 *Phone:* ${enquiryPhone}\n🕒 *Preferred Time:* ${enquiryTime || "Flexible"}\n📝 *Requirement:* ${enquiryMessage || "General Enquiry"}\n📍 *Business:* ${tenantName}`;
+    const text = `🌟 *New Enquiry from TapGenie Business Profile*\n👤 *Name:* ${enquiryName}\n📞 *Phone:* ${enquiryPhone}\n🕒 *Preferred Time:* ${enquiryTime || "Flexible"}\n📝 *Requirement:* ${enquiryMessage || "General Enquiry"}\n📍 *Business:* ${tenantName}`;
 
     const waUrl = `https://wa.me/${cleanTarget ? (cleanTarget.length === 10 ? `91${cleanTarget}` : cleanTarget) : ""}?text=${encodeURIComponent(text)}`;
     trackOutcome?.("REDIRECTED");

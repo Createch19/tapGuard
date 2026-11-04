@@ -304,7 +304,7 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
                   Google Business Profile & Permissions
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Authorize TapGate to sync live Google Maps reviews, customer Q&A, and menu availability
+                  Authorize TapGenie to sync live Google Maps reviews, customer Q&A, and menu availability
                 </p>
               </div>
             </div>
@@ -450,10 +450,10 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
                 <div className="space-y-1.5">
                   <h3 className="text-sm font-bold text-slate-900">
-                    Authorize TapGate on Google Business Profile
+                    Authorize TapGenie on Google Business Profile
                   </h3>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Connect your official business account to delegate permissions. Once connected, TapGate automatically fetches your live storefront reviews, enables Gemini AI reply drafting, and monitors Google Maps Q&A.
+                    Connect your official business account to delegate permissions. Once connected, TapGenie automatically fetches your live storefront reviews, enables Gemini AI reply drafting, and monitors Google Maps Q&A.
                   </p>
                 </div>
 
@@ -690,7 +690,7 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
                 type={showApiKey ? "text" : "password"}
                 value={geminiApiKey}
                 onChange={(e) => setGeminiApiKey(e.target.value)}
-                placeholder="AIzaSy... (Leave empty to use TapGate managed Gemini key)"
+                placeholder="AIzaSy... (Leave empty to use TapGenie managed Gemini key)"
                 className="w-full pl-10 pr-20 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-slate-700"
               />
               <button
@@ -702,7 +702,7 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
               </button>
             </div>
             <p className="text-[11px] text-slate-400 mt-1.5">
-              Provides dedicated AI quota for your business. If left blank, TapGate platform-managed Gemini AI is used.
+              Provides dedicated AI quota for your business. If left blank, TapGenie platform-managed Gemini AI is used.
             </p>
           </div>
         </div>

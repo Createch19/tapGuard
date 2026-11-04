@@ -900,7 +900,7 @@ export default function ReviewGateClient({
       {/* Footer Branding */}
       <footer className="text-center py-4 text-xs text-slate-400">
         Powered by{" "}
-        <span className="font-semibold text-slate-600">TapGate</span> — Dynamic
+        <span className="font-semibold text-slate-600">TapGenie</span> — Dynamic
         Review Gate
       </footer>
     </div>

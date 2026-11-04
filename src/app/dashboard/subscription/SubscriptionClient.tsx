@@ -299,7 +299,7 @@ export default function SubscriptionClient({
                 <p className="text-xs text-slate-500 mt-0.5">
                   {activeConfig.customBranding
                     ? "Full control over custom primary brand colors, greeting titles, and themes."
-                    : "Standard TapGate themed rating flow."}
+                    : "Standard TapGenie themed rating flow."}
                 </p>
               </div>
             </div>

@@ -2130,7 +2130,7 @@ export default function BrandingClient({
 
                   {/* Preview Footer */}
                   <div className="pt-2 text-[9px] text-slate-400 border-t border-slate-200/50">
-                    Powered by <strong>TapGate</strong>
+                    Powered by <strong>TapGenie</strong>
                   </div>
                 </div>
               )}

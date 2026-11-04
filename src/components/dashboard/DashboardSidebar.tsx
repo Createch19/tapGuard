@@ -132,9 +132,9 @@ export default function DashboardSidebar({
       {/* Mobile Top Navbar */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-lg object-contain shadow-xs" />
+          <img src="/brand/tapgenie-icon.jpg" alt="TapGenie Logo" className="w-8 h-8 rounded-lg object-cover shadow-xs border border-slate-900/10" />
           <div>
-            <div className="text-xs text-slate-400 font-medium leading-none">TapGate</div>
+            <div className="text-xs text-slate-400 font-medium leading-none">TapGenie</div>
             <div className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[180px]">
               {tenant.name}
             </div>
@@ -167,10 +167,10 @@ export default function DashboardSidebar({
           {/* Logo & Tenant Header */}
           <div className="mb-6">
             <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-xl object-contain shadow-xs" />
+              <img src="/brand/tapgenie-icon.jpg" alt="TapGenie Logo" className="w-8 h-8 rounded-xl object-cover shadow-xs border border-slate-900/10" />
               <div>
                 <span className="font-extrabold text-base tracking-tight text-slate-900">
-                  TapGate
+                  TapGenie
                 </span>
                 <span className="text-[10px] text-teal-600 font-semibold uppercase tracking-wider block -mt-1">
                   B2B Portal

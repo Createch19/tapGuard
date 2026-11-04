@@ -48,7 +48,7 @@ export default async function CardStatusPage({
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm rounded-xl transition-colors shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to TapGate Home
+            Back to TapGenie Home
           </Link>
         </div>
       </div>

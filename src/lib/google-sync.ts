@@ -185,7 +185,7 @@ export function getGoogleOAuthRedirectUri(reqOrHeaders?: Request | NextRequest |
  * Generate secure state token for OAuth CSRF protection
  */
 export function generateOAuthState(tenantId: string): string {
-  const secret = process.env.NEXTAUTH_SECRET || "tapgate-oauth-state-secret";
+  const secret = process.env.NEXTAUTH_SECRET || "tapgenie-oauth-state-secret";
   const timestamp = Date.now();
   const payload = JSON.stringify({ tenantId, timestamp });
   const hmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
@@ -197,7 +197,7 @@ export function generateOAuthState(tenantId: string): string {
  */
 export function verifyOAuthState(stateStr: string): { tenantId: string } | null {
   try {
-    const secret = process.env.NEXTAUTH_SECRET || "tapgate-oauth-state-secret";
+    const secret = process.env.NEXTAUTH_SECRET || "tapgenie-oauth-state-secret";
     const decoded = JSON.parse(Buffer.from(stateStr, "base64url").toString("utf8"));
     const { payload, hmac } = decoded;
     const expectedHmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
@@ -1282,12 +1282,12 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
                 "Open Google Cloud Console for Project Number 22466671945.",
                 "Navigate to 'APIs & Services' -> 'Enabled APIs & services' -> 'My Business Account Management API' -> 'Quotas'.",
                 "Submit the Google Business Profile API Access Request Form (https://developers.google.com/my-business/content/prereqs#request-access) providing Project Number 22466671945 to increase your quota limit from 0.",
-                "Once Google raises the quota, return to TapGate and click 'Re-check Google API'.",
+                "Once Google raises the quota, return to TapGenie and click 'Re-check Google API'.",
               ]
             : [
                 "Enable 'My Business Account Management API' and 'My Business Business Information API' in Google Cloud Console.",
                 "Submit the Google Business Profile API Access Request Form in Google Cloud Console to whitelist your project.",
-                "Verify that your OAuth Client ID and Secret in TapGate match the authorized Google Cloud Project.",
+                "Verify that your OAuth Client ID and Secret in TapGenie match the authorized Google Cloud Project.",
               ],
           checkedAt: new Date().toISOString(),
         };

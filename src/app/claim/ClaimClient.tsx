@@ -105,8 +105,8 @@ export default function ClaimClient({
       {/* Top Navbar */}
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-2">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-slate-900">
-          <img src="/logo.png" alt="TapGate Logo" className="w-8 h-8 rounded-lg object-contain shadow-xs" />
-          <span>TapGate</span>
+          <img src="/brand/tapgenie-icon.jpg" alt="TapGenie Logo" className="w-8 h-8 rounded-lg object-cover shadow-xs border border-slate-900/10" />
+          <span>TapGenie</span>
         </Link>
         {user ? (
           <Link
@@ -149,7 +149,7 @@ export default function ClaimClient({
                 Business Sign In Required
               </h3>
               <p className="text-xs text-slate-500 mb-4">
-                To link this card to your location, please sign in or register your business on TapGate.
+                To link this card to your location, please sign in or register your business on TapGenie.
               </p>
               <Link
                 href={`/login?redirect=/claim?code=${encodeURIComponent(shortCode)}`}
@@ -302,7 +302,7 @@ export default function ClaimClient({
       </div>
 
       <footer className="text-center text-xs text-slate-400 py-2">
-        TapGate B2B Platform — Instant NFC Activation
+        TapGenie B2B Platform — Instant NFC Activation
       </footer>
     </div>
   );

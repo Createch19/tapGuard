@@ -11,7 +11,7 @@ const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("🌱 Initializing TapGate database...");
+  console.log("🌱 Initializing TapGenie database...");
 
   // 1. Seed Default Business Types (Idempotent upsert)
   const defaultBusinessTypes = [
@@ -130,7 +130,7 @@ async function main() {
   console.log("✅ Seeded Plan Configurations (Basic, Pro, Enterprise).");
 
   // 3. Seed Super Admin User ONLY (No demo accounts or test records)
-  const adminEmail = process.env.SUPER_ADMIN_EMAIL || "admin@tapgate.io";
+  const adminEmail = process.env.SUPER_ADMIN_EMAIL || "admin@tapgenie.io";
   const adminPassword = process.env.SUPER_ADMIN_PASSWORD || "Admin@123456";
   const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
 

@@ -83,5 +83,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret:
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    "tapgate-super-secret-jwt-key-2026-production-ready",
+    "tapgenie-super-secret-jwt-key-2026-production-ready",
 });

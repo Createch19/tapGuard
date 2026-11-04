@@ -8,16 +8,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TapGate — Smart NFC Google Review Management Platform",
+  title: "TapGenie — Smart NFC Business Profile & Review Growth Platform",
   description:
-    "B2B SaaS platform for managing NFC and QR-code-based Google Review cards with Smart Rating Gate, private feedback interception, and multi-tenant analytics.",
+    "B2B SaaS platform for managing NFC and QR-code-based Google Review cards and Smart Business Profiles with TapGenie Smart Rating Gate, private feedback interception, and multi-tenant analytics.",
   icons: {
     icon: [
-      { url: "/icon.png" },
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/brand/tapgenie-icon.jpg" },
+      { url: "/brand/tapgenie-icon.jpg", sizes: "192x192", type: "image/jpeg" },
     ],
-    shortcut: "/icon.png",
-    apple: "/apple-icon.png",
+    shortcut: "/brand/tapgenie-icon.jpg",
+    apple: "/brand/tapgenie-icon.jpg",
   },
 };
 

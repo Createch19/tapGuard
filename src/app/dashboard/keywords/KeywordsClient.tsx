@@ -281,7 +281,7 @@ export default function KeywordsClient({ tenant, initialConfig }: KeywordsClient
           </div>
           <p className="text-sm text-slate-500 max-w-2xl">
             Boost your Google Maps and local search rank. When customers rate 4–5
-            stars, TapGate suggests ready-to-copy, non-repeating sentences containing
+            stars, TapGenie suggests ready-to-copy, non-repeating sentences containing
             your high-value keywords in English, Tanglish, and regional languages.
           </p>
         </div>

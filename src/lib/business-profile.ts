@@ -253,7 +253,7 @@ export const PROFILE_TRANSLATIONS = {
     reviewsTitle: "Google Reviews & Ratings",
     rateUs: "Write a Review on Google",
     socialTitle: "Connect With Us",
-    poweredBy: "Powered by TapGate — Smart Business Profile",
+    poweredBy: "Powered by TapGenie — Smart Business Profile",
   },
   TA: {
     langName: "தமிழ்",
@@ -295,7 +295,7 @@ export const PROFILE_TRANSLATIONS = {
     reviewsTitle: "கூகிள் மதிப்பாய்வுகள்",
     rateUs: "கூகிளில் மதிப்பாய்வு செய்க",
     socialTitle: "சமூக வலைத்தளங்கள்",
-    poweredBy: "TapGate மூலம் இயங்குகிறது — வணிக சுயவிவரம்",
+    poweredBy: "TapGenie மூலம் இயங்குகிறது — வணிக சுயவிவரம்",
   },
   HI: {
     langName: "हिन्दी",
@@ -337,6 +337,6 @@ export const PROFILE_TRANSLATIONS = {
     reviewsTitle: "गूगल समीक्षाएं व रेटिंग",
     rateUs: "गूगल पर समीक्षा दें",
     socialTitle: "हमसे जुड़ें",
-    poweredBy: "TapGate द्वारा संचालित — स्मार्ट बिजनेस प्रोफाइल",
+    poweredBy: "TapGenie द्वारा संचालित — स्मार्ट बिजनेस प्रोफाइल",
   },
 };

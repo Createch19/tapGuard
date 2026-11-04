@@ -1,5 +1,5 @@
 /**
- * TapGate / TrustTap - Smart Keyword Review Sentence Generator
+ * TapGenie - Smart Keyword Review Sentence Generator
  *
  * Generates natural, high-converting Google Review sentences with target keywords injected
  * in English, Tanglish (Tamil in English), Tamil, Hindi/Hinglish, Telugu, and Kannada.

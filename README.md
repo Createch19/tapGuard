@@ -1,4 +1,4 @@
-# tapGuard (TrustTap)
+# TapGenie
 
 > Smart NFC & QR Customer Review Gate & Engagement SaaS Platform for Physical Businesses.
 
@@ -6,7 +6,7 @@
 
 ## 🌟 Overview
 
-**tapGuard** empowers venues (restaurants, salons, retail stores, hotels, fitness centers, clinics, and sports clubs) with programmable, multi-template review gates connected to physical NFC cards and table stands.
+**TapGenie** empowers venues (restaurants, salons, retail stores, hotels, fitness centers, clinics, and sports clubs) with programmable, multi-template review gates connected to physical NFC cards and table stands.
 
 - **Compliant "Venting" Strategy:** Protects Google Review scores by filtering 4–5★ positive feedback to Google, while providing an empathetic private "Venting Box" for 1–3★ complaints that alerts managers instantly.
 - **4 Dynamic Gate Templates:**
@@ -79,7 +79,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 | Portal | URL | Email | Password | Role |
 |---|---|---|---|---|
-| **Super Admin** | `/login` (or `/admin`) | `admin@tapgate.io` | `Admin@123456` | Platform Super Admin |
+| **Super Admin** | `/login` (or `/admin`) | `admin@tapgenie.io` | `Admin@123456` | Platform Super Admin |
 
 The Super Admin account is used to maintain the system:
 - Register and onboard new business tenants

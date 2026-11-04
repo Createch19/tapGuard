@@ -147,7 +147,7 @@ export default function GoogleCommandCenterClient({
     summary: "",
     couponCode: "",
     callToAction: "VIEW_ITEM",
-    actionUrl: tenant.googleReviewUrl || "https://tapgate.io",
+    actionUrl: tenant.googleReviewUrl || "https://tapgenie.io",
     daysValid: "7",
   });
   const [isPublishingPost, setIsPublishingPost] = useState(false);
@@ -465,7 +465,7 @@ export default function GoogleCommandCenterClient({
           summary: "",
           couponCode: "",
           callToAction: "VIEW_ITEM",
-          actionUrl: tenant.googleReviewUrl || "https://tapgate.io",
+          actionUrl: tenant.googleReviewUrl || "https://tapgenie.io",
           daysValid: "7",
         });
         showToast("Google Post published live to Google Search & Maps!");
