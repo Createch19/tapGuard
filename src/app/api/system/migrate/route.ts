@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     </div>
 
     <p class="text-xs text-slate-300 mb-6 leading-relaxed">
-      This tool updates PostgreSQL Enums, creates missing columns, syncs the 5-Tier plans (Lite, Starter, Growth, Business, Enterprise), and verifies your Super Admin account.
+      This tool updates PostgreSQL Enums, creates missing columns, syncs the 5-Tier plans (Lite, Starter, Growth, Business, Enterprise), verifies your Super Admin account, and seeds the live showcase demo touchpoints (/tap/artisan-counter &amp; /tap/tap-805-ghost).
     </p>
 
     <form id="migrateForm" class="space-y-4">

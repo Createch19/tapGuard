@@ -11,7 +11,8 @@
     "migrate": "tsx prisma/migrate-plans.ts",
     "start": "tsx prisma/migrate-plans.ts && next start",
     "lint": "eslint",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "seed:demo": "tsx prisma/seed-demo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

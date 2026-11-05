@@ -3,6 +3,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+import { seedDemoData } from "./seed-demo";
 
 export async function runCompleteMigration(): Promise<{ success: boolean; logs: string[] }> {
   const logs: string[] = [];
@@ -331,6 +332,11 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
       },
     });
     log(`✅ Super Admin account verified: ${admin.email}`);
+
+    // Step 5: Seed Demo Touchpoint Data for Production
+    log("🛠️ Step 5: Syncing showcase demo touchpoints (/tap/artisan-counter & /tap/tap-805-ghost)...");
+    const demoResult = await seedDemoData(prisma);
+    logs.push(...demoResult.logs);
 
     log("🎉 Database migration and sync finished successfully!");
     return { success: true, logs };

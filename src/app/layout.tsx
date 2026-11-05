@@ -10,7 +10,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "TapGenie — Smart NFC Business Profile & Review Growth Platform",
   description:
-    "B2B SaaS platform for managing NFC and QR-code-based Google Review cards and Smart Business Profiles with TapGenie Smart Rating Gate, private feedback interception, and multi-tenant analytics.",
+    "B2B SaaS platform for managing NFC and QR-code-based Google Review cards and Smart Business Profiles with AI-powered review suggestions, 0% UPI instant pay, and multi-tenant analytics.",
   icons: {
     icon: [
       { url: "/icon.png" },

@@ -86,8 +86,8 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="px-4 sm:px-8 pt-16 pb-20 max-w-6xl mx-auto text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold mb-6 animate-in fade-in">
-          <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-          <span>Smart Rating Gate • Zero Negative Google Reviews</span>
+          <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+          <span>Smart NFC Touchpoints • AI-Powered 5-Star Google Reviews</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-black text-slate-950 tracking-tight leading-[1.1] mb-6 max-w-4xl mx-auto">
@@ -96,7 +96,7 @@ export default async function HomePage() {
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
-          Enterprise B2B NFC cards with intelligent review filtering. Happy customers are guided straight to Google Reviews with 1-tap AI sentences, while critical feedback is privately captured so your team can make it right.
+          Enterprise B2B NFC cards that make leaving Google reviews effortless. Happy customers are guided straight to your Google review page with 1-tap AI sentence suggestions to boost your local reputation.
         </p>
 
         {/* Dual Live Demo Action Buttons */}
@@ -106,7 +106,7 @@ export default async function HomePage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm rounded-2xl shadow-md shadow-teal-600/20 transition-all hover:scale-[1.02]"
           >
             <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
-            <span>Try Review Gate Demo</span>
+            <span>Try Google Review Demo</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
 
@@ -143,10 +143,10 @@ export default async function HomePage() {
           </div>
 
           <h3 className="text-sm font-bold text-slate-900 mb-1">
-            How was your coffee &amp; croissant today?
+            Loved our coffee &amp; croissant?
           </h3>
           <p className="text-xs text-slate-500 mb-4">
-            Tap a star rating to experience our Smart Gate filter:
+            Tap to leave an authentic 5-star review on Google:
           </p>
 
           <div className="flex justify-center gap-2 py-2 mb-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -164,18 +164,18 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="p-2.5 rounded-xl bg-teal-50/80 border border-teal-100 text-teal-900">
-              <strong className="block text-teal-700 mb-0.5">⭐ 4 or 5 Stars:</strong>
-              Opens Google Reviews
+              <strong className="block text-teal-700 mb-0.5">⭐ 1-Tap Google Review:</strong>
+              Direct Maps Redirect
             </div>
             <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-100 text-amber-900">
-              <strong className="block text-amber-800 mb-0.5">⚠️ 1 to 3 Stars:</strong>
-              Private Empathy Form
+              <strong className="block text-amber-800 mb-0.5">✨ AI Sentences:</strong>
+              Injected SEO Keywords
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5 Gate Modes Visual Showcase */}
+      {/* 5 Card Modes Visual Showcase */}
       <ModesShowcase />
 
       {/* 3-Step Walkthrough Section */}
@@ -199,13 +199,13 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-3xl bg-slate-50/60 border border-slate-200/80">
               <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-4">
-                <ShieldCheck className="w-5 h-5" />
+                <Star className="w-5 h-5 fill-teal-500 text-teal-500" />
               </div>
               <h3 className="font-bold text-base text-slate-900 mb-1.5">
-                Smart Rating Gate
+                1-Tap Google Reviews
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Filter out bad ratings before they touch Google. Unhappy guests vent privately to management so you can resolve complaints before they become permanent 1-star stains.
+                Accelerate 5-star Google ratings effortlessly. Customers tap their phone to launch your official Google review page with pre-composed AI sentence recommendations.
               </p>
             </div>
 
@@ -226,10 +226,10 @@ export default async function HomePage() {
                 <Zap className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-base text-slate-900 mb-1.5">
-                Urgent Bad Review Alerts
+                Real-Time Tap Analytics
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Instant email and webhook notifications dispatch to your floor managers the moment a 1-3 star rating is captured, complete with customer contact info.
+                Track customer scans, engagement rates, and device operating systems across tables, counters, and branches live in your centralized dashboard.
               </p>
             </div>
           </div>

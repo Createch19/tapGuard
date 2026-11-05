@@ -17,12 +17,12 @@ const FAQS: FaqItem[] = [
   {
     question: "Is TapGenie compliant with Google's Review policies?",
     answer:
-      "Yes, completely. TapGenie never offers incentives, discounts, gifts, or cash in exchange for reviews (which violates Google's policies). Instead, we remove friction by letting satisfied customers easily draft helpful reviews, while offering an immediate private channel for guests who experienced an issue to reach your floor managers directly.",
+      "Yes, completely. TapGenie strictly follows Google's guidelines: we never offer incentives, discounts, gifts, or compensation in exchange for reviews. We simply remove friction by making it effortless for customers to find your official Google Maps page and leave authentic reviews using high-speed NFC taps and QR scans.",
   },
   {
     question: "Can I change my card's destination later without ordering new hardware?",
     answer:
-      "Yes, 100%! All TapGenie cards are built on universal Ghost Link technology. You can change any physical card from Google Review Gate to Business Profile Microsite, 0% UPI Instant Pay, or Food Delivery with a single click in your dashboard. You never need to reprint or re-encode your physical hardware.",
+      "Yes, 100%! All TapGenie cards are built on universal Ghost Link technology. You can change any physical card from Google Reviews to Business Profile Microsite, 0% UPI Instant Pay, or Food Delivery with a single click in your dashboard. You never need to reprint or re-encode your physical hardware.",
   },
   {
     question: "Are there any payment gateway charges or deductions on UPI payments?",
@@ -35,9 +35,9 @@ const FAQS: FaqItem[] = [
       "Yes. You can assign separate cards to Table 1, Table 2, Counter, Drive-Thru, or separate physical branches. Each card tracks its own tap metrics, scans, and conversion rates, and higher plans allow multi-location branch management under one unified company login.",
   },
   {
-    question: "How does the private feedback form handle 1 to 3 star ratings?",
+    question: "How does the AI review sentence generator help increase Google Reviews?",
     answer:
-      "When a guest taps 1, 2, or 3 stars, they are guided to a private empathy resolution form instead of being sent to Google Maps. They can share what went wrong (cleanliness, service speed, food temperature, etc.) and leave their phone number. Your floor manager receives an instant notification so you can fix the problem right away.",
+      "Many customers want to leave a positive review but face writer's block or lack time to compose one. TapGenie generates helpful, realistic review suggestions injected with your local SEO keywords (like 'great ambience' or 'fast service') that guests can copy and paste with a single tap.",
   },
 ];
 

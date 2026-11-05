@@ -24,11 +24,11 @@ export default function HowItWorks() {
     {
       step: "03",
       badge: "Intelligent Outcome",
-      title: "Instant Smart Conversion",
+      title: "Instant 5-Star Reviews",
       description:
-        "Positive guests (4–5★) are directed to Google Reviews with 1-click AI sentences. Negative feedback (1–3★) is privately captured for staff resolution.",
-      icon: ShieldCheck,
-      highlight: "Zero negative reviews touch Google Maps",
+        "Customers are guided to your official Google Review page with 1-click AI sentence suggestions and target SEO keywords, maximizing your rating conversion.",
+      icon: Sparkles,
+      highlight: "10x higher review conversion with 1 tap",
     },
   ];
 

@@ -2,6 +2,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { seedDemoData } from "./seed-demo";
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -224,7 +225,11 @@ async function main() {
   });
 
   console.log(`✅ Seeded Super Admin ID: ${superAdmin.id} (${superAdmin.email})`);
-  console.log("🎉 Database initialized successfully for production! No demo accounts or test data.");
+
+  // 4. Seed Live Showcase Demo Data
+  await seedDemoData(prisma);
+
+  console.log("🎉 Database initialized successfully with core system and demo touchpoints!");
 }
 
 main()

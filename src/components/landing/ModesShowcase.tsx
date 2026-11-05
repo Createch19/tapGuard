@@ -25,25 +25,25 @@ export default function ModesShowcase() {
   const modes = [
     {
       id: "google-gate",
-      tabTitle: "⭐ Smart Review Gate",
-      badge: "Reputation Protection",
-      title: "Google Review Smart Gate with Private Venting",
+      tabTitle: "⭐ Google Reviews",
+      badge: "Review Growth",
+      title: "Google Review Booster with AI Sentences",
       subtitle:
-        "Filter out damaging 1–3 star ratings before they touch Google Maps. Positive ratings go directly to Google Reviews with 1-tap AI sentences.",
+        "Turn happy in-store visitors into verified 5-star Google reviews in seconds. Direct one-tap redirect with automated AI review keyword suggestions.",
       preview: {
         header: "How was your experience today?",
         sub: "Tap a star to rate us",
         stars: 5,
         perks: [
-          "4 & 5 Stars: Automatically redirects to your Google Maps review form",
-          "1 to 3 Stars: Opens private management venting box (captures name & phone)",
-          "Instant email & webhook alert dispatched to on-duty managers",
+          "Instant 1-tap redirect to your verified Google Maps review form",
           "Non-repeating AI keyword sentences in 6 regional languages",
+          "Eliminates reviewer writer's block to boost rating conversion",
+          "Detailed tap analytics and conversion tracking per card & table",
         ],
       },
       tagColor: "bg-amber-50 text-amber-800 border-amber-200",
       ctaUrl: "/tap/tap-805-ghost",
-      ctaText: "Test Live Review Gate",
+      ctaText: "Test Google Review Flow",
     },
     {
       id: "microsite",
@@ -294,7 +294,7 @@ export default function ModesShowcase() {
 
               <div className="pt-3 border-t border-slate-100 text-center">
                 <span className="text-[9px] text-slate-400 font-medium">
-                  Powered by TapGenie Smart Gate
+                  Powered by TapGenie
                 </span>
               </div>
             </div>

@@ -48,7 +48,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
           Plans for Every Physical Venue & Brand Fleet
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-2xl mx-auto">
-          Start with single-card lifetime branding or scale up to multi-location review protection and AI review assistance.
+          Start with single-card lifetime branding or scale up to multi-location Google review growth and AI review assistance.
         </p>
 
         {/* Billing Cycle Toggle */}
@@ -179,7 +179,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                     <Check className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                     <span className="text-[11.5px] leading-snug">
                       {config.multiGateTemplates
-                        ? "All 5 Card Gate Templates"
+                        ? "All 5 Card Experience Modes"
                         : "Branding Microsite Gateway"}
                     </span>
                   </div>
@@ -192,7 +192,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                       <span className="w-4 h-4 text-slate-300 font-bold shrink-0 mt-0.5 text-center text-xs">✕</span>
                     )}
                     <span className={`text-[11.5px] leading-snug ${config.smartGate ? "" : "text-slate-400 line-through"}`}>
-                      Smart Google Review Filter
+                      Google Review Accelerator
                     </span>
                   </div>
 
