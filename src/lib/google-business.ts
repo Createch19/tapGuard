@@ -15,6 +15,7 @@ export interface GoogleHubData {
   geminiConfig: {
     model: string;
     brandTone: string;
+    replyLength: string;
     customPersona: string;
     knowledgeBase: string;
     escalationPhone: string;
@@ -193,6 +194,7 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
       geminiConfig: {
         model: geminiConfig.model,
         brandTone: geminiConfig.brandTone,
+        replyLength: (geminiConfig as any).replyLength || "2_SENTENCES",
         customPersona: geminiConfig.customPersona || "",
         knowledgeBase: geminiConfig.knowledgeBase || "",
         escalationPhone: geminiConfig.escalationPhone || "",
@@ -268,6 +270,7 @@ export async function getTenantGoogleHubData(tenantId: string): Promise<GoogleHu
     geminiConfig: {
       model: geminiConfig.model,
       brandTone: geminiConfig.brandTone,
+      replyLength: (geminiConfig as any).replyLength || "2_SENTENCES",
       customPersona: geminiConfig.customPersona || "",
       knowledgeBase: geminiConfig.knowledgeBase || "",
       escalationPhone: geminiConfig.escalationPhone || "",

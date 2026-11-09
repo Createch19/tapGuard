@@ -88,6 +88,7 @@ enum AuditAction {
   CARD_REASSIGNED
   USER_ROLE_CHANGED
   ADMIN_LOGIN
+  PROFILE_UPDATED
 }
 
 enum KeywordTone {
@@ -126,6 +127,9 @@ model Tenant {
   maxLocations         Int          @default(1) @map("max_locations")
   webhookUrl           String?      @map("webhook_url")
   alertEmail           String?      @map("alert_email")
+  reviewAlertFilter    String       @default("ALL") @map("review_alert_filter")
+  reviewAlertEmail     String?      @map("review_alert_email")
+  reviewAlertWebhook   Boolean      @default(true) @map("review_alert_webhook")
   googleBusinessEmail      String?      @map("google_business_email")
   googleLocationId         String?      @map("google_location_id")
   customGoogleClientId     String?      @map("custom_google_client_id")
@@ -488,6 +492,7 @@ model TenantGeminiConfig {
   customApiKey      String?  @map("custom_api_key")
   model             String   @default("gemini-1.5-flash")
   brandTone         String   @default("WARM") @map("brand_tone")
+  replyLength       String   @default("2_SENTENCES") @map("reply_length")
   customPersona     String?  @map("custom_persona") @db.Text
   knowledgeBase     String?  @map("knowledge_base") @db.Text
   escalationPhone   String?  @map("escalation_phone")
@@ -521,6 +526,9 @@ model GoogleLocation {
   regularHoursJson   Json?                    @map("regular_hours_json")
   specialHoursJson   Json?                    @map("special_hours_json")
   primaryCategory    String?                  @map("primary_category")
+  secondaryCategories Json?                   @map("secondary_categories")
+  description        String?                  @db.Text
+  serviceItemsJson   Json?                    @map("service_items_json")
   attributesJson     Json?                    @map("attributes_json")
   autoReplyReviews   Boolean                  @default(false) @map("auto_reply_reviews")
   autoAnswerQA       Boolean                  @default(false) @map("auto_answer_qa")
@@ -535,8 +543,29 @@ model GoogleLocation {
   menuSections       GoogleMenuSection[]
   mediaItems         GoogleMediaItem[]
   performanceDaily   GooglePerformanceDaily[]
+  auditScores        ProfileAuditScore[]
 
   @@map("google_locations")
+}
+
+// ─── Profile Audit Scores (Completeness Tracking) ─────────
+
+model ProfileAuditScore {
+  id              String   @id @default(uuid()) @db.Uuid
+  locationId      String   @map("location_id") @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  overallScore    Int      @map("overall_score")
+  checksJson      Json     @map("checks_json")
+  fixSuggestions  Json     @map("fix_suggestions")
+  previousScore   Int?     @map("previous_score")
+  scoreDelta      Int?     @map("score_delta")
+  auditedAt       DateTime @default(now()) @map("audited_at")
+
+  location        GoogleLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, auditedAt])
+  @@index([tenantId, auditedAt])
+  @@map("profile_audit_scores")
 }
 
 // ─── Google Reviews & Replies ─────────────────────────────

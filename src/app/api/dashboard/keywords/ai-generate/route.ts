@@ -1,53 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantUser } from "@/lib/auth-utils";
+import { prisma } from "@/lib/prisma";
 import { sanitizeKeywords } from "@/lib/sentence-generator";
+import { generateDynamicKeywordReviews } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireTenantUser();
+    const { tenantId } = await requireTenantUser();
     const body = await request.json();
 
-    const { keywords = [], businessType = "Business", language = "TANGLISH" } = body;
-    const cleanKw = sanitizeKeywords(Array.isArray(keywords) ? keywords : []);
-    const kwText = cleanKw.length > 0 ? cleanKw.join(", ") : "great service, quality";
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: {
+        geminiConfig: true,
+        reviewKeywords: true,
+      },
+    });
 
-    // High quality intelligent synthesis per language
-    const aiSamples: Record<string, string[]> = {
-      EN: [
-        `Honestly one of the best spots for ${cleanKw[0] || "quality service"}! The staff was super attentive and everything felt very clean and organized. Definitely coming back!`,
-        `Visited recently and had a top-tier experience. The ${cleanKw[1] || cleanKw[0] || "customer service"} was extraordinary. Highly recommended to everyone!`,
-        `Can't say enough good things about their ${cleanKw[0] || "work"}. Fast, reliable, and very courteous team throughout our visit. 5/5 stars!`,
-      ],
-      TANGLISH: [
-        `Innaiku dhaan first time visit pannom, honestly semma experience! ${cleanKw[0] || "Quality"} vera level, quick service and super friendly staff. Kandippa try pannunga!`,
-        `Romba nalla atmosphere and proper hygiene. Avanga ${cleanKw[0] || "service"} semmaya maintain panranga. Family & friends oda visit panna 10/10 spot!`,
-        `Vera level taste and clean ambience! ${cleanKw[1] || cleanKw[0] || "Quick response"} made our day. Definitely marubadiyum varuvom!`,
-      ],
-      TA: [
-        `மிகவும் நேர்த்தியான மற்றும் மனநிறைவான உபசரிப்பு! குறிப்பாக ${cleanKw[0] || "தரம்"} மிக அற்புதம். ஊழியர்களின் கனிவான நடத்தைக்கு 5 நட்சத்திரங்கள்!`,
-        `குடும்பத்துடன் வர மிகச் சிறந்த இடம். ${cleanKw[0] || "விரைவான சேவை"} மற்றும் சுத்தமான சூழல் மிகவும் பிடித்திருந்தது. கண்டிப்பாக அனைவருக்கும் பரிந்துரைக்கிறேன்!`,
-      ],
-      HI: [
-        `Sach me bahut hi lajawab experience raha! Inka ${cleanKw[0] || "service"} sach me best hai. Staff ka behaviour aur clean ambience bahut achha laga!`,
-        `Superb quality aur pocket friendly rates! ${cleanKw[0] || "Fast service"} dekh kar maza aa gaya. 100% recommended!`,
-      ],
-      TE: [
-        `చాలా హ్యాపీగా అనిపించింది! ${cleanKw[0] || "క్వాలిటీ"} చాలా బాగుంది మరియు స్టాఫ్ చాలా ఫ్రెండ్లీగా ఉన్నారు. ఖచ్చితంగా మళ్లీ వస్తాము!`,
-      ],
-      KN: [
-        `ತುಂಬಾ ಖುಷಿಯಾಯಿತು! ${cleanKw[0] || "ಗುಣಮಟ್ಟ"} ಮತ್ತು ಸೇವೆ ಮನಸ್ಸಿಗೆ ತುಂಬಾ ಹಿಡಿಸಿತು. ಎಲ್ಲರಿಗೂ ಖಂಡಿತ ಶಿಫಾರಸು ಮಾಡುತ್ತೇನೆ!`,
-      ],
-    };
+    if (!tenant) {
+      return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    }
 
-    const targetList = aiSamples[language] || aiSamples["EN"];
+    const {
+      keywords = [],
+      language = "EN",
+      tone = "CASUAL",
+      count = 5,
+    } = body;
+
+    const rawKeywords = Array.isArray(keywords) && keywords.length > 0
+      ? keywords
+      : tenant.reviewKeywords?.keywords || [];
+
+    const cleanKw = sanitizeKeywords(rawKeywords);
+
+    // Extract catalog offerings or bio from business profile if available
+    let catalogContext = "";
+    if (tenant.businessProfile) {
+      const bp = tenant.businessProfile as Record<string, unknown>;
+      if (Array.isArray(bp.catalogItems) && bp.catalogItems.length > 0) {
+        catalogContext = bp.catalogItems
+          .slice(0, 8)
+          .map((item: { name?: string; price?: string }) => `${item.name || ""}${item.price ? ` (${item.price})` : ""}`)
+          .filter(Boolean)
+          .join(", ");
+      }
+    }
+
+    const apiKey =
+      tenant.geminiConfig?.customApiKey ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      null;
+
+    const suggestions = await generateDynamicKeywordReviews({
+      businessName: tenant.name,
+      businessType: tenant.businessType || "Business",
+      keywords: cleanKw,
+      language: String(language || "EN").toUpperCase(),
+      tone: String(tone || tenant.reviewKeywords?.tone || "CASUAL"),
+      count: Math.min(Math.max(Number(count) || 5, 1), 15),
+      catalogContext,
+      knowledgeBase: tenant.geminiConfig?.knowledgeBase || (tenant.businessProfile as any)?.bio || "",
+      apiKey,
+      model: tenant.geminiConfig?.model || "gemini-1.5-flash",
+    });
 
     return NextResponse.json({
       success: true,
-      suggestions: targetList,
-      message: `Generated ${targetList.length} AI suggestions for ${businessType}`,
+      suggestions,
+      usedGemini: Boolean(apiKey),
+      message: `Generated ${suggestions.length} reviews for ${tenant.name}`,
     });
   } catch (err) {
-    console.error("AI generation failed:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("AI dynamic review generation failed:", err);
+    return NextResponse.json(
+      { error: (err as Error).message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }

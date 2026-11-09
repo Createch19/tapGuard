@@ -2,9 +2,12 @@ import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import type { NextRequest } from "next/server";
 import { seedLocationStarterData } from "@/lib/google-business";
+import { dispatchGoogleReviewAlert } from "@/lib/alerts";
+import { computeProfileAuditScore } from "@/lib/profile-audit";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 const GOOGLE_ACCOUNTS_URL = "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
 
@@ -14,6 +17,23 @@ export const GOOGLE_SCOPES = [
   "profile",
   "https://www.googleapis.com/auth/business.manage",
 ].join(" ");
+
+/**
+ * Revokes Google OAuth access or refresh token with Google Identity endpoint.
+ */
+export async function revokeGoogleOAuthToken(token: string): Promise<boolean> {
+  if (!token || token.startsWith("ya29.simulated")) return true;
+  try {
+    const res = await fetch(`${GOOGLE_REVOKE_URL}?token=${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("Failed to revoke Google OAuth token:", err);
+    return false;
+  }
+}
 
 /**
  * Retrieves Google OAuth credentials.
@@ -661,6 +681,8 @@ export async function fetchGoogleLocationsDetailed(
   latlng?: { latitude?: number; longitude?: number };
   regularHours?: any;
   specialHours?: any;
+  profile?: { description?: string };
+  serviceItems?: any[];
   metadata?: {
     placeId?: string;
     newReviewUrl?: string;
@@ -668,7 +690,7 @@ export async function fetchGoogleLocationsDetailed(
   };
 }>>> {
   const acc = normalizeAccountName(accountName);
-  const readMask = "name,title,storeCode,regularHours,specialHours,phoneNumbers,categories,storefrontAddress,websiteUri,metadata,latlng,profile";
+  const readMask = "name,title,storeCode,regularHours,specialHours,phoneNumbers,categories,storefrontAddress,websiteUri,metadata,latlng,profile,serviceItems";
   const endpoint = `https://mybusinessbusinessinformation.googleapis.com/v1/${acc}/locations?readMask=${readMask}`;
 
   try {
@@ -1173,6 +1195,120 @@ export async function publishGoogleHours(
   }
 }
 
+export interface ProfileFieldChanges {
+  regularHours?: any;
+  specialHours?: any[];
+  description?: string;
+  primaryPhone?: string;
+  websiteUri?: string;
+  serviceItems?: any[];
+}
+
+/**
+ * Updates selected Google Business Profile fields using a precise updateMask.
+ * Only the fields provided in `changes` are included in the updateMask and body,
+ * ensuring no other profile attributes are modified.
+ */
+export async function patchGoogleProfileFields(
+  locationName: string,
+  changes: ProfileFieldChanges,
+  accessToken: string
+): Promise<{ success: boolean; updateMask?: string; data?: any; error?: string }> {
+  try {
+    const loc = normalizeLocationName(locationName);
+    const masks: string[] = [];
+    const body: Record<string, any> = {};
+
+    if (typeof changes.regularHours !== "undefined") {
+      masks.push("regularHours");
+      const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      const periods: any[] = [];
+      for (const d of dayKeys) {
+        const conf = changes.regularHours?.[d];
+        if (conf && conf.open && conf.close) {
+          const [openH, openM] = conf.open.split(":").map(Number);
+          const [closeH, closeM] = conf.close.split(":").map(Number);
+          periods.push({
+            openDay: d.toUpperCase(),
+            openTime: { hours: openH || 0, minutes: openM || 0 },
+            closeDay: d.toUpperCase(),
+            closeTime: { hours: closeH || 0, minutes: closeM || 0 },
+          });
+        }
+      }
+      body.regularHours = { periods };
+    }
+
+    if (typeof changes.specialHours !== "undefined") {
+      masks.push("specialHours");
+      const specialHourPeriods = Array.isArray(changes.specialHours)
+        ? changes.specialHours.map((sp) => {
+            const [y, m, d] = (sp.date || "").split("-").map(Number);
+            const [openH, openM] = (sp.open || "09:00").split(":").map(Number);
+            const [closeH, closeM] = (sp.close || "18:00").split(":").map(Number);
+            return {
+              startDate: { year: y || 2026, month: m || 1, day: d || 1 },
+              openTime: sp.isClosed ? undefined : { hours: openH, minutes: openM },
+              endDate: { year: y || 2026, month: m || 1, day: d || 1 },
+              closeTime: sp.isClosed ? undefined : { hours: closeH, minutes: closeM },
+              closed: Boolean(sp.isClosed),
+            };
+          })
+        : [];
+      body.specialHours = { specialHourPeriods };
+    }
+
+    if (typeof changes.description !== "undefined") {
+      masks.push("profile");
+      body.profile = { description: String(changes.description).trim() };
+    }
+
+    if (typeof changes.primaryPhone !== "undefined") {
+      masks.push("phoneNumbers");
+      body.phoneNumbers = { primaryPhone: String(changes.primaryPhone).trim() };
+    }
+
+    if (typeof changes.websiteUri !== "undefined") {
+      masks.push("websiteUri");
+      body.websiteUri = String(changes.websiteUri).trim();
+    }
+
+    if (typeof changes.serviceItems !== "undefined") {
+      masks.push("serviceItems");
+      body.serviceItems = Array.isArray(changes.serviceItems) ? changes.serviceItems : [];
+    }
+
+    if (masks.length === 0) {
+      return { success: false, error: "No fields provided to update." };
+    }
+
+    const updateMask = masks.join(",");
+    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${loc}?updateMask=${updateMask}`;
+
+    const res = await googleApiFetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        updateMask,
+        error: json?.error?.message || `Google API error (status ${res.status}) updating ${updateMask}`,
+      };
+    }
+
+    return { success: true, updateMask, data: json };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Unexpected error patching Google profile" };
+  }
+}
+
 /**
  * Synchronize Google Business Profile Data for a Tenant.
  * Fetches real reviews, hours, media, posts, and performance metrics from Google APIs.
@@ -1416,6 +1552,9 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
 
           const realAddress = (liveLoc.storefrontAddress as any) || primaryLoc.addressJson;
           const realPlaceId = liveLoc.metadata?.placeId || primaryLoc.placeId || null;
+          const realDescription = liveLoc.profile?.description || primaryLoc.description || null;
+          const realSecCategories = (liveLoc.categories as any)?.additionalCategories || primaryLoc.secondaryCategories || null;
+          const realServiceItems = liveLoc.serviceItems || primaryLoc.serviceItemsJson || null;
 
           await prisma.googleLocation.update({
             where: { id: primaryLoc.id },
@@ -1426,6 +1565,9 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
               placeId: realPlaceId,
               primaryPhone: liveLoc.phoneNumbers?.primaryPhone || primaryLoc.primaryPhone,
               websiteUri: liveLoc.websiteUri || primaryLoc.websiteUri,
+              description: realDescription || undefined,
+              secondaryCategories: realSecCategories ?? undefined,
+              serviceItemsJson: realServiceItems ?? undefined,
               addressJson: realAddress,
               regularHoursJson: realRegularHours,
               specialHoursJson: realSpecialHours,
@@ -1450,6 +1592,11 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
               const starNum = STAR_RATING_MAP[String(r.starRating)] || Number(r.starRating) || 5;
               const reviewDate = r.createTime ? new Date(r.createTime) : new Date();
               const replyDate = r.reviewReply?.updateTime ? new Date(r.reviewReply.updateTime) : null;
+
+              // Check if review was already in database
+              const existingRev = await prisma.googleReview.findUnique({
+                where: { googleReviewId: r.reviewId },
+              });
 
               await prisma.googleReview.upsert({
                 where: { googleReviewId: r.reviewId },
@@ -1477,6 +1624,27 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
                 },
               });
               syncedReviewsCount++;
+
+              if (!existingRev) {
+                try {
+                  await dispatchGoogleReviewAlert({
+                    tenantName: tenant.name,
+                    locationTitle: primaryLoc.title || tenant.name,
+                    reviewerName: r.reviewer?.displayName || "Google Customer",
+                    reviewerPhotoUrl: r.reviewer?.profilePhotoUrl || null,
+                    rating: starNum,
+                    comment: r.comment || null,
+                    reviewCreatedAt: reviewDate,
+                    googleReviewId: r.reviewId,
+                    alertEmail: tenant.reviewAlertEmail || tenant.alertEmail,
+                    webhookUrl: tenant.webhookUrl,
+                    filterPreference: tenant.reviewAlertFilter || "ALL",
+                    webhookEnabled: tenant.reviewAlertWebhook ?? true,
+                  });
+                } catch (alertErr) {
+                  console.error("[Google Sync] Failed to dispatch review alert:", alertErr);
+                }
+              }
             }
           }
 
@@ -1595,6 +1763,15 @@ export async function syncGoogleBusinessData(tenantId: string): Promise<{
         lastSyncedAt: new Date(),
       },
     });
+
+    // Auto-run profile audit score computation after sync
+    if (primaryLoc?.id) {
+      try {
+        await computeProfileAuditScore(primaryLoc.id, tenantId);
+      } catch (auditErr) {
+        console.warn("[Google Sync] Profile audit score computation notice:", auditErr);
+      }
+    }
 
     return {
       success: true,

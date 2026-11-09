@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import PricingSection from "@/components/landing/PricingSection";
+import AiReplyShowcase from "@/components/landing/AiReplyShowcase";
+import CompetitorRadarShowcase from "@/components/landing/CompetitorRadarShowcase";
+import ProfileAuditShowcase from "@/components/landing/ProfileAuditShowcase";
 import ModesShowcase from "@/components/landing/ModesShowcase";
 import HowItWorks from "@/components/landing/HowItWorks";
 import RegionalKeywordsBanner from "@/components/landing/RegionalKeywordsBanner";
+import PricingSection from "@/components/landing/PricingSection";
 import FaqSection from "@/components/landing/FaqSection";
 import ClosingCta from "@/components/landing/ClosingCta";
 
@@ -18,6 +21,11 @@ import {
   Zap,
   ExternalLink,
   Sparkles,
+  Swords,
+  Bot,
+  TrendingUp,
+  CheckCircle2,
+  Trophy,
 } from "lucide-react";
 
 export default async function HomePage() {
@@ -43,26 +51,28 @@ export default async function HomePage() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
-            <a href="#modes" className="hover:text-teal-600 transition-colors">
-              5 Card Modes
+          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-600">
+            <a href="#ai-replies" className="hover:text-teal-600 transition-colors flex items-center gap-1">
+              <Bot className="w-3.5 h-3.5 text-teal-600" />
+              <span>AI Review Replies</span>
             </a>
-            <a href="#how-it-works" className="hover:text-teal-600 transition-colors">
-              How It Works
+            <a href="#competitor-radar" className="hover:text-teal-600 transition-colors flex items-center gap-1">
+              <Swords className="w-3.5 h-3.5 text-teal-600" />
+              <span>Competitor Radar</span>
+            </a>
+            <a href="#profile-audit" className="hover:text-teal-600 transition-colors flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+              <span>Profile Audit</span>
+            </a>
+            <a href="#modes" className="hover:text-teal-600 transition-colors">
+              NFC Touchpoints
             </a>
             <a href="#pricing" className="hover:text-teal-600 transition-colors">
-              Pricing Plans
+              Pricing
             </a>
             <a href="#faq" className="hover:text-teal-600 transition-colors">
               FAQ
             </a>
-            <Link
-              href="/tap/artisan-counter"
-              className="text-teal-600 font-bold hover:text-teal-700 transition-colors flex items-center gap-1"
-            >
-              <span>Live NFC Demo</span>
-              <ExternalLink className="w-3 h-3" />
-            </Link>
           </nav>
 
           <div className="flex items-center gap-2.5">
@@ -87,16 +97,15 @@ export default async function HomePage() {
       <section className="px-4 sm:px-8 pt-16 pb-20 max-w-6xl mx-auto text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold mb-6 animate-in fade-in">
           <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-          <span>Smart NFC Touchpoints • AI-Powered 5-Star Google Reviews</span>
+          <span>AI Reputation Suite • 100% Google Review Policy Compliant</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-black text-slate-950 tracking-tight leading-[1.1] mb-6 max-w-4xl mx-auto">
-          Turn Customer Taps Into{" "}
-          <span className="text-teal-600">5-Star Google Reviews</span>
+          Turn Storefront Taps Into <span className="text-teal-600">5-Star Reviews</span> &amp; Dominate Local Search with AI
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
-          Enterprise B2B NFC cards that make leaving Google reviews effortless. Happy customers are guided straight to your Google review page with 1-tap AI sentence suggestions to boost your local reputation.
+          Empower your storefront with contactless NFC touchpoints, 24/7 Gemini AI automated review replies, local competitor radar intelligence, and real-time Google Profile audit scoring.
         </p>
 
         {/* Dual Live Demo Action Buttons */}
@@ -106,7 +115,7 @@ export default async function HomePage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm rounded-2xl shadow-md shadow-teal-600/20 transition-all hover:scale-[1.02]"
           >
             <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
-            <span>Try Google Review Demo</span>
+            <span>Try Live NFC Review Demo</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
 
@@ -115,67 +124,102 @@ export default async function HomePage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm rounded-2xl border border-slate-200 shadow-2xs transition-all hover:scale-[1.02]"
           >
             <Smartphone className="w-4 h-4 text-teal-600" />
-            <span>Try Profile &amp; UPI Demo</span>
+            <span>Try Digital Profile &amp; UPI Demo</span>
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
           </Link>
         </div>
 
-        {/* Hero Interactive Preview Card */}
-        <div className="max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xl text-left relative">
-          <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-sm">
-                A
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block leading-tight">
-                  The Artisan Bakery &amp; Café
+        {/* Hero Interactive Tri-Pillar Preview Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto text-left">
+          {/* Pillar 1 Preview: AI Auto-Pilot */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-lg relative flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-xs">
+                  <Bot className="w-4 h-4" />
                 </span>
-                <span className="text-[10px] text-teal-600 font-medium">
-                  Front Register NFC Card
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <Zap className="w-2.5 h-2.5" />
+                  Auto-Pilot Live
                 </span>
               </div>
+              <h3 className="text-xs font-bold text-slate-900 mb-1">
+                Gemini AI Review Reply
+              </h3>
+              <p className="text-[11px] text-slate-500 mb-3">
+                &ldquo;Bakes fresh at 6 AM! Can&apos;t wait to welcome your team next week.&rdquo;
+              </p>
             </div>
-
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Active Touchpoint
-            </span>
+            <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-teal-700 font-semibold">
+              <span>98% Confidence Match</span>
+              <span>1.4s response</span>
+            </div>
           </div>
 
-          <h3 className="text-sm font-bold text-slate-900 mb-1">
-            Loved our coffee &amp; croissant?
-          </h3>
-          <p className="text-xs text-slate-500 mb-4">
-            Tap to leave an authentic 5-star review on Google:
-          </p>
-
-          <div className="flex justify-center gap-2 py-2 mb-4 bg-slate-50 rounded-2xl border border-slate-100">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Link
-                key={star}
-                href="/tap/artisan-counter"
-                className="p-1 hover:scale-125 transition-transform"
-                title={`${star} star rating`}
-              >
-                <Star className="w-7 h-7 fill-amber-400 text-amber-400" />
-              </Link>
-            ))}
+          {/* Pillar 2 Preview: Competitor Radar */}
+          <div className="bg-slate-900 text-white rounded-3xl p-5 border border-slate-800 shadow-lg relative flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold text-xs">
+                  <Swords className="w-4 h-4" />
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                  <Trophy className="w-2.5 h-2.5" />
+                  Rank #1 in District
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-white mb-1">
+                Competitor Radar
+              </h3>
+              <p className="text-[11px] text-slate-400 mb-3">
+                +42 reviews/mo vs +11 for nearby rivals. Faster local pack climbing.
+              </p>
+            </div>
+            <div className="pt-2.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-teal-300 font-semibold">
+              <span>4.9★ (486 Reviews)</span>
+              <span>3 rivals trailed</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="p-2.5 rounded-xl bg-teal-50/80 border border-teal-100 text-teal-900">
-              <strong className="block text-teal-700 mb-0.5">⭐ 1-Tap Google Review:</strong>
-              Direct Maps Redirect
+          {/* Pillar 3 Preview: Profile Audit Score */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-lg relative flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4" />
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                  94/100 Score
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-900 mb-1">
+                Google Profile Audit
+              </h3>
+              <p className="text-[11px] text-slate-500 mb-3">
+                +38% local Maps discovery. 20+ ranking factors verified &amp; synced.
+              </p>
             </div>
-            <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-100 text-amber-900">
-              <strong className="block text-amber-800 mb-0.5">✨ AI Sentences:</strong>
-              Injected SEO Keywords
+            <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-emerald-700 font-semibold">
+              <span className="flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Top 5% Health
+              </span>
+              <span>1-Click Fixes</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5 Card Modes Visual Showcase */}
+      {/* Feature 1: Gemini AI Review Reply & Auto-Pilot */}
+      <AiReplyShowcase />
+
+      {/* Feature 2: Competitor Radar & Market Intelligence */}
+      <CompetitorRadarShowcase />
+
+      {/* Feature 3: Google Profile Audit & Health Score */}
+      <ProfileAuditShowcase />
+
+      {/* Feature 4: NFC Touchpoints & 5 Reprogrammable Modes */}
       <ModesShowcase />
 
       {/* 3-Step Walkthrough Section */}
@@ -183,58 +227,6 @@ export default async function HomePage() {
 
       {/* Multi-Language & AI Review Sentence Generator Showcase */}
       <RegionalKeywordsBanner />
-
-      {/* Enterprise Feature Value Props */}
-      <section id="features" className="px-4 sm:px-8 py-16 bg-white border-y border-slate-200/80">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-600 block mb-1">
-              Enterprise Grade
-            </span>
-            <h2 className="text-3xl font-black text-slate-900">
-              Why Top Venues Rely on TapGenie
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-3xl bg-slate-50/60 border border-slate-200/80">
-              <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-4">
-                <Star className="w-5 h-5 fill-teal-500 text-teal-500" />
-              </div>
-              <h3 className="font-bold text-base text-slate-900 mb-1.5">
-                1-Tap Google Reviews
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Accelerate 5-star Google ratings effortlessly. Customers tap their phone to launch your official Google review page with pre-composed AI sentence recommendations.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50/60 border border-slate-200/80">
-              <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-base text-slate-900 mb-1.5">
-                Ghost Link NFC Technology
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Pre-printed hardware with universal dynamic redirects. Cards can be mass manufactured and bound to any venue in 5 seconds without reprogramming the NFC chip.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50/60 border border-slate-200/80">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-                <Zap className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-base text-slate-900 mb-1.5">
-                Real-Time Tap Analytics
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Track customer scans, engagement rates, and device operating systems across tables, counters, and branches live in your centralized dashboard.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Interactive 5-Tier Pricing Section */}
       <PricingSection
@@ -283,7 +275,7 @@ export default async function HomePage() {
             />
             <span>TapGenie</span>
             <span className="text-slate-400 font-normal">
-              — Smart NFC Business Profile &amp; Review SaaS
+              — AI Google Reputation &amp; Smart NFC Touchpoint SaaS
             </span>
           </div>
 

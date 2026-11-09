@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireTenantUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { generateReviewReply, GeminiTone } from "@/lib/gemini";
-import { publishGoogleReviewReply } from "@/lib/google-sync";
+import { publishGoogleReviewReply, refreshGoogleAccessToken } from "@/lib/google-sync";
 
 export async function POST(request: NextRequest) {
   try {
     const { tenantId } = await requireTenantUser();
     const body = await request.json();
-    const { action, reviewId, replyText, customTone } = body;
+    const { action, reviewId, replyText, customTone, customLength } = body;
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Review not found" }, { status: 404 });
       }
 
-      const tone: GeminiTone = (customTone || tenant.geminiConfig?.brandTone || "WARM") as GeminiTone;
+      const tone: GeminiTone = (customTone || tenant.geminiConfig?.brandTone || "SOFT") as GeminiTone;
+      const length = customLength || tenant.geminiConfig?.replyLength || "2_SENTENCES";
 
       const draft = await generateReviewReply({
         rating: review.rating,
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
         businessName: tenant.name,
         businessType: tenant.businessType,
         brandTone: tone,
+        replyLength: length,
         knowledgeBase: tenant.geminiConfig?.knowledgeBase,
         customPersona: tenant.geminiConfig?.customPersona,
         apiKey: tenant.geminiConfig?.customApiKey || process.env.GEMINI_API_KEY,
@@ -79,15 +81,33 @@ export async function POST(request: NextRequest) {
         !review.googleReviewId.startsWith("review_")
       ) {
         try {
-          await publishGoogleReviewReply(
+          // 1. Ensure access token is fresh (auto-refreshes if within 5m of expiry)
+          const validAccessToken = await refreshGoogleAccessToken(
+            review.location.connection.id
+          );
+
+          // 2. Publish reply to Google GBP v4 API
+          const result = await publishGoogleReviewReply(
             review.location.connection.googleAccountId,
             review.location.googleLocationId,
             review.googleReviewId,
             trimmedReply,
-            review.location.connection.accessToken
+            validAccessToken
           );
+
+          if (!result.success) {
+            console.error("Google API rejected review reply:", result.error);
+            return NextResponse.json(
+              { error: result.error || "Failed to publish reply to Google Maps" },
+              { status: 502 }
+            );
+          }
         } catch (apiErr) {
-          console.warn("Live Google review reply push notice:", apiErr);
+          console.error("Exception publishing reply to Google:", apiErr);
+          return NextResponse.json(
+            { error: (apiErr as Error).message || "Failed to contact Google API" },
+            { status: 502 }
+          );
         }
       }
 

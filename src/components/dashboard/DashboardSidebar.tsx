@@ -19,6 +19,7 @@ import {
   QrCode,
   Tag,
   MapPin,
+  Star,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -36,20 +37,27 @@ interface SidebarProps {
     role: string;
   };
   unresolvedFeedbackCount: number;
+  unrepliedReviewsCount?: number;
 }
 
 export default function DashboardSidebar({
   tenant,
   user,
   unresolvedFeedbackCount,
+  unrepliedReviewsCount = 0,
 }: SidebarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [badgeCount, setBadgeCount] = useState(unresolvedFeedbackCount);
+  const [reviewBadgeCount, setReviewBadgeCount] = useState(unrepliedReviewsCount);
 
   useEffect(() => {
     setBadgeCount(unresolvedFeedbackCount);
   }, [unresolvedFeedbackCount]);
+
+  useEffect(() => {
+    setReviewBadgeCount(unrepliedReviewsCount);
+  }, [unrepliedReviewsCount]);
 
   useEffect(() => {
     const fetchLatestCount = () => {
@@ -77,6 +85,12 @@ export default function DashboardSidebar({
       href: "/dashboard",
       icon: LayoutDashboard,
       exact: true,
+    },
+    {
+      name: "Reviews",
+      href: "/dashboard/reviews",
+      icon: Star,
+      badge: reviewBadgeCount > 0 ? reviewBadgeCount : null,
     },
     {
       name: "Google Hub",

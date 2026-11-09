@@ -41,6 +41,7 @@ import {
   Activity,
   ShieldCheck,
   XCircle,
+  Swords,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -54,6 +55,9 @@ import {
   CartesianGrid,
 } from "recharts";
 import { GoogleHubData } from "@/lib/google-business";
+import ProfileAuditView from "@/components/dashboard/google/ProfileAuditView";
+import ProfileEditorView from "@/components/dashboard/google/ProfileEditorView";
+import CompetitorRadarView from "@/components/dashboard/google/CompetitorRadarView";
 
 interface GoogleCommandCenterProps {
   tenant: {
@@ -72,7 +76,10 @@ interface GoogleCommandCenterProps {
 }
 
 type ActiveTab =
+  | "audit"
+  | "editor"
   | "reviews"
+  | "competitors"
   | "qa"
   | "menu"
   | "hours"
@@ -100,7 +107,8 @@ export default function GoogleCommandCenterClient({
   const [generatingReplyId, setGeneratingReplyId] = useState<string | null>(null);
   const [publishingReplyId, setPublishingReplyId] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [replyTone, setReplyTone] = useState<string>(data.geminiConfig.brandTone || "WARM");
+  const [replyTone, setReplyTone] = useState<string>(data.geminiConfig.brandTone || "SOFT");
+  const [replyLength, setReplyLength] = useState<string>(data.geminiConfig.replyLength || "2_SENTENCES");
 
   // Q&A Tab state
   const [generatingQAId, setGeneratingQAId] = useState<string | null>(null);
@@ -158,7 +166,8 @@ export default function GoogleCommandCenterClient({
 
   // Gemini Settings Tab state
   const [geminiModel, setGeminiModel] = useState(data.geminiConfig.model || "gemini-1.5-flash");
-  const [geminiTone, setGeminiTone] = useState(data.geminiConfig.brandTone || "WARM");
+  const [geminiTone, setGeminiTone] = useState(data.geminiConfig.brandTone || "SOFT");
+  const [geminiLength, setGeminiLength] = useState(data.geminiConfig.replyLength || "2_SENTENCES");
   const [knowledgeBase, setKnowledgeBase] = useState(data.geminiConfig.knowledgeBase || "");
   const [escalationPhone, setEscalationPhone] = useState(data.geminiConfig.escalationPhone || "");
   const [autoPilot5Star, setAutoPilot5Star] = useState(data.geminiConfig.autoPilot5Star);
@@ -234,6 +243,7 @@ export default function GoogleCommandCenterClient({
           action: "generate_reply",
           reviewId,
           customTone: replyTone,
+          customLength: replyLength,
         }),
       });
       const json = await res.json();
@@ -518,6 +528,7 @@ export default function GoogleCommandCenterClient({
         body: JSON.stringify({
           model: geminiModel,
           brandTone: geminiTone,
+          replyLength: geminiLength,
           knowledgeBase,
           escalationPhone,
           autoPilot5Star,
@@ -1324,7 +1335,10 @@ export default function GoogleCommandCenterClient({
       {/* Unified Command Tabs Bar */}
       <div className="bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center gap-1 overflow-x-auto">
         {[
+          { id: "audit", label: "Profile Audit", icon: ShieldCheck },
+          { id: "editor", label: "Profile Editor", icon: Sliders },
           { id: "reviews", label: "Reviews & AI Replies", icon: Star, badge: unrepliedReviewsCount },
+          { id: "competitors", label: "Competitor Radar", icon: Swords },
           { id: "qa", label: "Maps Q&A", icon: HelpCircle, badge: unansweredQACount },
           { id: "menu", label: "Live Menu & Stock", icon: UtensilsCrossed },
           { id: "hours", label: "Store Hours", icon: Clock },
@@ -1365,6 +1379,25 @@ export default function GoogleCommandCenterClient({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Command Tab Body */}
         <div className={showMobileSimulator ? "lg:col-span-8 space-y-6" : "lg:col-span-12 space-y-6"}>
+          {/* TAB: PROFILE AUDIT SCORE */}
+          {activeTab === "audit" && (
+            <ProfileAuditView
+              locationId={activeLocation?.id}
+              onNavigateTab={(tab) => setActiveTab(tab as ActiveTab)}
+            />
+          )}
+
+          {/* TAB: PROFILE EDITOR */}
+          {activeTab === "editor" && (
+            <ProfileEditorView
+              locationId={activeLocation?.id}
+              tenantName={tenant.name}
+              onAuditUpdated={() => {
+                // audit updated
+              }}
+            />
+          )}
+
           {/* TAB 1: REVIEWS & AI REPLIES */}
           {activeTab === "reviews" && (
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-6">
@@ -1382,13 +1415,24 @@ export default function GoogleCommandCenterClient({
                   <select
                     value={replyTone}
                     onChange={(e) => setReplyTone(e.target.value)}
-                    className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none"
+                    className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
                   >
-                    <option value="WARM">Voice: Warm & Hospitable</option>
-                    <option value="PROFESSIONAL">Voice: Professional & Reassuring</option>
-                    <option value="CASUAL">Voice: Casual & Friendly</option>
-                    <option value="SHORT">Voice: Short & Direct</option>
-                    <option value="LUXURY">Voice: Luxury & Refined</option>
+                    <option value="SOFT">🌸 Voice: Soft & Humble</option>
+                    <option value="WARM">☀️ Voice: Warm & Hospitable</option>
+                    <option value="PROFESSIONAL">💼 Voice: Professional & Polite</option>
+                    <option value="ENTHUSIASTIC">⚡ Voice: Enthusiastic & Energetic</option>
+                    <option value="CASUAL">☕ Voice: Casual & Friendly</option>
+                    <option value="SHORT">🎯 Voice: Short & Direct</option>
+                  </select>
+
+                  <select
+                    value={replyLength}
+                    onChange={(e) => setReplyLength(e.target.value)}
+                    className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer"
+                  >
+                    <option value="1_SENTENCE">Length: 1 Sentence</option>
+                    <option value="2_SENTENCES">Length: 2 Sentences</option>
+                    <option value="3_4_SENTENCES">Length: 3 to 4 Sentences</option>
                   </select>
 
                   <button
@@ -1546,6 +1590,15 @@ export default function GoogleCommandCenterClient({
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB: COMPETITOR RADAR */}
+          {activeTab === "competitors" && (
+            <CompetitorRadarView
+              locationId={activeLocation?.id}
+              tenantName={tenant.name}
+              businessType={activeLocation?.primaryCategory || tenant.businessType || "Business"}
+            />
           )}
 
           {/* TAB 2: MAPS Q&A */}
@@ -2299,22 +2352,40 @@ export default function GoogleCommandCenterClient({
                   </div>
                 </div>
 
-                {/* Tone Persona */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-900 block">
-                    Brand Voice & Reply Persona
-                  </label>
-                  <select
-                    value={geminiTone}
-                    onChange={(e) => setGeminiTone(e.target.value)}
-                    className="w-full text-xs font-semibold p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="WARM">Warm, Hospitable & Foodie (Cafes, Restaurants, Bakeries)</option>
-                    <option value="PROFESSIONAL">Professional, Courteous & Reassuring (Clinics, Salons, Law Offices)</option>
-                    <option value="CASUAL">Friendly, Hip & Casual (Boutiques, Gyms, Lounges)</option>
-                    <option value="SHORT">Concise & Direct (1–2 punchy sentences)</option>
-                    <option value="LUXURY">Luxury & Refined (Hotels, Fine Dining, Spas)</option>
-                  </select>
+                {/* Tone Persona & Length */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-900 block">
+                      Brand Voice & Reply Tone
+                    </label>
+                    <select
+                      value={geminiTone}
+                      onChange={(e) => setGeminiTone(e.target.value)}
+                      className="w-full text-xs font-semibold p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                    >
+                      <option value="SOFT">🌸 Soft, Humble & Gentle (Modest & Deeply Polite)</option>
+                      <option value="WARM">☀️ Warm & Hospitable (Friendly & Welcoming)</option>
+                      <option value="PROFESSIONAL">💼 Professional & Courteous (Formal & Reassuring)</option>
+                      <option value="ENTHUSIASTIC">⚡ Enthusiastic & Energetic (High Energy & Passionate)</option>
+                      <option value="CASUAL">☕ Friendly & Casual (Modern & Approachable)</option>
+                      <option value="SHORT">🎯 Short & Direct (Concise & Punchy)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-900 block">
+                      Reply Sentence Length
+                    </label>
+                    <select
+                      value={geminiLength}
+                      onChange={(e) => setGeminiLength(e.target.value)}
+                      className="w-full text-xs font-semibold p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                    >
+                      <option value="1_SENTENCE">1 Sentence (Quick & punchy)</option>
+                      <option value="2_SENTENCES">2 Sentences (Standard & balanced)</option>
+                      <option value="3_4_SENTENCES">3 to 4 Sentences (Detailed & in-depth)</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Store Grounding Knowledge Base */}

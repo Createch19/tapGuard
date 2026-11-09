@@ -10,14 +10,29 @@ interface FaqItem {
 
 const FAQS: FaqItem[] = [
   {
+    question: "Is TapGenie 100% compliant with Google's Review Policy?",
+    answer:
+      "Yes, absolutely. TapGenie strictly adheres to Google's anti-gating and anti-incentive policies. We do not gate, filter, or restrict negative reviews, nor do we offer gifts, discounts, or compensation in exchange for reviews. We provide a frictionless NFC/QR touchpoint that directs customers directly to your official Google Maps listing, while empowering you with AI reply tools, competitor radar tracking, and profile health auditing.",
+  },
+  {
+    question: "How does the Gemini AI Review Reply Auto-Pilot work?",
+    answer:
+      "TapGenie connects directly to your Google Business Profile API. When a new review arrives, Gemini AI analyzes the review sentiment, references your venue's custom knowledge base (menu items, services, atmosphere), and composes a warm, human-like response in your chosen brand tone. You can either review draft responses with one click or enable 24/7 Auto-Pilot to reply to 5-star reviews within minutes automatically.",
+  },
+  {
+    question: "What is the Competitor Radar and how does it help my business?",
+    answer:
+      "Competitor Radar tracks competing businesses in your district or neighborhood on Google Maps. It monitors their review velocity (reviews added per week/month), average ratings, and public customer sentiment. TapGenie highlights competitor operational weak spots so you can highlight your strengths and capture more local footfall.",
+  },
+  {
+    question: "What does the Google Profile Audit Score measure?",
+    answer:
+      "Our Profile Audit engine evaluates over 20 local SEO ranking signals across Profile Completeness, Visual Content, Operating & Holiday Hours, Service Menus, and Review Responsiveness. A higher audit score directly boosts your visibility in Google's coveted Top 3 Local Map Pack.",
+  },
+  {
     question: "Do my customers need to download an app or register an account?",
     answer:
       "No! TapGenie works 100% within the native web browser of any modern smartphone. Customers simply tap their phone on the NFC stand or scan the QR code with their camera. The interactive experience opens in under 0.5 seconds with zero downloads or logins required.",
-  },
-  {
-    question: "Is TapGenie compliant with Google's Review policies?",
-    answer:
-      "Yes, completely. TapGenie strictly follows Google's guidelines: we never offer incentives, discounts, gifts, or compensation in exchange for reviews. We simply remove friction by making it effortless for customers to find your official Google Maps page and leave authentic reviews using high-speed NFC taps and QR scans.",
   },
   {
     question: "Can I change my card's destination later without ordering new hardware?",
@@ -25,19 +40,9 @@ const FAQS: FaqItem[] = [
       "Yes, 100%! All TapGenie cards are built on universal Ghost Link technology. You can change any physical card from Google Reviews to Business Profile Microsite, 0% UPI Instant Pay, or Food Delivery with a single click in your dashboard. You never need to reprint or re-encode your physical hardware.",
   },
   {
-    question: "Are there any payment gateway charges or deductions on UPI payments?",
-    answer:
-      "Zero commission. TapGenie is not a payment middleman and takes 0% cut. The UPI tile initiates a direct payment directly to your existing merchant UPI ID (Google Pay, PhonePe, Paytm, BHIM, or any bank). The money settles directly into your own bank account instantaneously.",
-  },
-  {
     question: "Can I manage multiple tables, counters, or branch locations?",
     answer:
-      "Yes. You can assign separate cards to Table 1, Table 2, Counter, Drive-Thru, or separate physical branches. Each card tracks its own tap metrics, scans, and conversion rates, and higher plans allow multi-location branch management under one unified company login.",
-  },
-  {
-    question: "How does the AI review sentence generator help increase Google Reviews?",
-    answer:
-      "Many customers want to leave a positive review but face writer's block or lack time to compose one. TapGenie generates helpful, realistic review suggestions injected with your local SEO keywords (like 'great ambience' or 'fast service') that guests can copy and paste with a single tap.",
+      "Yes. You can assign separate cards to Table 1, Table 2, Front Counter, Drive-Thru, or separate physical branches. Each card tracks its own tap metrics, scans, and conversion rates, and higher plans allow multi-location branch management under one unified company login.",
   },
 ];
 
@@ -59,7 +64,7 @@ export default function FaqSection() {
           Everything You Need to Know
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-lg mx-auto">
-          Have questions about hardware compatibility, Google compliance, or setup? We&apos;ve got answers.
+          Have questions about Google compliance, AI auto-pilot, hardware compatibility, or setup? We&apos;ve got answers.
         </p>
       </div>
 
@@ -100,19 +105,6 @@ export default function FaqSection() {
           );
         })}
       </div>
-
-      <div className="text-center mt-8 text-xs text-slate-500">
-        Still have questions?{" "}
-        <a
-          href="https://wa.me/919999999999?text=Hi%20TapGenie%20Team%2C%20I%20have%20a%20question%20about%20NFC%20cards"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-teal-600 font-bold hover:underline"
-        >
-          Chat with our team on WhatsApp
-        </a>
-      </div>
     </section>
   );
 }
-

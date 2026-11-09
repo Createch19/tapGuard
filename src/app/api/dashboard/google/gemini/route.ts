@@ -10,6 +10,7 @@ export async function PUT(request: NextRequest) {
     const {
       model,
       brandTone,
+      replyLength,
       customPersona,
       knowledgeBase,
       escalationPhone,
@@ -24,7 +25,8 @@ export async function PUT(request: NextRequest) {
       where: { tenantId },
       update: {
         model: model || "gemini-1.5-flash",
-        brandTone: brandTone || "WARM",
+        brandTone: brandTone || "SOFT",
+        replyLength: replyLength || "2_SENTENCES",
         customPersona: customPersona ?? undefined,
         knowledgeBase: knowledgeBase ?? undefined,
         escalationPhone: escalationPhone ?? undefined,
@@ -37,7 +39,8 @@ export async function PUT(request: NextRequest) {
       create: {
         tenantId,
         model: model || "gemini-1.5-flash",
-        brandTone: brandTone || "WARM",
+        brandTone: brandTone || "SOFT",
+        replyLength: replyLength || "2_SENTENCES",
         customPersona: customPersona || null,
         knowledgeBase: knowledgeBase || null,
         escalationPhone: escalationPhone || null,

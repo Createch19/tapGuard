@@ -76,6 +76,9 @@ export default async function SettingsPage({
         smartGateEnabled: tenant.smartGateEnabled,
         alertEmail: tenant.alertEmail,
         webhookUrl: tenant.webhookUrl,
+        reviewAlertFilter: tenant.reviewAlertFilter || "ALL",
+        reviewAlertEmail: tenant.reviewAlertEmail || null,
+        reviewAlertWebhook: tenant.reviewAlertWebhook ?? true,
         googleBusinessEmail:
           tenant.googleBusinessEmail ||
           tenant.googleConnection?.connectedEmail ||
@@ -90,13 +93,29 @@ export default async function SettingsPage({
           tenant.googleConnection?.lastSyncedAt?.toISOString() || null,
         isVerified: tenant.googleConnection?.isVerified || false,
         geminiApiKey: tenant.geminiConfig?.customApiKey || null,
+        brandTone: tenant.geminiConfig?.brandTone || "SOFT",
+        replyLength: tenant.geminiConfig?.replyLength || "2_SENTENCES",
         customGoogleClientId: tenant.customGoogleClientId || null,
         customGoogleClientSecret: tenant.customGoogleClientSecret || null,
         isGoogleConnected: Boolean(
           tenant.googleConnection?.isVerified ||
             tenant.googleConnection?.connectedEmail
         ),
+        connectionStatus: !tenant.googleConnection
+          ? "DISCONNECTED"
+          : tenant.googleConnection.isVerified
+          ? "CONNECTED"
+          : "NEEDS_RECONNECT",
         hasGoogleCredentials,
+        locations: tenant.googleConnection?.locations?.map((l: any) => ({
+          id: l.id,
+          googleLocationId: l.googleLocationId,
+          title: l.title,
+          storeCode: l.storeCode,
+          locality: (l.addressJson as any)?.locality || "",
+          addressLine: (l.addressJson as any)?.addressLines?.[0] || "",
+          isPrimaryBranch: l.isPrimaryBranch || l.googleLocationId === tenant.googleLocationId,
+        })) || [],
         isTenantCustomCredential: isTenantCustom,
         suggestedRedirectUri,
       }}

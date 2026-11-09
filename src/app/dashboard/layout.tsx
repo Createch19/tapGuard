@@ -31,6 +31,14 @@ export default async function DashboardLayout({
     },
   });
 
+  // Count unreplied Google reviews
+  const unrepliedReviewsCount = await prisma.googleReview.count({
+    where: {
+      location: { tenantId },
+      replyComment: null,
+    },
+  });
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col lg:flex-row">
       <DashboardSidebar
@@ -44,6 +52,7 @@ export default async function DashboardLayout({
         }}
         user={user}
         unresolvedFeedbackCount={unresolvedFeedbackCount}
+        unrepliedReviewsCount={unrepliedReviewsCount}
       />
 
       <main className="flex-1 lg:pl-64 min-w-0">

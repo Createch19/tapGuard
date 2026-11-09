@@ -24,6 +24,8 @@ import {
   ChevronUp,
   Copy,
   Check,
+  Bell,
+  Send,
 } from "lucide-react";
 
 interface SettingsClientProps {
@@ -34,6 +36,9 @@ interface SettingsClientProps {
     smartGateEnabled: boolean;
     alertEmail?: string | null;
     webhookUrl?: string | null;
+    reviewAlertFilter?: string | null;
+    reviewAlertEmail?: string | null;
+    reviewAlertWebhook?: boolean;
     googleBusinessEmail?: string | null;
     googleAccountId?: string | null;
     googleLocationId?: string | null;
@@ -41,9 +46,21 @@ interface SettingsClientProps {
     lastSyncedAt?: string | null;
     isVerified?: boolean;
     geminiApiKey?: string | null;
+    brandTone?: string | null;
+    replyLength?: string | null;
     customGoogleClientId?: string | null;
     customGoogleClientSecret?: string | null;
     isGoogleConnected: boolean;
+    connectionStatus?: "CONNECTED" | "NEEDS_RECONNECT" | "DISCONNECTED";
+    locations?: Array<{
+      id: string;
+      googleLocationId: string;
+      title: string;
+      storeCode?: string | null;
+      locality?: string;
+      addressLine?: string;
+      isPrimaryBranch?: boolean;
+    }>;
     hasGoogleCredentials?: boolean;
     isTenantCustomCredential?: boolean;
     suggestedRedirectUri?: string;
@@ -71,6 +88,19 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
   const [alertEmail, setAlertEmail] = useState(tenant.alertEmail || "");
   const [webhookUrl, setWebhookUrl] = useState(tenant.webhookUrl || "");
 
+  // Review Alerts (F3)
+  const [reviewAlertFilter, setReviewAlertFilter] = useState(
+    tenant.reviewAlertFilter || "ALL"
+  );
+  const [reviewAlertEmail, setReviewAlertEmail] = useState(
+    tenant.reviewAlertEmail || ""
+  );
+  const [reviewAlertWebhook, setReviewAlertWebhook] = useState(
+    tenant.reviewAlertWebhook ?? true
+  );
+  const [isTestingAlert, setIsTestingAlert] = useState(false);
+  const [testAlertSuccess, setTestAlertSuccess] = useState<string | null>(null);
+
   // Google Business Profile & Gmail provisioning
   const [googleBusinessEmail, setGoogleBusinessEmail] = useState(
     tenant.googleBusinessEmail || ""
@@ -90,14 +120,51 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
   const [isGoogleConnected, setIsGoogleConnected] = useState(
     tenant.isGoogleConnected
   );
+  const [connectionStatus, setConnectionStatus] = useState<"CONNECTED" | "NEEDS_RECONNECT" | "DISCONNECTED">(
+    tenant.connectionStatus || (tenant.isGoogleConnected ? "CONNECTED" : "DISCONNECTED")
+  );
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(
     tenant.lastSyncedAt || null
   );
   const [isSyncingGoogle, setIsSyncingGoogle] = useState(false);
   const [showManualFields, setShowManualFields] = useState(false);
 
-  // Gemini API provisioning
+  // Multi-location mapping
+  const locations = tenant.locations || [];
+  const [mappedLocationId, setMappedLocationId] = useState(
+    tenant.googleLocationId || locations[0]?.googleLocationId || ""
+  );
+  const [isMappingLocation, setIsMappingLocation] = useState(false);
+
+  const handleMapLocation = async (newLocationId: string) => {
+    setMappedLocationId(newLocationId);
+    setIsMappingLocation(true);
+    try {
+      const res = await fetch("/api/dashboard/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "map_location", locationId: newLocationId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (json.success) {
+        setGoogleLocationId(newLocationId);
+        setStatusMessage(json.message || "Location mapped successfully!");
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 4000);
+      } else {
+        alert(json.error || "Failed to map location");
+      }
+    } catch {
+      alert("Error mapping location");
+    } finally {
+      setIsMappingLocation(false);
+    }
+  };
+
+  // Gemini API provisioning & Reply behavior
   const [geminiApiKey, setGeminiApiKey] = useState(tenant.geminiApiKey || "");
+  const [brandTone, setBrandTone] = useState(tenant.brandTone || "SOFT");
+  const [replyLength, setReplyLength] = useState(tenant.replyLength || "2_SENTENCES");
   const [showApiKey, setShowApiKey] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -168,6 +235,34 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
     }
   };
 
+  const handleSendTestAlert = async (rating = 5) => {
+    setIsTestingAlert(true);
+    setTestAlertSuccess(null);
+    try {
+      const res = await fetch("/api/dashboard/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testAlert: true,
+          testRating: rating,
+          alertEmail,
+          reviewAlertEmail,
+          webhookUrl,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send test alert");
+      }
+      setTestAlertSuccess(data.message || "Test alert dispatched successfully!");
+      setTimeout(() => setTestAlertSuccess(null), 5000);
+    } catch (err: any) {
+      alert(err.message || "Error sending test alert");
+    } finally {
+      setIsTestingAlert(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -182,16 +277,22 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
           smartGateEnabled,
           alertEmail,
           webhookUrl,
+          reviewAlertFilter,
+          reviewAlertEmail,
+          reviewAlertWebhook,
           googleBusinessEmail,
           googleAccountId,
           googleLocationId,
           geminiApiKey,
+          brandTone,
+          replyLength,
           customGoogleClientId,
           customGoogleClientSecret,
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to save settings");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Failed to save settings");
 
       if (googleBusinessEmail || googleAccountId) {
         setIsGoogleConnected(true);
@@ -200,15 +301,15 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
       setSaveSuccess(true);
       setStatusMessage("Settings and Google provisions saved successfully!");
       setTimeout(() => setSaveSuccess(false), 4000);
-    } catch {
-      alert("Error updating settings.");
+    } catch (err: any) {
+      alert(err?.message || "Error updating settings.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDisconnectGoogle = async () => {
-    if (!confirm("Are you sure you want to disconnect your Google Business Profile connection?")) {
+    if (!confirm("Are you sure you want to disconnect Google Business Profile? This will revoke the OAuth authorization and remove all cached reviews, locations, and analytics from TapGenie.")) {
       return;
     }
 
@@ -218,15 +319,19 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ disconnectGoogle: true }),
       });
+      const json = await res.json().catch(() => ({}));
 
       if (res.ok) {
         setIsGoogleConnected(false);
+        setConnectionStatus("DISCONNECTED");
         setGoogleBusinessEmail("");
         setGoogleAccountId("");
         setGoogleLocationId("");
         setSaveSuccess(true);
-        setStatusMessage("Google Business Profile disconnected.");
+        setStatusMessage(json.message || "Google Business connection revoked and cached data cleared.");
         setTimeout(() => setSaveSuccess(false), 4000);
+      } else {
+        alert(json.error || "Failed to disconnect Google account.");
       }
     } catch {
       alert("Failed to disconnect Google account.");
@@ -309,17 +414,54 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
               </div>
             </div>
 
-            {isGoogleConnected ? (
+            {connectionStatus === "CONNECTED" ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Authorized & Connected
+                Connected & Verified
+              </span>
+            ) : connectionStatus === "NEEDS_RECONNECT" ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                Needs Reconnect
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                Action Required: Not Authorized
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                Not Connected
               </span>
             )}
           </div>
+
+          {/* Reconnect Prompt Banner when token expired or revoked */}
+          {connectionStatus === "NEEDS_RECONNECT" && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-xs font-bold text-amber-950">Google Authorization Expired or Revoked</h4>
+                  <p className="text-[11px] text-amber-800 mt-0.5">
+                    Your Google OAuth authorization has expired or was revoked. Reconnect your account to resume syncing reviews and managing your business profile.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href="/api/auth/google/connect"
+                  prefetch={false}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reconnect Account</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleDisconnectGoogle}
+                  className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl cursor-pointer"
+                >
+                  Clear Cached Data
+                </button>
+              </div>
+            </div>
+          )}
 
           {isGoogleConnected ? (
             /* --- STATE A: CONNECTED & VERIFIED --- */
@@ -374,6 +516,60 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
                   </button>
                 </div>
               </div>
+
+              {/* Mapped Location Picker Card */}
+              {locations.length > 0 && (
+                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                        Mapped Storefront Location
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {locations.length} {locations.length === 1 ? "Storefront Discovered" : "Storefronts Discovered"}
+                    </span>
+                  </div>
+
+                  {locations.length > 1 ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-slate-500">
+                        Choose which Google Maps storefront maps to this TapGenie dashboard, review gate, and NFC card set:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={mappedLocationId}
+                          onChange={(e) => handleMapLocation(e.target.value)}
+                          disabled={isMappingLocation}
+                          className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer disabled:opacity-50"
+                        >
+                          {locations.map((loc) => (
+                            <option key={loc.id} value={loc.googleLocationId}>
+                              {loc.title} {loc.locality ? `— ${loc.locality}` : ""} {loc.isPrimaryBranch ? "⭐ (Active Primary)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                        {isMappingLocation && (
+                          <RefreshCw className="w-4 h-4 text-teal-600 animate-spin shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-slate-900">{locations[0]?.title || tenant.name}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">
+                          {[locations[0]?.addressLine, locations[0]?.locality].filter(Boolean).join(", ") || "Active Verified Location"}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
+                        Active Primary
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Collapsible Advanced Credentials view */}
               <div className="pt-1">
@@ -559,17 +755,6 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
                     <span>{showManualFields ? "Hide manual entry" : "Enter IDs & Custom Keys manually"}</span>
                   </button>
                 </div>
-
-                {/* Explicit Sandbox Simulation Link for local testing */}
-                <div className="pt-0.5">
-                  <Link
-                    href="/api/auth/google/connect?sandbox=true"
-                    prefetch={false}
-                    className="text-[11px] text-slate-400 hover:text-slate-600 underline font-medium"
-                  >
-                    Developing locally without Google Cloud keys? Test with Sandbox Simulation
-                  </Link>
-                </div>
               </div>
 
 
@@ -705,6 +890,47 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
               Provides dedicated AI quota for your business. If left blank, TapGenie platform-managed Gemini AI is used.
             </p>
           </div>
+
+          {/* AI Review Reply Preferences (Tone & Sentence Length) */}
+          <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                AI Reply Tone
+              </label>
+              <select
+                value={brandTone}
+                onChange={(e) => setBrandTone(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+              >
+                <option value="SOFT">🌸 Soft & Humble (Gentle & Modest)</option>
+                <option value="WARM">☀️ Warm & Hospitable (Friendly & Welcoming)</option>
+                <option value="PROFESSIONAL">💼 Professional (Polite & Formal)</option>
+                <option value="ENTHUSIASTIC">⚡ Enthusiastic (Energetic & Excited)</option>
+                <option value="CASUAL">☕ Casual & Friendly (Relaxed & Modern)</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Defines the attitude and personality Gemini uses when replying to customer comments.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Reply Sentence Length
+              </label>
+              <select
+                value={replyLength}
+                onChange={(e) => setReplyLength(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+              >
+                <option value="1_SENTENCE">1 Sentence (Quick, punchy & direct)</option>
+                <option value="2_SENTENCES">2 Sentences (Standard balanced reply)</option>
+                <option value="3_4_SENTENCES">3 to 4 Sentences (Detailed & in-depth)</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                How many sentences Gemini writes. It strictly respects this length limit.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* SECTION 4: Smart Gate & Negative Review Alerts */}
@@ -768,6 +994,148 @@ export default function SettingsClient({ tenant, initialQuery }: SettingsClientP
                 placeholder="https://hooks.slack.com/services/..."
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-700"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 5: Real-time Google Review Alerts (Resend Email & Webhook) */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-2xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                  <span>Google Review Alerts</span>
+                  <span className="px-2 py-0.5 text-[10px] bg-amber-100 text-amber-800 rounded-md font-extrabold">LIVE NOTIFICATIONS</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Receive instant alerts via email and webhooks whenever a customer leaves a review on Google.
+                </p>
+              </div>
+            </div>
+
+            {/* Test Alert Button */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isTestingAlert || (!alertEmail && !reviewAlertEmail && !webhookUrl)}
+                onClick={() => handleSendTestAlert(5)}
+                className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer"
+                title="Send a sample test notification to verify delivery"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isTestingAlert ? "Sending Test..." : "Send Test Alert"}</span>
+              </button>
+            </div>
+          </div>
+
+          {testAlertSuccess && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium rounded-xl flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{testAlertSuccess}</span>
+            </div>
+          )}
+
+          {/* Alert Preference / Rating Range */}
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Alert Trigger Preference (Rating Range)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: "ALL",
+                  label: "All Reviews (1★ to 5★)",
+                  desc: "Get notified for every single review on Google.",
+                  badge: "Recommended",
+                },
+                {
+                  id: "CRITICAL",
+                  label: "Critical Only (1★ to 3★)",
+                  desc: "Only alert when negative ratings require urgent recovery.",
+                  badge: "Urgent focus",
+                },
+                {
+                  id: "OFF",
+                  label: "Disabled",
+                  desc: "Mute review alerts. Reviews will still sync to inbox.",
+                  badge: "Muted",
+                },
+              ].map((opt) => (
+                <div
+                  key={opt.id}
+                  onClick={() => setReviewAlertFilter(opt.id)}
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                    reviewAlertFilter === opt.id
+                      ? "border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/20"
+                      : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-xs text-slate-900">{opt.label}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                      reviewAlertFilter === opt.id
+                        ? "bg-amber-200/80 text-amber-900"
+                        : "bg-slate-200/60 text-slate-600"
+                    }`}>
+                      {opt.badge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">{opt.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Delivery Configuration */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Recipient Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  value={reviewAlertEmail}
+                  onChange={(e) => setReviewAlertEmail(e.target.value)}
+                  placeholder={alertEmail || "owner@business.com"}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {reviewAlertEmail
+                  ? "Custom email for Google review alerts."
+                  : alertEmail
+                  ? `Defaults to primary alert email (${alertEmail}).`
+                  : "Leave blank to use primary alert email above, or specify a dedicated recipient."}
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-between">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Webhook Dispatch
+                </label>
+                <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reviewAlertWebhook}
+                    onChange={(e) => setReviewAlertWebhook(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                  />
+                  <div>
+                    <span className="font-bold text-xs text-slate-800 block">
+                      Post to Webhook URL
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Dispatches JSON payload with reviewer, stars, comment & direct inbox link to your configured Webhook URL.
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
         </div>

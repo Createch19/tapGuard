@@ -17,10 +17,25 @@ export default async function KeywordsPage() {
     include: {
       reviewKeywords: true,
       branding: true,
+      googleConnection: {
+        include: { locations: true },
+      },
     },
   });
 
   if (!tenant) return null;
+
+  const googleLoc = tenant.googleConnection?.locations?.[0];
+  let detectedLocation = "";
+  if (googleLoc?.addressJson) {
+    const addr = googleLoc.addressJson as Record<string, any>;
+    const parts = [addr.locality, addr.administrativeArea].filter(Boolean);
+    detectedLocation = parts.join(", ");
+  }
+  if (!detectedLocation && tenant.businessProfile) {
+    const bp = tenant.businessProfile as Record<string, any>;
+    detectedLocation = [bp.city, bp.address].filter(Boolean).join(", ");
+  }
 
   const presets = getKeywordPresetsForBusinessType(tenant.businessType);
   const config = tenant.reviewKeywords;
@@ -74,6 +89,7 @@ export default async function KeywordsPage() {
         tone,
         presets,
         initialBundle,
+        detectedLocation: detectedLocation || null,
       }}
     />
   );

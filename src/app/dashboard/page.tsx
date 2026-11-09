@@ -13,6 +13,10 @@ import {
   Laptop,
   Star,
   ExternalLink,
+  MessageSquare,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
 } from "lucide-react";
 
 export default async function DashboardOverviewPage() {
@@ -72,6 +76,23 @@ export default async function DashboardOverviewPage() {
     orderBy: { createdAt: "desc" },
     take: 3,
   });
+
+  // Live Google Review Metrics
+  const googleReviews = await prisma.googleReview.findMany({
+    where: { location: { tenantId } },
+    orderBy: { reviewCreatedAt: "desc" },
+  });
+
+  const totalGoogleReviews = googleReviews.length;
+  const avgGoogleRating =
+    totalGoogleReviews > 0
+      ? (
+          googleReviews.reduce((sum, r) => sum + r.rating, 0) /
+          totalGoogleReviews
+        ).toFixed(1)
+      : "5.0";
+  const unrepliedGoogleReviews = googleReviews.filter((r) => !r.replyComment).length;
+  const recentGoogleReviews = googleReviews.slice(0, 3);
 
   // Recent 8 Tap Events
   const recentTaps = await prisma.tapEvent.findMany({
@@ -151,6 +172,155 @@ export default async function DashboardOverviewPage() {
             <span>Review Feedback</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
+        </div>
+      )}
+
+      {/* Unreplied Google Reviews Alert */}
+      {unrepliedGoogleReviews > 0 && (
+        <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-white border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0 mt-0.5 font-bold">
+              <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-amber-950">
+                {unrepliedGoogleReviews} Google {unrepliedGoogleReviews === 1 ? "Review" : "Reviews"} Pending Your Reply
+              </h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Replying to all Google reviews improves customer satisfaction and boosts your local search ranking.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/reviews"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 shadow-2xs transition-colors"
+          >
+            <span>Open Review Inbox</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {/* Google Reviews KPI Row */}
+      {totalGoogleReviews > 0 && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Google Maps Review Performance
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Live metrics synced directly from Google Business Profile
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/reviews"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800 self-start sm:self-auto"
+            >
+              <span>View All {totalGoogleReviews} Reviews</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Average Rating
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900">{avgGoogleRating}</span>
+                <div className="flex text-amber-400">
+                  {"★".repeat(Math.round(Number(avgGoogleRating)))}
+                </div>
+              </div>
+              <span className="text-[11px] text-slate-500 mt-1 block">Across all public reviews</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Total Live Reviews
+              </span>
+              <div className="text-2xl font-black text-slate-900">{totalGoogleReviews}</div>
+              <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">100% verified on Maps</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Pending Replies
+              </span>
+              <div className={`text-2xl font-black ${unrepliedGoogleReviews > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                {unrepliedGoogleReviews}
+              </div>
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                {unrepliedGoogleReviews === 0 ? "All caught up! 🎉" : "Requires owner response"}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Response Rate
+              </span>
+              <div className="text-2xl font-black text-slate-900">
+                {totalGoogleReviews > 0
+                  ? Math.round(((totalGoogleReviews - unrepliedGoogleReviews) / totalGoogleReviews) * 100)
+                  : 100}%
+              </div>
+              <span className="text-[11px] text-slate-500 mt-1 block">Replies published</span>
+            </div>
+          </div>
+
+          {/* Recent Reviews Preview */}
+          {recentGoogleReviews.length > 0 && (
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                Latest Customer Comments
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {recentGoogleReviews.map((rev) => (
+                  <div key={rev.id} className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-2 flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 truncate">
+                          {rev.reviewerName}
+                        </span>
+                        <span className="text-xs font-bold text-amber-500">
+                          {"★".repeat(rev.rating)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {rev.comment || <span className="italic text-slate-400">No written text (Star rating only)</span>}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px]">
+                      <span className="text-slate-400">
+                        {new Date(rev.reviewCreatedAt).toLocaleDateString()}
+                      </span>
+                      {rev.replyComment ? (
+                        <span className="text-emerald-700 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Replied
+                        </span>
+                      ) : (
+                        <Link
+                          href="/dashboard/reviews"
+                          className="text-amber-700 hover:text-amber-800 font-bold underline"
+                        >
+                          Reply with AI
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
