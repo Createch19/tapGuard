@@ -88,13 +88,40 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
     await client.query(`
       ALTER TABLE IF EXISTS tenants 
         ADD COLUMN IF NOT EXISTS business_profile JSONB,
-        ADD COLUMN IF NOT EXISTS max_locations INTEGER DEFAULT 1;
+        ADD COLUMN IF NOT EXISTS max_locations INTEGER DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS business_type TEXT DEFAULT 'Restaurant & Café',
+        ADD COLUMN IF NOT EXISTS max_cards INTEGER DEFAULT 3,
+        ADD COLUMN IF NOT EXISTS webhook_url TEXT,
+        ADD COLUMN IF NOT EXISTS alert_email TEXT,
+        ADD COLUMN IF NOT EXISTS review_alert_filter TEXT DEFAULT 'ALL',
+        ADD COLUMN IF NOT EXISTS review_alert_email TEXT,
+        ADD COLUMN IF NOT EXISTS review_alert_webhook BOOLEAN DEFAULT true,
+        ADD COLUMN IF NOT EXISTS google_business_email TEXT,
+        ADD COLUMN IF NOT EXISTS google_location_id TEXT,
+        ADD COLUMN IF NOT EXISTS custom_google_client_id TEXT,
+        ADD COLUMN IF NOT EXISTS custom_google_client_secret TEXT;
     `);
 
     // Cards columns
     await client.query(`
       ALTER TABLE IF EXISTS cards 
-        ADD COLUMN IF NOT EXISTS business_profile JSONB;
+        ADD COLUMN IF NOT EXISTS business_profile JSONB,
+        ADD COLUMN IF NOT EXISTS override_gate BOOLEAN DEFAULT false,
+        ADD COLUMN IF NOT EXISTS gate_template "GateTemplate",
+        ADD COLUMN IF NOT EXISTS custom_redirect_url TEXT,
+        ADD COLUMN IF NOT EXISTS custom_redirect_title TEXT,
+        ADD COLUMN IF NOT EXISTS custom_redirect_direct BOOLEAN,
+        ADD COLUMN IF NOT EXISTS google_review_url TEXT,
+        ADD COLUMN IF NOT EXISTS smart_gate_enabled BOOLEAN,
+        ADD COLUMN IF NOT EXISTS zomato_url TEXT,
+        ADD COLUMN IF NOT EXISTS swiggy_url TEXT,
+        ADD COLUMN IF NOT EXISTS instagram_url TEXT,
+        ADD COLUMN IF NOT EXISTS facebook_url TEXT,
+        ADD COLUMN IF NOT EXISTS youtube_url TEXT,
+        ADD COLUMN IF NOT EXISTS delivery_offer_text TEXT,
+        ADD COLUMN IF NOT EXISTS delivery_phone TEXT,
+        ADD COLUMN IF NOT EXISTS greeting_title TEXT,
+        ADD COLUMN IF NOT EXISTS greeting_subtitle TEXT;
     `);
 
     // Plan configs columns
@@ -107,7 +134,32 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
         ADD COLUMN IF NOT EXISTS remove_powered_by BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS team_access BOOLEAN DEFAULT false;
     `);
-    log("✅ Checked and created required columns on tenants, cards, and plan_configs.");
+
+    // Gemini Configs & Google Locations columns
+    await client.query(`
+      ALTER TABLE IF EXISTS tenant_gemini_configs
+        ADD COLUMN IF NOT EXISTS reply_length TEXT DEFAULT '2_SENTENCES';
+
+      ALTER TABLE IF EXISTS google_locations
+        ADD COLUMN IF NOT EXISTS secondary_categories JSONB,
+        ADD COLUMN IF NOT EXISTS service_items_json JSONB;
+
+      CREATE TABLE IF NOT EXISTS "profile_audit_scores" (
+        "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+        "location_id" UUID NOT NULL,
+        "tenant_id" UUID NOT NULL,
+        "overall_score" INTEGER NOT NULL,
+        "checks_json" JSONB NOT NULL,
+        "fix_suggestions" JSONB NOT NULL,
+        "previous_score" INTEGER,
+        "score_delta" INTEGER,
+        "audited_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        CONSTRAINT "profile_audit_scores_pkey" PRIMARY KEY ("id")
+      );
+      CREATE INDEX IF NOT EXISTS "profile_audit_scores_location_id_audited_at_idx" ON "profile_audit_scores"("location_id", "audited_at");
+      CREATE INDEX IF NOT EXISTS "profile_audit_scores_tenant_id_audited_at_idx" ON "profile_audit_scores"("tenant_id", "audited_at");
+    `);
+    log("✅ Checked and created required columns on tenants, cards, plan_configs, and audit scores.");
 
     // Baseline _prisma_migrations so "prisma migrate deploy" never throws P3005
     log("🛠️ Step 2b: Checking Prisma baseline migration status...");
