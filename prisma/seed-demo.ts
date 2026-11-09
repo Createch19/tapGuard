@@ -444,6 +444,7 @@ export async function seedDemoData(existingPrisma?: PrismaClient): Promise<{ suc
       update: {
         name: "Elena Rostova",
         role: "OWNER",
+        password: demoPasswordHash,
         tenantId: artisanTenant.id,
       },
       create: {
@@ -461,6 +462,7 @@ export async function seedDemoData(existingPrisma?: PrismaClient): Promise<{ suc
       update: {
         name: "Genz Sports Owner",
         role: "OWNER",
+        password: demoPasswordHash,
         tenantId: genzTenant.id,
       },
       create: {

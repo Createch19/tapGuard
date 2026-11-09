@@ -1,4 +1,6 @@
 import "dotenv/config";
+import fs from "fs";
+import path from "path";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
@@ -21,6 +23,25 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
   const client = await pool.connect();
 
   try {
+    // 0. Check if base tables exist; if fresh database, execute 0_init migration
+    log("🛠️ Step 0: Checking base database tables...");
+    const checkUsersTable = await client.query(`
+      SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users';
+    `);
+    if (!checkUsersTable.rowCount || checkUsersTable.rowCount === 0) {
+      log("📦 Fresh database detected. Executing initial schema migration (0_init)...");
+      const migrationFile = path.join(__dirname, "migrations/0_init/migration.sql");
+      if (fs.existsSync(migrationFile)) {
+        const initSql = fs.readFileSync(migrationFile, "utf-8");
+        await client.query(initSql);
+        log("✅ Base tables, types, and indexes created successfully from 0_init.");
+      } else {
+        log("⚠️ migration.sql not found at " + migrationFile);
+      }
+    } else {
+      log("✅ Base tables already exist.");
+    }
+
     // 1. Enum Updates (TenantPlan)
     log("🛠️ Step 1: Checking and extending PostgreSQL Enums...");
     const checkEnum = await client.query(`
@@ -323,7 +344,10 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
 
     const admin = await prisma.user.upsert({
       where: { email: adminEmail },
-      update: { role: "SUPER_ADMIN" },
+      update: {
+        role: "SUPER_ADMIN",
+        password: passwordHash,
+      },
       create: {
         email: adminEmail,
         name: "TapGenie Admin",
