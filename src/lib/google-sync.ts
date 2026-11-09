@@ -159,12 +159,14 @@ export function getAppBaseUrl(reqOrHeaders?: Request | NextRequest | Headers | u
     return reqOrHeaders.trim().replace(/\/$/, "");
   }
 
-  if (reqOrHeaders && typeof reqOrHeaders === "object") {
-    // If it's a NextRequest with nextUrl origin
-    if ("nextUrl" in reqOrHeaders && (reqOrHeaders as NextRequest).nextUrl?.origin) {
-      return (reqOrHeaders as NextRequest).nextUrl.origin.replace(/\/$/, "");
-    }
+  // 1. Prioritize canonical production environment variable (prevents Docker reverse-proxy HTTP / localhost mismatch)
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.NEXTAUTH_URL?.trim();
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
 
+  if (reqOrHeaders && typeof reqOrHeaders === "object") {
+    // 2. Extract reverse proxy headers (Coolify/Traefik forwards x-forwarded-proto and x-forwarded-host)
     const host =
       extractHeader(reqOrHeaders, "x-forwarded-host") ||
       extractHeader(reqOrHeaders, "host");
@@ -174,6 +176,16 @@ export function getAppBaseUrl(reqOrHeaders?: Request | NextRequest | Headers | u
         extractHeader(reqOrHeaders, "x-forwarded-proto") ||
         (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
       return `${proto}://${host}`.replace(/\/$/, "");
+    }
+
+    // 3. Fallback to NextRequest with protocol check
+    if ("nextUrl" in reqOrHeaders && (reqOrHeaders as NextRequest).nextUrl?.origin) {
+      const origin = (reqOrHeaders as NextRequest).nextUrl.origin.replace(/\/$/, "");
+      const proto = extractHeader(reqOrHeaders, "x-forwarded-proto");
+      if (proto === "https" && origin.startsWith("http://")) {
+        return origin.replace("http://", "https://");
+      }
+      return origin;
     }
   }
 
@@ -186,8 +198,7 @@ export function getAppBaseUrl(reqOrHeaders?: Request | NextRequest | Headers | u
     process.env.DEPLOY_PRIME_URL;
 
   return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXTAUTH_URL ||
+    envUrl ||
     (vercelUrl ? `https://${vercelUrl}` : null) ||
     netlifyUrl ||
     "http://localhost:3000"
