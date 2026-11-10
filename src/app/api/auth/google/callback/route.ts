@@ -9,6 +9,7 @@ import {
   getGoogleOAuthRedirectUri,
   syncGoogleBusinessData,
   GOOGLE_SCOPES,
+  getAppBaseUrl,
 } from "@/lib/google-sync";
 import { seedInitialGoogleProfile, seedLocationStarterData } from "@/lib/google-business";
 
@@ -21,7 +22,8 @@ export async function GET(request: NextRequest) {
   const mode = searchParams.get("mode");
   const error = searchParams.get("error");
 
-  const settingsUrl = new URL("/dashboard/settings", request.url);
+  const baseUrl = getAppBaseUrl(request);
+  const settingsUrl = new URL("/dashboard/settings", baseUrl);
 
   // If user cancelled on Google screen or denied permissions
   if (error) {

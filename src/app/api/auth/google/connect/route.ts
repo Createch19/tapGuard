@@ -4,11 +4,13 @@ import {
   buildGoogleAuthUrl,
   getGoogleOAuthRedirectUri,
   getGoogleOAuthCredentials,
+  getAppBaseUrl,
 } from "@/lib/google-sync";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const baseUrl = getAppBaseUrl(request);
   try {
     const { tenantId, user } = await requireTenantUser();
     const searchParams = request.nextUrl.searchParams;
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Sandbox simulation mode is ONLY executed if explicitly requested via query parameter
     if (forceSandbox) {
-      const callbackUrl = new URL("/api/auth/google/callback", request.url);
+      const callbackUrl = new URL("/api/auth/google/callback", baseUrl);
       callbackUrl.searchParams.set("mode", "sandbox");
       callbackUrl.searchParams.set("tenantId", tenantId);
       callbackUrl.searchParams.set("email", user.email || "owner@business.com");
@@ -30,7 +32,7 @@ export async function GET(request: NextRequest) {
     // Instead, halt and direct the user to provide their Google Cloud credentials with the exact redirect URI.
     if (!clientId || !clientSecret) {
       console.warn("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing in environment");
-      const settingsUrl = new URL("/dashboard/settings", request.url);
+      const settingsUrl = new URL("/dashboard/settings", baseUrl);
       settingsUrl.searchParams.set("error", "google_credentials_missing");
       settingsUrl.searchParams.set("redirect_uri", redirectUri);
       return NextResponse.redirect(settingsUrl.toString());
@@ -41,6 +43,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(authUrl);
   } catch (err) {
     console.error("Google connect error:", err);
-    return NextResponse.redirect(new URL("/dashboard/settings?error=auth_failed", request.url));
+    return NextResponse.redirect(new URL("/dashboard/settings?error=auth_failed", baseUrl));
   }
 }

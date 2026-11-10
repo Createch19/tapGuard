@@ -141,6 +141,7 @@ export async function runCompleteMigration(): Promise<{ success: boolean; logs: 
         ADD COLUMN IF NOT EXISTS reply_length TEXT DEFAULT '2_SENTENCES';
 
       ALTER TABLE IF EXISTS google_locations
+        ADD COLUMN IF NOT EXISTS description TEXT,
         ADD COLUMN IF NOT EXISTS secondary_categories JSONB,
         ADD COLUMN IF NOT EXISTS service_items_json JSONB;
 
