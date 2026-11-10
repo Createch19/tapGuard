@@ -279,7 +279,7 @@ export function buildGoogleAuthUrl(
     response_type: "code",
     scope: GOOGLE_SCOPES,
     access_type: "offline",
-    prompt: "consent select_account", // ALWAYS force Google account picker & permissions consent screen
+    prompt: "consent", // Forces Google to re-prompt for permissions and issue a fresh refresh_token every time
     include_granted_scopes: "true",
     state,
   });
