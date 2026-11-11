@@ -10,44 +10,44 @@ interface FaqItem {
 
 const FAQS: FaqItem[] = [
   {
-    question: "Is TapGenie 100% compliant with Google's Review Policy?",
+    question: "How does TapGenie comply with Google's Review Policies?",
     answer:
-      "Yes, absolutely. TapGenie strictly adheres to Google's anti-gating and anti-incentive policies. We do not gate, filter, or restrict negative reviews, nor do we offer gifts, discounts, or compensation in exchange for reviews. We provide a frictionless NFC/QR touchpoint that directs customers directly to your official Google Maps listing, while empowering you with AI reply tools, competitor radar tracking, and profile health auditing.",
+      "TapGenie is built around authentic, unfiltered customer feedback. We strictly adhere to Google's anti-gating and anti-incentive policies: every single customer tap or scan links directly to your official Google Maps review screen. We never gate, filter, or intercept negative reviews, nor do we offer gifts, discounts, or incentives. Private feedback forms are strictly optional and never act as a barrier to leaving a public Google review.",
   },
   {
-    question: "How does the Gemini AI Review Reply Auto-Pilot work?",
+    question: "How does Google Account connection work and what permissions are requested?",
     answer:
-      "TapGenie connects directly to your Google Business Profile API. When a new review arrives, Gemini AI analyzes the review sentiment, references your venue's custom knowledge base (menu items, services, atmosphere), and composes a warm, human-like response in your chosen brand tone. You can either review draft responses with one click or enable 24/7 Auto-Pilot to reply to 5-star reviews within minutes automatically.",
+      "When you connect your Google Business Profile, we request only the authorized https://www.googleapis.com/auth/business.manage permission. We read your public reviews, profile details (operating hours, categories, services), and performance metrics so you can view them in one organized dashboard. We never publish replies, posts, or changes without your explicit review and approval unless you turn on an automated setting.",
   },
   {
-    question: "What is the Competitor Radar and how does it help my business?",
+    question: "Can I disconnect my Google Account or delete my data?",
     answer:
-      "Competitor Radar tracks competing businesses in your district or neighborhood on Google Maps. It monitors their review velocity (reviews added per week/month), average ratings, and public customer sentiment. TapGenie highlights competitor operational weak spots so you can highlight your strengths and capture more local footfall.",
+      "Yes, at any time. You can disconnect your Google account in 1 click from your TapGenie dashboard settings or revoke access directly via https://myaccount.google.com/permissions. When disconnected, our tokens are revoked immediately and cached Google data is deleted within 30 days.",
   },
   {
-    question: "What does the Google Profile Audit Score measure?",
+    question: "How does the AI Review Reply Assistant work?",
     answer:
-      "Our Profile Audit engine evaluates over 20 local SEO ranking signals across Profile Completeness, Visual Content, Operating & Holiday Hours, Service Menus, and Review Responsiveness. A higher audit score directly boosts your visibility in Google's coveted Top 3 Local Map Pack.",
+      "When enabled, the AI assistant drafts thoughtful, personalized response suggestions for your customer reviews based on your store's offerings and preferred tone. You can review, edit, or customize every draft before anything is published to your live Google profile.",
   },
   {
-    question: "Do my customers need to download an app or register an account?",
+    question: "Which smartphones are compatible with TapGenie NFC cards?",
     answer:
-      "No! TapGenie works 100% within the native web browser of any modern smartphone. Customers simply tap their phone on the NFC stand or scan the QR code with their camera. The interactive experience opens in under 0.5 seconds with zero downloads or logins required.",
+      "TapGenie NFC touchpoints work natively with iPhone XR and newer (running iOS 13+), and the vast majority of NFC-enabled Android smartphones. In addition, every physical card and stand comes with a high-resolution dynamic QR code so any camera phone can scan instantly.",
   },
   {
-    question: "Can I change my card's destination later without ordering new hardware?",
+    question: "How do UPI payments work through TapGenie?",
     answer:
-      "Yes, 100%! All TapGenie cards are built on universal Ghost Link technology. You can change any physical card from Google Reviews to Business Profile Microsite, 0% UPI Instant Pay, or Food Delivery with a single click in your dashboard. You never need to reprint or re-encode your physical hardware.",
+      "Payments go directly to your merchant UPI ID. Customers tap their phone or scan your on-screen QR code and complete the transfer in their own UPI app (Google Pay, PhonePe, Paytm, etc.). TapGenie does not process, hold, or touch transaction funds, ensuring 0% commission directly into your merchant bank account.",
   },
   {
     question: "Can I manage multiple tables, counters, or branch locations?",
     answer:
-      "Yes. You can assign separate cards to Table 1, Table 2, Front Counter, Drive-Thru, or separate physical branches. Each card tracks its own tap metrics, scans, and conversion rates, and higher plans allow multi-location branch management under one unified company login.",
+      "Yes. You can assign separate cards to Table 1, Table 2, Front Counter, or separate physical branches. Each card tracks its own tap metrics and scans, and higher plans allow multi-location branch management under one unified company login.",
   },
 ];
 
 export default function FaqSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0); // First item open by default
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggle = (idx: number) => {
     setOpenIndex((current) => (current === idx ? null : idx));
@@ -64,7 +64,7 @@ export default function FaqSection() {
           Everything You Need to Know
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-lg mx-auto">
-          Have questions about Google compliance, AI auto-pilot, hardware compatibility, or setup? We&apos;ve got answers.
+          Have questions about Google connection, review integrity, hardware compatibility, or setup? We&apos;ve got answers.
         </p>
       </div>
 
@@ -98,7 +98,7 @@ export default function FaqSection() {
 
               {isOpen && (
                 <div className="px-5 pb-4.5 pt-0 text-xs text-slate-600 leading-relaxed border-t border-slate-100/80 mt-1">
-                  <p className="pt-2">{faq.answer}</p>
+                  {faq.answer}
                 </div>
               )}
             </div>

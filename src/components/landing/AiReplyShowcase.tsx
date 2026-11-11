@@ -8,13 +8,8 @@ import {
   Bot,
   Zap,
   Clock,
-  Globe2,
-  ThumbsUp,
-  MessageSquare,
   ShieldCheck,
-  Sliders,
-  ChevronRight,
-  ArrowRight,
+  Check,
 } from "lucide-react";
 
 interface SampleReview {
@@ -28,88 +23,72 @@ interface SampleReview {
   language: string;
   aiTone: string;
   aiReply: string;
-  confidence: number;
 }
 
+// Sample illustrative reviews - clearly labeled as mock/demo data
 const SAMPLE_REVIEWS: SampleReview[] = [
   {
     id: "cafe-1",
-    reviewer: "Priya Sundaram",
+    reviewer: "Customer A",
     avatarBg: "bg-teal-600",
     rating: 5,
-    timeAgo: "12 mins ago",
+    timeAgo: "15 mins ago",
     businessType: "Café & Bakery",
     customerReview:
-      "Had their artisanal almond croissant and double shot flat white this morning. The ambience is soothing and the baristas are super knowledgeable! Will definitely be bringing my team here next week.",
+      "Had their fresh croissant and flat white this morning. The ambience is quiet and comfortable. Looking forward to visiting again with colleagues.",
     language: "English",
-    aiTone: "Warm & Welcoming",
+    aiTone: "Warm & Friendly",
     aiReply:
-      "Thank you so much, Priya! We're thrilled you loved the almond croissant and flat white. Our pastry team bakes them fresh at 6 AM every morning! Looking forward to welcoming you and your team next week.",
-    confidence: 98,
+      "Thank you for visiting! We're glad you enjoyed the fresh croissant and coffee. Looking forward to welcoming you and your colleagues next time.",
   },
   {
     id: "restaurant-2",
-    reviewer: "Karthik Raja",
+    reviewer: "Customer B",
     avatarBg: "bg-amber-600",
     rating: 5,
-    timeAgo: "45 mins ago",
-    businessType: "South Indian Dining",
+    timeAgo: "1 hour ago",
+    businessType: "Casual Dining",
     customerReview:
-      "Vera level taste! Ghee podi idli and filter coffee were top notch. Service was super fast even during Sunday morning rush. Romba nalla experience!",
-    language: "Tanglish (Tamil)",
-    aiTone: "Enthusiastic Local",
+      "Great experience! The ghee roast dosa and filter coffee were very good. Fast service even during peak hours.",
+    language: "English / Tamil",
+    aiTone: "Welcoming & Courteous",
     aiReply:
-      "Nandri Priya friend Karthik! Ungalukku namma Ghee Podi Idli & Filter Kaapi pidichathula romba sandhosham. Next time try our crispy Rava Dosa too. See you soon!",
-    confidence: 96,
+      "Thank you for sharing your experience! We're happy to hear you enjoyed the dosa and coffee, and our team appreciated your visit. Hope to see you again soon!",
   },
   {
     id: "clinic-3",
-    reviewer: "Dr. Arvind Mehta",
+    reviewer: "Customer C",
     avatarBg: "bg-sky-600",
-    rating: 5,
-    timeAgo: "2 hours ago",
+    rating: 4,
+    timeAgo: "3 hours ago",
     businessType: "Dental & Wellness",
     customerReview:
-      "Very gentle and professional tooth cleaning session with Dr. Ananya. The digital scanning technology explained everything clearly. Zero pain and minimal waiting time.",
+      "Professional and gentle checkup. The staff explained the procedure clearly. Clean clinic and minimal waiting time.",
     language: "English",
     aiTone: "Professional & Caring",
     aiReply:
-      "Thank you Dr. Mehta for trusting our dental team with your smile! We strive to make every visit relaxed and transparent with our digital scan walkthroughs. Wishing you wonderful oral health!",
-    confidence: 99,
-  },
-  {
-    id: "salon-4",
-    reviewer: "Sneha Kapoor",
-    avatarBg: "bg-pink-600",
-    rating: 5,
-    timeAgo: "3 hours ago",
-    businessType: "Luxury Salon & Spa",
-    customerReview:
-      "Best hair spa and blowout in the neighborhood. Staff was attentive, offered green tea, and the scalp massage was heavenly. 10/10 service!",
-    language: "English",
-    aiTone: "Boutique Elegance",
-    aiReply:
-      "Thank you dear Sneha! So delighted you enjoyed our signature hair spa and scalp massage. Our stylists love pampering our guests. Can't wait to see you on your next self-care day!",
-    confidence: 97,
+      "Thank you for trusting our clinic with your care! We are committed to making every visit comfortable and informative. Wishing you continued wellness.",
   },
 ];
 
 export default function AiReplyShowcase() {
   const [selectedReview, setSelectedReview] = useState<SampleReview>(SAMPLE_REVIEWS[0]);
-  const [isAutoPilotOn, setIsAutoPilotOn] = useState<boolean>(true);
 
   return (
     <section id="ai-replies" className="px-4 sm:px-8 py-20 max-w-6xl mx-auto w-full">
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold mb-3 border border-teal-200">
-          <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-          <span>Gemini AI Reputation Engine</span>
+          <Bot className="w-3.5 h-3.5 text-teal-600" />
+          <span>AI Review Reply Assistant</span>
+          <span className="ml-1 px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 rounded font-bold uppercase tracking-wider">
+            Coming Soon
+          </span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Never Leave a Google Review Unanswered Again
+          Helpful AI Drafts for Timely Customer Responses
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-2xl mx-auto leading-relaxed">
-          Google algorithms reward businesses that respond quickly to reviews. TapGenie automatically crafts hyper-personalized, empathetic responses trained on your menu, services, and brand tone.
+          Responding to customer reviews shows that you care about their experience. TapGenie helps draft personalized, thoughtful replies that you can review, edit, and approve before posting to your Google Business Profile.
         </p>
       </div>
 
@@ -118,26 +97,11 @@ export default function AiReplyShowcase() {
         <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center justify-between pb-2 mb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Live Review Feed
+              Sample Reviews (Illustrative)
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-slate-600">
-                5-Star Auto-Pilot:
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsAutoPilotOn(!isAutoPilotOn)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                  isAutoPilotOn ? "bg-teal-600" : "bg-slate-300"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                    isAutoPilotOn ? "translate-x-4" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
+            <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded">
+              Demo Preview
+            </span>
           </div>
 
           {SAMPLE_REVIEWS.map((rev) => {
@@ -156,7 +120,7 @@ export default function AiReplyShowcase() {
                 <div
                   className={`w-9 h-9 rounded-xl ${rev.avatarBg} text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs`}
                 >
-                  {rev.reviewer.charAt(0)}
+                  {rev.reviewer.charAt(rev.reviewer.length - 1)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
@@ -196,18 +160,17 @@ export default function AiReplyShowcase() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  Gemini Flash AI Responder
+                  AI Suggested Reply
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Contextual • SEO-Optimized • Multi-Language
+                  Review &bull; Edit &bull; Approve Before Posting
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <Zap className="w-3 h-3" />
-                <span>Auto-Replied in 1.4s</span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                <span>Sample Draft</span>
               </span>
             </div>
           </div>
@@ -245,13 +208,13 @@ export default function AiReplyShowcase() {
           <div className="bg-gradient-to-br from-teal-50/50 via-white to-teal-50/20 rounded-2xl p-5 border border-teal-200/80 shadow-xs relative">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-teal-500" />
                 <span className="text-xs font-bold text-teal-950">
-                  Official Store Reply (Published to Google)
+                  AI Draft Suggestion (Awaiting Owner Approval)
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full">
-                {selectedReview.confidence}% AI Confidence
+              <span className="text-[10px] font-medium text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                You control what posts
               </span>
             </div>
 
@@ -262,13 +225,13 @@ export default function AiReplyShowcase() {
             <div className="pt-3 border-t border-teal-100/80 flex flex-wrap items-center justify-between gap-3 text-[11px]">
               <div className="flex items-center gap-1.5 text-teal-800 font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
-                <span>Zero manual typing needed</span>
+                <span>Editable before publishing</span>
               </div>
 
               <div className="flex items-center gap-2 text-slate-500 text-[10px]">
-                <span>Trained on store knowledge base</span>
-                <span>•</span>
-                <span>Includes local keywords</span>
+                <span>Requires owner sign-off</span>
+                <span>&bull;</span>
+                <span>Respects your brand tone</span>
               </div>
             </div>
           </div>
@@ -277,26 +240,26 @@ export default function AiReplyShowcase() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-5 border-t border-slate-100 text-[11.5px]">
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
               <strong className="block text-slate-900 font-bold mb-0.5">
-                ⚡ 24/7 Auto-Pilot
+                ✏️ Full Owner Control
               </strong>
               <p className="text-[10px] text-slate-500">
-                Instantly acknowledges 5-star reviews to boost your Google Maps responsiveness score.
+                Nothing is published to Google without your explicit approval, unless you opt into automation.
               </p>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
               <strong className="block text-slate-900 font-bold mb-0.5">
-                🎭 Custom Personas
+                🎭 Custom Tone
               </strong>
               <p className="text-[10px] text-slate-500">
-                Configure brand tone: Warm, Playful, Medical, Luxury, or Tanglish dialect.
+                Set the response style: Warm, Professional, Casual, or Courteous.
               </p>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
               <strong className="block text-slate-900 font-bold mb-0.5">
-                💬 Maps Q&amp;A Sync
+                🌐 Multi-Language Support
               </strong>
               <p className="text-[10px] text-slate-500">
-                Answers customer questions on Google Maps automatically using your store FAQs.
+                Helps draft replies in English, regional languages, or bilingual phrasing.
               </p>
             </div>
           </div>
@@ -305,4 +268,3 @@ export default function AiReplyShowcase() {
     </section>
   );
 }
-

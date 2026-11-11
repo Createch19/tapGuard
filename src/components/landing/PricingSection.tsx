@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Check, Sparkles, ArrowRight, Zap, ShieldCheck } from "lucide-react";
+import { Check, Sparkles, ArrowRight } from "lucide-react";
 
 export interface SerializedPlanConfig {
   id: string;
@@ -45,10 +45,10 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
           Simple & Transparent Pricing
         </span>
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Plans for Every Physical Venue & Brand Fleet
+          Plans for Every Physical Venue &amp; Brand Fleet
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-2xl mx-auto">
-          Start with single-card lifetime branding or scale up to multi-location Google review growth and AI review assistance.
+          Start with single-card lifetime branding or scale up to multi-location Google review collection and profile tools.
         </p>
 
         {/* Billing Cycle Toggle */}
@@ -112,6 +112,11 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
             periodText = "/month";
           }
 
+          // Clean description to remove any obsolete "review protection" phrases
+          const cleanDescription = (config.description || "")
+            .replace(/review protection/gi, "honest review collection")
+            .replace(/Google Review Accelerator/gi, "Direct Google Review Flow");
+
           return (
             <div
               key={config.id}
@@ -141,7 +146,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                 </div>
 
                 <p className="text-[11px] text-slate-500 mb-4 min-h-[36px] leading-relaxed">
-                  {config.description}
+                  {cleanDescription}
                 </p>
 
                 {/* Price Display */}
@@ -154,6 +159,9 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                       {periodText}
                     </span>
                   </div>
+                  <span className="text-[9.5px] text-slate-400 mt-1 block">
+                    Exclusive of GST
+                  </span>
                 </div>
 
                 {/* Feature Bullet Points */}
@@ -184,7 +192,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                     </span>
                   </div>
 
-                  {/* Review Gate */}
+                  {/* Direct Review Link */}
                   <div className="flex items-start gap-2">
                     {config.smartGate ? (
                       <Check className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
@@ -192,7 +200,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                       <span className="w-4 h-4 text-slate-300 font-bold shrink-0 mt-0.5 text-center text-xs">✕</span>
                     )}
                     <span className={`text-[11.5px] leading-snug ${config.smartGate ? "" : "text-slate-400 line-through"}`}>
-                      Google Review Accelerator
+                      Direct Google Review Flow
                     </span>
                   </div>
 
@@ -221,17 +229,17 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                     <div className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                       <span className="text-[11.5px] font-semibold text-teal-700 leading-snug">
-                        No "Powered by" Footer
+                        No &ldquo;Powered by&rdquo; Footer
                       </span>
                     </div>
                   )}
 
-                  {/* Regional AI Keywords */}
+                  {/* Regional Prompts */}
                   {config.keywordSuggestions && (
                     <div className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                       <span className="text-[11.5px] font-semibold text-slate-800 leading-snug">
-                        AI Prompts (Tamil, Hindi, etc.)
+                        Multi-Language Reflection Prompts
                       </span>
                     </div>
                   )}
@@ -261,7 +269,7 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
                     <div className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                       <span className="text-[11.5px] font-semibold text-slate-900 leading-snug">
-                        Priority Support & SLA
+                        Priority Support &amp; SLA
                       </span>
                     </div>
                   )}
@@ -289,4 +297,3 @@ export default function PricingSection({ planConfigs }: PricingSectionProps) {
     </section>
   );
 }
-

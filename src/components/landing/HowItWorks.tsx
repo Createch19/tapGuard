@@ -1,34 +1,34 @@
 import React from "react";
-import { Smartphone, ShieldCheck, CreditCard, Sparkles, ArrowRight } from "lucide-react";
+import { Smartphone, CreditCard, Sparkles, QrCode } from "lucide-react";
 
 export default function HowItWorks() {
   const steps = [
     {
       step: "01",
-      badge: "Plug & Play Hardware",
+      badge: "Easy Setup",
       title: "Place Your Touchpoint",
       description:
-        "Position pre-printed acrylic table tents, counter pucks, or weatherproof NFC stands at customer touchpoints. Zero chip programming needed.",
+        "Place your physical NFC card, counter stand, or table tent at customer touchpoints. Each card is ready to use out of the box with zero programming needed.",
       icon: CreditCard,
-      highlight: "Universal Ghost Link Technology",
+      highlight: "Compact NFC & QR Stand",
     },
     {
       step: "02",
       badge: "Zero Friction",
       title: "Customer Taps or Scans",
       description:
-        "Customers simply tap their phone or scan the high-res vector QR code. Opens natively in 0.5s without installing any app.",
+        "Customers simply tap their phone or scan the high-resolution QR code. Works natively without installing any app.",
       icon: Smartphone,
-      highlight: "Works on 99% of iOS & Android phones",
+      highlight: "Works on iPhone XR+ and most Android phones",
     },
     {
       step: "03",
-      badge: "Intelligent Outcome",
-      title: "Instant 5-Star Reviews",
+      badge: "Direct Link",
+      title: "Customer Leaves a Review",
       description:
-        "Customers are guided to your official Google Review page with 1-click AI sentence suggestions and target SEO keywords, maximizing your rating conversion.",
+        "Customers are taken directly to your official Google Maps review screen where they can write an authentic review in their own words.",
       icon: Sparkles,
-      highlight: "10x higher review conversion with 1 tap",
+      highlight: "100% direct official Google review link",
     },
   ];
 
@@ -42,12 +42,12 @@ export default function HowItWorks() {
           How TapGenie Powers Your Storefront
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-xl mx-auto">
-          No apps, no complex setup, and no tech experience needed. Your venue goes live in less than 2 minutes.
+          No apps, no complex setup, and no tech experience needed. Your venue goes live in minutes.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-        {steps.map((item, idx) => {
+        {steps.map((item) => {
           const Icon = item.icon;
           return (
             <div
@@ -87,4 +87,3 @@ export default function HowItWorks() {
     </section>
   );
 }
-

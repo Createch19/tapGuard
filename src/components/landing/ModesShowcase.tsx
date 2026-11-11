@@ -25,20 +25,20 @@ export default function ModesShowcase() {
   const modes = [
     {
       id: "google-gate",
-      tabTitle: "⭐ Google Reviews",
-      badge: "Review Growth",
-      title: "Google Review Booster with AI Sentences",
+      tabTitle: "⭐ Direct Google Reviews",
+      badge: "Honest Review Collection",
+      title: "Direct Google Review Touchpoint",
       subtitle:
-        "Turn happy in-store visitors into verified 5-star Google reviews in seconds. Direct one-tap redirect with automated AI review keyword suggestions.",
+        "Make it easy for in-store visitors to leave a review on your official Google Maps listing. Direct one-tap redirect with helpful reflection prompts.",
       preview: {
         header: "How was your experience today?",
-        sub: "Tap a star to rate us",
+        sub: "Tap to leave an authentic review",
         stars: 5,
         perks: [
-          "Instant 1-tap redirect to your verified Google Maps review form",
-          "Non-repeating AI keyword sentences in 6 regional languages",
-          "Eliminates reviewer writer's block to boost rating conversion",
-          "Detailed tap analytics and conversion tracking per card & table",
+          "Direct 1-tap redirect straight to your official Google Maps review screen",
+          "Every customer gets the same review link — zero filtering or gating",
+          "Optional reflection prompts in regional languages to help customers write in their own words",
+          "Card tap analytics to track in-store engagement per touchpoint",
         ],
       },
       tagColor: "bg-amber-50 text-amber-800 border-amber-200",
@@ -69,18 +69,18 @@ export default function ModesShowcase() {
     },
     {
       id: "upi-payments",
-      tabTitle: "💳 0% UPI Instant Pay",
+      tabTitle: "💳 Direct UPI Display",
       badge: "Direct Merchant Settlement",
-      title: "Zero-Commission UPI Payment Tile",
+      title: "Direct UPI Payment Details Tile",
       subtitle:
-        "Allow customers to pay instantly using Google Pay, PhonePe, or Paytm via deep link or dynamic on-screen QR code directly to your bank account.",
+        "Display your merchant UPI ID and payment links so customers can pay you directly. TapGenie does not process, hold, or touch transaction funds.",
       preview: {
-        header: "Instant UPI QR Payment",
+        header: "Direct UPI Payment",
         sub: "GPay • PhonePe • Paytm • BHIM",
         stars: null,
         perks: [
-          "0% transaction fees — money hits your merchant bank account directly",
-          "One-tap deep link launch for installed UPI apps on mobile",
+          "Payments go straight to your UPI ID — TapGenie does not process payments",
+          "One-tap deep link launch for installed UPI apps on customer devices",
           "Dynamic on-screen vector QR code with 1-click 'Copy UPI ID'",
           "Available directly inside your digital business profile",
         ],
@@ -124,9 +124,9 @@ export default function ModesShowcase() {
         stars: null,
         perks: [
           "One-tap redirect to your verified Swiggy & Zomato storefronts",
-          "Promote direct pickup discounts (e.g. 15% off walk-in orders)",
+          "Promote direct pickup options for walk-in orders",
           "Instant telephone dialer (`tel:`) for table reservations",
-          "Boost off-premise revenue from table guests who love your food",
+          "Convenient access for customers visiting your location",
         ],
       },
       tagColor: "bg-rose-50 text-rose-800 border-rose-200",
@@ -142,13 +142,13 @@ export default function ModesShowcase() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <span className="text-xs font-bold uppercase tracking-wider text-teal-400 block mb-1">
-            5 Powerful Modes in 1 Physical Card
+            Flexible Modes in 1 Physical Card
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
             Remotely Reprogram Your Cards Anytime
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-xl mx-auto">
-            Switch your physical counter stands or table cards between review collection, digital bio, UPI payments, or food delivery in 1 click from your dashboard.
+            Switch your physical counter stands or table cards between direct Google reviews, digital bio, UPI payment details, or food delivery in 1 click from your dashboard.
           </p>
         </div>
 
@@ -199,103 +199,45 @@ export default function ModesShowcase() {
               ))}
             </div>
 
-            <div className="pt-4 flex flex-wrap items-center gap-4">
+            <div className="pt-4 flex items-center gap-4">
               <Link
                 href={currentMode.ctaUrl}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition-all"
               >
                 <span>{currentMode.ctaText}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link
-                href="#pricing"
-                className="text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-              >
-                View Included Plans →
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
 
-          {/* Right Simulated Mobile Preview Card */}
+          {/* Right Mobile Visual Preview */}
           <div className="lg:col-span-5 flex justify-center">
-            <div className="w-full max-w-xs bg-white text-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 relative overflow-hidden">
-              <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4" />
+            <div className="w-full max-w-[280px] bg-slate-950 rounded-4xl p-4 border-4 border-slate-700 shadow-2xl relative">
+              <div className="w-16 h-3 bg-slate-800 rounded-full mx-auto mb-4" />
+              <div className="bg-white text-slate-900 rounded-2xl p-4 text-center min-h-[300px] flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                    Mobile Experience
+                  </span>
+                  <h4 className="font-extrabold text-sm text-slate-900 mb-1">
+                    {currentMode.preview.header}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mb-4">
+                    {currentMode.preview.sub}
+                  </p>
 
-              <div className="text-center mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center mx-auto mb-2 font-bold text-base shadow-xs">
-                  TG
+                  {currentMode.preview.stars && (
+                    <div className="flex justify-center gap-1.5 mb-4">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <h4 className="text-sm font-bold text-slate-900 leading-tight">
-                  {currentMode.preview.header}
-                </h4>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  {currentMode.preview.sub}
-                </p>
-              </div>
 
-              {currentMode.id === "google-gate" && (
-                <div className="flex justify-center gap-1.5 py-3 bg-slate-50 rounded-2xl mb-4 border border-slate-100">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="w-6 h-6 fill-amber-400 text-amber-400" />
-                  ))}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[10px] text-slate-600">
+                  Direct Google Maps Link &bull; Tap or Scan to Open
                 </div>
-              )}
-
-              {currentMode.id === "microsite" && (
-                <div className="grid grid-cols-3 gap-1.5 text-center mb-4">
-                  <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
-                    <Phone className="w-4 h-4 mx-auto text-teal-600 mb-1" />
-                    <span className="text-[9px] font-bold block">Call</span>
-                  </div>
-                  <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
-                    <MessageCircle className="w-4 h-4 mx-auto text-emerald-600 mb-1" />
-                    <span className="text-[9px] font-bold block">WhatsApp</span>
-                  </div>
-                  <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
-                    <MapPin className="w-4 h-4 mx-auto text-sky-600 mb-1" />
-                    <span className="text-[9px] font-bold block">Maps</span>
-                  </div>
-                </div>
-              )}
-
-              {currentMode.id === "upi-payments" && (
-                <div className="p-4 bg-teal-50/60 rounded-2xl border border-teal-100 text-center mb-4">
-                  <QrCode className="w-16 h-16 mx-auto text-teal-700 mb-2" />
-                  <span className="text-[10px] font-bold text-teal-900 block">Scan with GPay or PhonePe</span>
-                  <span className="text-[9px] text-teal-600 font-mono">store@okhdfcbank</span>
-                </div>
-              )}
-
-              {currentMode.id === "social-hub" && (
-                <div className="space-y-1.5 mb-4">
-                  <div className="p-2 bg-gradient-to-r from-pink-500/10 to-rose-500/10 rounded-xl border border-pink-200/60 text-xs font-bold text-pink-700 flex items-center justify-between">
-                    <span>Follow on Instagram</span>
-                    <span>→</span>
-                  </div>
-                  <div className="p-2 bg-blue-50 rounded-xl border border-blue-200/60 text-xs font-bold text-blue-700 flex items-center justify-between">
-                    <span>Like on Facebook</span>
-                    <span>→</span>
-                  </div>
-                </div>
-              )}
-
-              {currentMode.id === "delivery-hub" && (
-                <div className="space-y-1.5 mb-4">
-                  <div className="p-2 bg-orange-50 rounded-xl border border-orange-200/60 text-xs font-bold text-orange-700 flex items-center justify-between">
-                    <span>Order on Swiggy</span>
-                    <span>🛵</span>
-                  </div>
-                  <div className="p-2 bg-rose-50 rounded-xl border border-rose-200/60 text-xs font-bold text-rose-700 flex items-center justify-between">
-                    <span>Order on Zomato</span>
-                    <span>🍴</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-3 border-t border-slate-100 text-center">
-                <span className="text-[9px] text-slate-400 font-medium">
-                  Powered by TapGenie
-                </span>
               </div>
             </div>
           </div>
@@ -304,4 +246,3 @@ export default function ModesShowcase() {
     </section>
   );
 }
-

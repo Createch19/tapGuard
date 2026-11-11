@@ -5,16 +5,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  XCircle,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
   Clock,
   Camera,
   Layers,
   MapPin,
   Utensils,
-  ChevronRight,
 } from "lucide-react";
 
 interface AuditCheck {
@@ -29,256 +24,208 @@ interface AuditCheck {
 
 const AUDIT_CHECKS: AuditCheck[] = [
   {
-    title: "100% Core Profile & Address Attributes Filled",
+    title: "Complete Core Profile & Accurate Physical Address",
     category: "PROFILE",
     status: "PASS",
     score: 25,
     maxScore: 25,
-    impact: "Maximizes discovery in local search algorithms",
+    impact: "Ensures customers find correct driving directions and store contact info",
   },
   {
-    title: "100% Review Reply Rate (Gemini Auto-Pilot Active)",
+    title: "Review Reply Coverage",
     category: "ENGAGEMENT",
     status: "PASS",
     score: 25,
     maxScore: 25,
-    impact: "Google signals high business responsiveness",
+    impact: "Shows customers and visitors that your team values their direct feedback",
   },
   {
-    title: "Upcoming Holiday & Festival Hours Configured",
+    title: "Upcoming Holiday & Special Hours Configured",
     category: "ENGAGEMENT",
     status: "PASS",
     score: 20,
     maxScore: 20,
-    impact: "Prevents customer confusion during long weekends",
+    impact: "Prevents customer disappointment by showing accurate holiday opening times",
   },
   {
-    title: "Structured Digital Menu & Service Catalog Synced",
+    title: "Structured Digital Menu or Service Catalog Details",
     category: "CONTENT",
     status: "PASS",
     score: 15,
     maxScore: 15,
-    impact: "Enables direct item search in Google Maps",
+    impact: "Helps prospective customers understand your offerings before visiting",
   },
   {
-    title: "Fresh High-Res Photos Uploaded Within 14 Days",
+    title: "Recent Storefront & Product Photos Uploaded",
     category: "CONTENT",
     status: "WARN",
-    score: 9,
+    score: 8,
     maxScore: 15,
-    impact: "Venues with fresh photos receive 42% more direction requests",
-    fixAction: "Upload 5 fresh storefront / dish photos",
+    impact: "Clear, up-to-date photos help walk-in customers recognize your storefront",
+    fixAction: "Add 2-3 recent photos of your storefront or popular offerings",
   },
 ];
 
 export default function ProfileAuditShowcase() {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
 
-  const filteredChecks = activeFilter === "ALL"
-    ? AUDIT_CHECKS
-    : AUDIT_CHECKS.filter((c) => c.category === activeFilter);
+  const filteredChecks =
+    activeFilter === "ALL"
+      ? AUDIT_CHECKS
+      : AUDIT_CHECKS.filter((c) => c.category === activeFilter);
 
   return (
     <section id="profile-audit" className="px-4 sm:px-8 py-20 max-w-6xl mx-auto w-full">
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold mb-3 border border-teal-200">
           <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-          <span>Profile Health &amp; SEO Optimization</span>
+          <span>Profile Health Checklist</span>
+          <span className="ml-1 px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 rounded font-bold uppercase tracking-wider">
+            Coming Soon
+          </span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Unlock 100/100 Google Business Profile Health
+          Keep Your Google Business Profile Accurate &amp; Up to Date
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-2xl mx-auto leading-relaxed">
-          Google buries incomplete or outdated business listings. TapGenie scans your Google profile across 20+ ranking factors and gives you 1-click recommendations to climb local rankings.
+          Incomplete hours or missing photos can turn away potential walk-ins. TapGenie runs a profile checklist across your listing details and provides clear, actionable recommendations to keep your public presence accurate.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left: Interactive Score Dial & Health Breakdown */}
+        {/* Left: Illustrative Checklist Score Card */}
         <div className="lg:col-span-5 bg-gradient-to-br from-white to-teal-50/30 rounded-3xl p-7 border border-slate-200/90 shadow-xl text-center relative overflow-hidden">
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Audit Health Score
+              Listing Completeness
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Top 5% in District
+            <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              Sample Checklist
             </span>
           </div>
 
-          {/* Big Circular Score Display */}
-          <div className="relative w-44 h-44 mx-auto mb-6 flex flex-col items-center justify-center">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+          <div className="relative w-40 h-40 mx-auto my-4 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
               <circle
                 cx="60"
                 cy="60"
                 r="50"
-                className="stroke-slate-100 fill-none"
+                className="text-slate-100"
                 strokeWidth="10"
+                stroke="currentColor"
+                fill="transparent"
               />
               <circle
                 cx="60"
                 cy="60"
                 r="50"
-                className="stroke-teal-600 fill-none transition-all duration-1000 ease-out"
+                className="text-teal-600"
                 strokeWidth="10"
                 strokeDasharray={2 * Math.PI * 50}
-                strokeDashoffset={2 * Math.PI * 50 * (1 - 0.94)}
+                strokeDashoffset={2 * Math.PI * 50 * (1 - 0.93)}
                 strokeLinecap="round"
+                stroke="currentColor"
+                fill="transparent"
               />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-4xl font-black text-slate-900 leading-none">
-                94
-              </span>
-              <span className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                out of 100
-              </span>
-              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">
-                +14 pts gained
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className="text-3xl font-black text-slate-900">93%</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Profile Health
               </span>
             </div>
           </div>
 
-          <h3 className="text-base font-bold text-slate-900 mb-1">
-            Excellent Listing Optimization
-          </h3>
-          <p className="text-xs text-slate-500 mb-6">
-            Your profile has 94% of Google&apos;s ranking signals active.
-          </p>
-
-          {/* Impact Stats */}
-          <div className="grid grid-cols-2 gap-2 text-left pt-4 border-t border-slate-100">
-            <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-2xs">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase block">
-                Maps Discovery
-              </span>
-              <span className="text-lg font-black text-teal-600 flex items-center gap-1">
-                <TrendingUp className="w-4 h-4" />
-                +38%
-              </span>
-              <span className="text-[10px] text-slate-500">
-                vs district average
-              </span>
+          <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 text-left">
+            <div className="p-3 bg-white rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 block font-semibold">Verified Items</span>
+              <span className="text-sm font-bold text-slate-900">4 / 5 Passed</span>
             </div>
-            <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-2xs">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase block">
-                Direction Requests
-              </span>
-              <span className="text-lg font-black text-emerald-600 flex items-center gap-1">
-                <TrendingUp className="w-4 h-4" />
-                +24%
-              </span>
-              <span className="text-[10px] text-slate-500">
-                more customer footfall
-              </span>
+            <div className="p-3 bg-white rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 block font-semibold">Suggested Action</span>
+              <span className="text-sm font-bold text-amber-600">1 Photo Update</span>
             </div>
           </div>
         </div>
 
-        {/* Right: Live Audit Checklist */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl">
-          <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 flex-wrap gap-2">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Live Optimization Checklist
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Scanned across Google Business Profile APIs
-              </p>
-            </div>
-
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-[11px]">
-              {(["ALL", "PROFILE", "CONTENT", "ENGAGEMENT"] as const).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setActiveFilter(cat)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    activeFilter === cat
-                      ? "bg-white text-slate-900 shadow-2xs"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  {cat === "ALL" ? "All Checks" : cat.charAt(0) + cat.slice(1).toLowerCase()}
-                </button>
-              ))}
+        {/* Right: Detailed Checklist Items */}
+        <div className="lg:col-span-7 space-y-3">
+          <div className="flex items-center justify-between pb-2 mb-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Health Checks (Sample Preview)
+            </span>
+            <div className="flex items-center gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveFilter("ALL")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                  activeFilter === "ALL"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter("PROFILE")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                  activeFilter === "PROFILE"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                Core Info
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter("ENGAGEMENT")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                  activeFilter === "ENGAGEMENT"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                Hours &amp; Activity
+              </button>
             </div>
           </div>
 
-          {/* Checklist Items */}
-          <div className="space-y-3 mb-6">
-            {filteredChecks.map((check, idx) => {
-              const isPass = check.status === "PASS";
-              return (
-                <div
-                  key={idx}
-                  className={`p-4 rounded-2xl border transition-all flex items-start gap-3.5 ${
-                    isPass
-                      ? "bg-slate-50/60 border-slate-200/80"
-                      : "bg-amber-50/50 border-amber-200/80"
-                  }`}
-                >
-                  <div className="mt-0.5 shrink-0">
-                    {isPass ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <h4 className="text-xs font-bold text-slate-900">
-                        {check.title}
-                      </h4>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          isPass
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-amber-100 text-amber-800 border border-amber-300"
-                        }`}
-                      >
-                        {check.score}/{check.maxScore} pts
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-500">
-                      {check.impact}
-                    </p>
-
-                    {check.fixAction && (
-                      <div className="mt-2 pt-2 border-t border-amber-200/60 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-amber-900">
-                          Recommended Fix: {check.fixAction}
-                        </span>
-                        <span className="text-[10px] font-bold text-amber-800 underline">
-                          Fix in Dashboard &rarr;
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="p-4 rounded-2xl bg-teal-50 border border-teal-100 text-teal-950 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-teal-600 shrink-0" />
-              <span>
-                <strong>1-Click Profile Sync:</strong> Sync changes directly from TapGenie to Google Maps instantly.
-              </span>
-            </div>
-            <a
-              href="#pricing"
-              className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shrink-0 transition-all text-[11px]"
+          {filteredChecks.map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all flex items-start justify-between gap-4"
             >
-              Start Free Audit
-            </a>
-          </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 shrink-0">
+                  {item.status === "PASS" ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                    {item.title}
+                  </h4>
+                  <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
+                    {item.impact}
+                  </p>
+                  {item.fixAction && (
+                    <span className="inline-block mt-2 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      Recommendation: {item.fixAction}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <p className="text-[11px] text-slate-400 pt-2 text-right">
+            * Sample checklist shown for illustration. Real scores reflect your connected profile details.
+          </p>
         </div>
       </div>
     </section>
   );
 }
-

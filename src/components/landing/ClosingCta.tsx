@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, CreditCard, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, CreditCard, Sparkles, ShieldCheck, QrCode } from "lucide-react";
 
 export default function ClosingCta() {
   return (
@@ -13,15 +13,15 @@ export default function ClosingCta() {
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold mb-4 border border-teal-400/30">
             <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-            <span>Ready to Elevate Your Storefront?</span>
+            <span>Ready to Modernize Your Storefront?</span>
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
-            Start Collecting 5-Star Reviews &amp; Payments in Minutes
+            Simplify Customer Reviews &amp; Digital Touchpoints
           </h2>
 
           <p className="text-xs sm:text-base text-slate-300 max-w-xl mx-auto mb-8 leading-relaxed font-normal">
-            Whether you run a single neighborhood café or a multi-city franchise, TapGenie turns every in-store interaction into lasting customer loyalty.
+            Whether you run a single neighborhood café or a multi-location brand, TapGenie makes it effortless for customers to connect with your business.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-10">
@@ -45,15 +45,15 @@ export default function ClosingCta() {
           <div className="pt-6 border-t border-slate-800 flex flex-wrap items-center justify-center gap-6 text-[11px] text-slate-400 font-medium">
             <div className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-              <span>Zero Google Policy Risk</span>
+              <span>Honest &amp; Direct Reviews</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-teal-400" />
-              <span>No App Download Required</span>
+              <QrCode className="w-3.5 h-3.5 text-teal-400" />
+              <span>NFC &amp; QR Universal Fallback</span>
             </div>
             <div className="flex items-center gap-1.5">
               <CreditCard className="w-3.5 h-3.5 text-teal-400" />
-              <span>0% Commission UPI Payments</span>
+              <span>Direct Merchant UPI Settlement</span>
             </div>
           </div>
         </div>
@@ -61,4 +61,3 @@ export default function ClosingCta() {
     </section>
   );
 }
-
